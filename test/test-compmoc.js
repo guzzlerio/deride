@@ -2,6 +2,7 @@
 
 var compmoc = require('../lib/compmoc.js');
 var util = require('util');
+var should = require('should');
 
 describe('Creating a stub object', function() {
 
@@ -58,9 +59,19 @@ function assertions(bob) {
 
     it('enables setting the return value of a function', function(done) {
         bob = compmoc.wrap(bob);
-        bob.expect.greet.returns('foobar');
+        bob.expect.greet.toReturn('foobar');
         var result = bob.greet('alice');
         result.should.eql('foobar');
+        done();
+    });
+
+    it('enables throwing an exception for a method invocation', function(done) {
+        bob = compmoc.wrap(bob);
+        bob.expect.greet.toThrow('BANG');
+        should(function() {
+            bob.greet('alice');
+        }).
+        throw(/BANG/);
         done();
     });
 }
