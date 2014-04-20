@@ -49,10 +49,18 @@ function assertions(bob) {
     it('enables overriding a methods body', function(done) {
         bob = compmoc.wrap(bob);
         bob.expect.greet.toDoThis(function(otherPersonName) {
-           return util.format('yo %s', otherPersonName);
+            return util.format('yo %s', otherPersonName);
         });
         var result = bob.greet('alice');
         result.should.eql('yo alice');
+        done();
+    });
+
+    it('enables setting the return value of a function', function(done) {
+        bob = compmoc.wrap(bob);
+        bob.expect.greet.returns('foobar');
+        var result = bob.greet('alice');
+        result.should.eql('foobar');
         done();
     });
 }
