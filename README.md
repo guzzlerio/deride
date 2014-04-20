@@ -46,6 +46,16 @@ bob.greet('bob');
 bob.expect.greet.called.withArgs('bob');
 ```
 
+### Creating a stubbed object
+
+Stubbing an object simply creates an anonymous object, with all the method specified and then the object is wrapped to provide all the expectation functionality of the library
+
+```javascript
+var bob = compmoc.stub(['greet']);
+bob.greet('alice');
+bob.expect.greet.called.times(1);
+```
+
 ## Documentation
 _(Coming soon)_
 
