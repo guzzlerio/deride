@@ -46,6 +46,36 @@ bob.greet('bob');
 bob.expect.greet.called.withArgs('bob');
 ```
 
+### Override the method body to change the invocation
+```javascript
+var bob = new Person('bob');
+bob.expect.greet.toDoThis(function(otherPersonName) {
+    return util.format('yo %s', otherPersonName);
+});
+var result = bob.greet('alice');
+result.should.eql('yo alice');
+```
+
+### Override the return value for a function
+```javascript
+var bob = new Person('bob');
+bob = compmoc.wrap(bob);
+bob.expect.greet.toReturn('foobar');
+var result = bob.greet('alice');
+result.should.eql('foobar');
+```
+
+### Force a method invocation to throw a specific error
+```javascript
+var bob = new Person('bob');
+bob = compmoc.wrap(bob);
+bob.expect.greet.toThrow('BANG');
+should(function() {
+    bob.greet('alice');
+}).
+throw(/BANG/);
+```
+
 ### Creating a stubbed object
 
 Stubbing an object simply creates an anonymous object, with all the method specified and then the object is wrapped to provide all the expectation functionality of the library
