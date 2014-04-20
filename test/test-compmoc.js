@@ -21,4 +21,11 @@ describe('Wrapping existing object with expectations', function() {
         done();
     });
 
+    it('enables the determination that a method has NEVER been called', function(done) {
+        var bob = new Person('bob');
+        bob = compmoc.wrap(bob);
+        bob.expect.greet.called.never();
+        done();
+    });
+
 });
