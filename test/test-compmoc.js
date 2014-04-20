@@ -71,7 +71,18 @@ function assertions(bob) {
         should(function() {
             bob.greet('alice');
         }).
-        throw(/BANG/);
+        throw (/BANG/);
+        done();
+    });
+
+    it('enables setting the return value of a function when specific arguments are provided', function(done) {
+        bob = compmoc.wrap(bob);
+        bob.expect.greet.when('alice').toReturn('foobar');
+        bob.expect.greet.toReturn('barfoo');
+        var result1 = bob.greet('alice');
+        var result2 = bob.greet('bob');
+        result1.should.eql('foobar');
+        result2.should.eql('barfoo');
         done();
     });
 }
