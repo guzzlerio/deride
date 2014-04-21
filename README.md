@@ -2,7 +2,7 @@
 
 Mocking library based on composition
 
-The inspiration for this was that my colleague was having a look at other mocking frameworks and mentioning to me that they do not work when using ```Object.freeze``` in the objects to enforce encapsulation.  This library builds on composition to create a mocking library that can work with objects which are frozen. It is also developed with a very strict jshint profile, which is sometimes a challenge in itself but never the less a rewarding one.
+The inspiration for this was that my colleague was having a look at other mocking frameworks and mentioned to me that they do not work when using ```Object.freeze``` in the objects to enforce encapsulation.  This library builds on composition to create a mocking library that can work with objects which are frozen.  **It is really for the purpose of example since I am looking into using ```Object.freeze``` heavily in my current and future JavaScript develoment.** It is also developed with a very strict jshint profile, which is sometimes a challenge in itself but never the less a rewarding one.
 
 ## Getting Started
 Install the module with: `npm install compmoc`
