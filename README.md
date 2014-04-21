@@ -1,4 +1,4 @@
-# compmoc [![Build Status](https://secure.travis-ci.org/area/compmoc.png?branch=master)](http://travis-ci.org/area/compmoc)
+# compmoc [![Build Status](https://travis-ci.org/REAANDREW/compmoc.svg?branch=master)](https://travis-ci.org/REAANDREW/compmoc)
 
 Mocking library based on composition
 
@@ -88,6 +88,16 @@ bob.greet('alice');
 bob.expect.greet.called.times(1);
 ```
 
+###Setting the return value of a function when specific arguments are used
+```javascript
+bob = compmoc.wrap(bob);
+bob.setup.greet.when('alice').toReturn('foobar');
+bob.setup.greet.toReturn('barfoo');
+var result1 = bob.greet('alice');
+var result2 = bob.greet('bob');
+result1.should.eql('foobar');
+result2.should.eql('barfoo');
+```
 
 ## Examples
 _(Coming soon)_
