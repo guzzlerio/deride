@@ -14,17 +14,22 @@ var compmoc = require('compmoc');
 ## Documentation
 
 ### Mocking
+
 - compmoc.wrap(obj)
 - compmoc.stub(methods)
+
 ### Expectations
-- <obj>.expect.<method>.called.times(n)
-- <obj>.expect.<method>.called.never()
-- <obj>.expect.<method>.called.withArgs(args)
+
+- ```obj```.expect.```method```.called.times(n)
+- ```obj```.expect.```method```.called.never()
+- ```obj```.expect.```method```.called.withArgs(args)
+
 ### Setup
-- <obj>.setup.<method>.toDoThis(func)
-- <obj>.setup.<method>.toReturn(value)
-- <obj>.setup.<method>.toThrow(message)
-- <obj>.setup.<method>.when(args).[toDoThis|toReturn|toThrow]
+
+- ```obj```.setup.```method```.toDoThis(func)
+- ```obj```.setup.```method```.toReturn(value)
+- ```obj```.setup.```method```.toThrow(message)
+- ```obj```.setup.```method```.when(args).[toDoThis|toReturn|toThrow]
 
 ## Examples
 
