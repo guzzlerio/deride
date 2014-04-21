@@ -123,5 +123,20 @@ _.forEach(tests, function(test) {
             result2.should.eql('barfoo');
             done();
         });
+
+        it('enables throwing an exception for a method invocation when specific arguments are provided', function(done) {
+
+            bob = compmoc.wrap(bob);
+            bob.setup.greet.when('alice').toThrow('BANG');
+            should(function() {
+                bob.greet('alice');
+            }).
+            throw (/BANG/);
+            should(function() {
+                bob.greet('bob');
+            }).not.
+            throw (/BANG/);
+            done();
+        });
     });
 });
