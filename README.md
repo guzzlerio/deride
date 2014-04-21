@@ -11,6 +11,8 @@ Install the module with: `npm install compmoc`
 var compmoc = require('compmoc');
 ```
 
+## Documentation
+
 ### The context
 ```javascript
 var Person = function(name) {
@@ -49,7 +51,7 @@ bob.expect.greet.called.withArgs('bob');
 ### Override the method body to change the invocation
 ```javascript
 var bob = new Person('bob');
-bob.expect.greet.toDoThis(function(otherPersonName) {
+bob.setup.greet.toDoThis(function(otherPersonName) {
     return util.format('yo %s', otherPersonName);
 });
 var result = bob.greet('alice');
@@ -60,7 +62,7 @@ result.should.eql('yo alice');
 ```javascript
 var bob = new Person('bob');
 bob = compmoc.wrap(bob);
-bob.expect.greet.toReturn('foobar');
+bob.setup.greet.toReturn('foobar');
 var result = bob.greet('alice');
 result.should.eql('foobar');
 ```
@@ -69,7 +71,7 @@ result.should.eql('foobar');
 ```javascript
 var bob = new Person('bob');
 bob = compmoc.wrap(bob);
-bob.expect.greet.toThrow('BANG');
+bob.setup.greet.toThrow('BANG');
 should(function() {
     bob.greet('alice');
 }).
@@ -86,8 +88,6 @@ bob.greet('alice');
 bob.expect.greet.called.times(1);
 ```
 
-## Documentation
-_(Coming soon)_
 
 ## Examples
 _(Coming soon)_
