@@ -13,6 +13,21 @@ var compmoc = require('compmoc');
 
 ## Documentation
 
+### Mocking
+- compmoc.wrap(obj)
+- compmoc.stub(methods)
+### Expectations
+- <obj>.expect.<method>.called.times(n)
+- <obj>.expect.<method>.called.never()
+- <obj>.expect.<method>.called.withArgs(args)
+### Setup
+- <obj>.setup.<method>.toDoThis(func)
+- <obj>.setup.<method>.toReturn(value)
+- <obj>.setup.<method>.toThrow(message)
+- <obj>.setup.<method>.when(args).[toDoThis|toReturn|toThrow]
+
+## Examples
+
 ### The context
 ```javascript
 var Person = function(name) {
@@ -78,16 +93,6 @@ should(function() {
 throw(/BANG/);
 ```
 
-### Creating a stubbed object
-
-Stubbing an object simply creates an anonymous object, with all the method specified and then the object is wrapped to provide all the expectation functionality of the library
-
-```javascript
-var bob = compmoc.stub(['greet']);
-bob.greet('alice');
-bob.expect.greet.called.times(1);
-```
-
 ###Setting the return value of a function when specific arguments are used
 ```javascript
 bob = compmoc.wrap(bob);
@@ -99,11 +104,19 @@ result1.should.eql('foobar');
 result2.should.eql('barfoo');
 ```
 
-## Examples
-_(Coming soon)_
+### Creating a stubbed object
+
+Stubbing an object simply creates an anonymous object, with all the method specified and then the object is wrapped to provide all the expectation functionality of the library
+
+```javascript
+var bob = compmoc.stub(['greet']);
+bob.greet('alice');
+bob.expect.greet.called.times(1);
+```
+
 
 ## Contributing
-In lieu of a formal styleguide, take care to maintain the existing coding style. Add unit tests for any new or changed functionality. Lint and test your code using [Grunt](http://gruntjs.com/).
+Please ensure that you run ```grunt```, have no style warnings and that all the tests are passing.
 
 ## Release History
 _(Nothing yet)_
