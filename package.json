@@ -8,6 +8,12 @@
     "email": "email@andrewrea.co.uk",
     "url": "http://www.andrewrea.co.uk"
   },
+  "contributors": [ 
+    {
+      "name": "James Allen",
+      "url" : "https://github.com/jamlen"
+    } 
+  ],
   "repository": {
     "type": "git",
     "url": "git://github.com/REAANDREW/deride.git"
@@ -15,12 +21,6 @@
   "bugs": {
     "url": "https://github.com/REAANDREW/deride/issues"
   },
-  "licenses": [
-    {
-      "type": "MIT",
-      "url": "https://github.com/REAANDREW/deride/blob/master/LICENSE-MIT"
-    }
-  ],
   "main": "lib/deride",
   "engines": {
     "node": ">= 0.8.0"
@@ -37,11 +37,13 @@
     "grunt-notify": "~0.2.20",
     "grunt-mocha-test": "~0.10.2",
     "grunt-blanket": "0.0.8",
-    "blanket": "~1.1.6"
+    "blanket": "~1.1.6",
+    "grunt-pmkr-license": "~1.1.0"
   },
   "keywords": [],
   "dependencies": {
     "should": "~3.3.1",
     "lodash": "~2.4.1"
-  }
+  },
+  "license": "MIT"
 }
