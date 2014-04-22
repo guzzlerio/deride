@@ -160,4 +160,6 @@ _(Nothing yet)_
 
 ## License
 Copyright (c) 2014 Andrew Rea  
+Copyright (c) 2014 James Allen
+
 Licensed under the MIT license.
