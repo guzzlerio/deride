@@ -156,7 +156,9 @@ bob.expect.greet.called.times(1);
 Please ensure that you run ```grunt```, have no style warnings and that all the tests are passing.
 
 ## Release History
-_(Nothing yet)_
+
+### v0.1.0 - 22nd April 2014
+First release of the library, pushed into the NPM registry
 
 ## License
 Copyright (c) 2014 Andrew Rea  
