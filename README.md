@@ -1,4 +1,4 @@
-# deride [![Build Status](https://travis-ci.org/REAANDREW/deride.svg?branch=master)](https://travis-ci.org/REAANDREW/deride)
+# deride [![Build Status](https://travis-ci.org/REAANDREW/deride.svg?branch=master)](https://travis-ci.org/REAANDREW/deride) [![NPM version](https://badge.fury.io/js/deride.svg)](http://badge.fury.io/js/deride)
 
 Mocking library based on composition
 
