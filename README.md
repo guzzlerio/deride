@@ -1,22 +1,22 @@
-# compmoc [![Build Status](https://travis-ci.org/REAANDREW/compmoc.svg?branch=master)](https://travis-ci.org/REAANDREW/compmoc)
+# deride [![Build Status](https://travis-ci.org/REAANDREW/deride.svg?branch=master)](https://travis-ci.org/REAANDREW/deride)
 
 Mocking library based on composition
 
 The inspiration for this was that my colleague was having a look at other mocking frameworks and mentioned to me that they do not work when using ```Object.freeze``` in the objects to enforce encapsulation.  This library builds on composition to create a mocking library that can work with objects which are frozen.  **It is really for the purpose of example since I am looking into using ```Object.freeze``` heavily in my current and future JavaScript develoment.** It is also developed with a very strict jshint profile, which is sometimes a challenge in itself but never the less a rewarding one.
 
 ## Getting Started
-Install the module with: `npm install compmoc`
+Install the module with: `npm install deride`
 
 ```javascript
-var compmoc = require('compmoc');
+var deride = require('deride');
 ```
 
 ## Documentation
 
 ### Mocking
 
-- compmoc.wrap(obj)
-- compmoc.stub(methods)
+- deride.wrap(obj)
+- deride.stub(methods)
 
 ### Expectations
 
@@ -47,7 +47,7 @@ var Person = function(name) {
 ### Count the number of invocations of a method
 ```javascript
 var bob = new Person('bob');
-bob = compmoc.wrap(bob);
+bob = deride.wrap(bob);
 bob.greet('alice');
 bob.expect.greet.called.times(1);
 ```
@@ -55,14 +55,14 @@ bob.expect.greet.called.times(1);
 ### Determine if a method has **never** been called
 ```javascript
 var bob = new Person('bob');
-bob = compmoc.wrap(bob);
+bob = deride.wrap(bob);
 bob.expect.greet.called.never();
 ```
 
 ### Determine if a method was called with a specific set of arguments
 ```javascript
 var bob = new Person('bob');
-bob = compmoc.wrap(bob);
+bob = deride.wrap(bob);
 bob.greet('alice');
 bob.greet('bob');
 bob.expect.greet.called.withArgs('bob');
@@ -81,7 +81,7 @@ result.should.eql('yo alice');
 ### Override the return value for a function
 ```javascript
 var bob = new Person('bob');
-bob = compmoc.wrap(bob);
+bob = deride.wrap(bob);
 bob.setup.greet.toReturn('foobar');
 var result = bob.greet('alice');
 result.should.eql('foobar');
@@ -90,7 +90,7 @@ result.should.eql('foobar');
 ### Force a method invocation to throw a specific error
 ```javascript
 var bob = new Person('bob');
-bob = compmoc.wrap(bob);
+bob = deride.wrap(bob);
 bob.setup.greet.toThrow('BANG');
 should(function() {
     bob.greet('alice');
@@ -101,7 +101,7 @@ throw(/BANG/);
 ### Setting the return value of a function when specific arguments are used
 ```javascript
 var bob = new Person('bob');
-bob = compmoc.wrap(bob);
+bob = deride.wrap(bob);
 bob.setup.greet.when('alice').toReturn('foobar');
 bob.setup.greet.toReturn('barfoo');
 var result1 = bob.greet('alice');
@@ -113,7 +113,7 @@ result2.should.eql('barfoo');
 ### Overriding a method`s body when specific arguments are provided
 ``` javascript
 var bob = new Person('bob');
-bob = compmoc.wrap(bob);
+bob = deride.wrap(bob);
 bob.setup.greet.when('alice').toDoThis(function(otherPersonName) {
     return util.format('yo yo %s', otherPersonName);
 });
@@ -129,7 +129,7 @@ result2.should.eql('yo bob');
 ### Throwing an error for a method invocation when specific arguments are provided
 ```javascript
 var bob = new Person('bob');
-bob = compmoc.wrap(bob);
+bob = deride.wrap(bob);
 bob.setup.greet.when('alice').toThrow('BANG');
 should(function() {
     bob.greet('alice');
@@ -146,7 +146,7 @@ throw (/BANG/);
 Stubbing an object simply creates an anonymous object, with all the method specified and then the object is wrapped to provide all the expectation functionality of the library
 
 ```javascript
-var bob = compmoc.stub(['greet']);
+var bob = deride.stub(['greet']);
 bob.greet('alice');
 bob.expect.greet.called.times(1);
 ```

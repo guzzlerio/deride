@@ -1,8 +1,8 @@
 {
-  "name": "compmoc",
+  "name": "deride",
   "description": "Mocking library based on composition",
   "version": "0.1.0",
-  "homepage": "https://github.com/area/compmoc",
+  "homepage": "https://github.com/REAANDREW/deride",
   "author": {
     "name": "Andrew Rea",
     "email": "email@andrewrea.co.uk",
@@ -10,18 +10,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/area/compmoc.git"
+    "url": "git://github.com/REAANDREW/deride.git"
   },
   "bugs": {
-    "url": "https://github.com/area/compmoc/issues"
+    "url": "https://github.com/REAANDREW/deride/issues"
   },
   "licenses": [
     {
       "type": "MIT",
-      "url": "https://github.com/area/compmoc/blob/master/LICENSE-MIT"
+      "url": "https://github.com/REAANDREW/deride/blob/master/LICENSE-MIT"
     }
   ],
-  "main": "lib/compmoc",
+  "main": "lib/deride",
   "engines": {
     "node": ">= 0.8.0"
   },
