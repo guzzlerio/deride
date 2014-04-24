@@ -82,6 +82,21 @@ _.forEach(tests, function(test) {
             done();
         });
 
+        it('enables convenience method for called.once', function(done){
+            bob = deride.wrap(bob);
+            bob.greet('alice');
+            bob.expect.greet.called.once();
+            done();
+        });
+
+        it('enables convenience method for called.twice', function(done){
+            bob = deride.wrap(bob);
+            bob.greet('alice');
+            bob.greet('sally');
+            bob.expect.greet.called.twice();
+            done();
+        });
+
         it('enables the determination that a method has NEVER been called', function(done) {
             bob = deride.wrap(bob);
             bob.expect.greet.called.never();
