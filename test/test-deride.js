@@ -49,7 +49,7 @@ describe('Excpectations', function() {
 var tests = [{
     name: 'Creating a stub object',
     setup: function() {
-        return deride.stub(['greet']);
+        return deride.stub(['greet', 'chuckle']);
     }
 }, {
     name: 'Wrapping existing objects with Object style methods',
@@ -57,7 +57,8 @@ var tests = [{
         var Person = {
             greet: function(name) {
                 return 'alice sas hello to ' + name;
-            }
+            },
+            chuckle: function() {}
         };
         return Person;
     }
@@ -69,7 +70,8 @@ var tests = [{
             return Object.freeze({
                 greet: function(otherPersonName) {
                     return util.format('%s says hello to %s', name, otherPersonName);
-                }
+                },
+                chuckle: function() {}
             });
         };
         return new Person('bob');
@@ -85,6 +87,8 @@ var tests = [{
         Person.prototype.greet = function(another) {
             return 'howdy from ' + this.name + ' to ' + another;
         };
+
+        Person.prototype.chuckle = function() {};
 
         return new Person('bob proto');
     }
@@ -141,7 +145,6 @@ _.forEach(tests, function(test) {
                 return util.format('yo %s', otherPersonName);
             });
             var result = bob.greet('alice');
-            //result.should.eql('yo alice');
             assert.equal(result, 'yo alice');
             done();
         });
@@ -150,7 +153,6 @@ _.forEach(tests, function(test) {
             bob = deride.wrap(bob);
             bob.setup.greet.toReturn('foobar');
             var result = bob.greet('alice');
-            //result.should.eql('foobar');
             assert.equal(result, 'foobar');
             done();
         });
@@ -201,6 +203,32 @@ _.forEach(tests, function(test) {
                 bob.greet('bob');
             }, /BANG/);
             done();
+        });
+
+        it('enables specifying the arguments of a callback and invoking it', function(done) {
+            bob = deride.wrap(bob);
+            bob.setup.chuckle.toCallbackWith([0, 'boom']);
+            bob.chuckle(function(err, message) {
+                assert.equal(err, 0);
+                assert.equal(message, 'boom');
+                done();
+            });
+        });
+
+        it('enables specifying the arguments of a callback and invoking it when specific arguments are provided', function(done) {
+
+            bob = deride.wrap(bob);
+            bob.setup.chuckle.toCallbackWith([0, 'boom']);
+            bob.setup.chuckle.when('alice').toCallbackWith([0, 'bam']);
+            bob.chuckle(function(err, message) {
+                assert.equal(err, 0);
+                assert.equal(message, 'boom');
+                bob.chuckle('alice', function(err, message) {
+                    assert.equal(err, 0);
+                    assert.equal(message, 'bam');
+                    done();
+                });
+            });
         });
     });
 });

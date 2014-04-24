@@ -31,7 +31,8 @@ var deride = require('deride');
 - ```obj```.setup.```method```.toDoThis(func)
 - ```obj```.setup.```method```.toReturn(value)
 - ```obj```.setup.```method```.toThrow(message)
-- ```obj```.setup.```method```.when(args).[toDoThis|toReturn|toThrow]
+- ```obj```.setup.```method```.toCallbackWith(args)
+- ```obj```.setup.```method```.when(args).[toDoThis|toReturn|toThrow|toCallbackWith]
 
 ## Examples
 
@@ -111,6 +112,17 @@ should(function() {
 throw(/BANG/);
 ```
 
+### Override the invocation of a calback
+```javascript
+var bob = new Person('bob');
+bob = deride.wrap(bob);
+bob.setup.chuckle.toCallbackWith([0, 'boom']);
+bob.chuckle(function(err, message) {
+    assert.equal(err, 0);
+    assert.equal(message, 'boom');
+});
+```
+
 ### Setting the return value of a function when specific arguments are used
 ```javascript
 var bob = new Person('bob');
@@ -154,8 +166,23 @@ should(function() {
 throw (/BANG/);
 ```
 
-### Creating a stubbed object
+### Override the invocation of a calback when specific arguments are provided
+```javascript
+var bob = new Person('bob');
+bob = deride.wrap(bob);
+bob.setup.chuckle.toCallbackWith([0, 'boom']);
+bob.setup.chuckle.when('alice').toCallbackWith([0, 'bam']);
+bob.chuckle(function(err, message) {
+    assert.equal(err, 0);
+    assert.equal(message, 'boom');
+    bob.chuckle('alice', function(err, message) {
+        assert.equal(err, 0);
+        assert.equal(message, 'bam');
+    });
+});
+```
 
+### Creating a stubbed object
 Stubbing an object simply creates an anonymous object, with all the method specified and then the object is wrapped to provide all the expectation functionality of the library
 
 ```javascript
