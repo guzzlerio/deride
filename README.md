@@ -173,6 +173,9 @@ Please ensure that you run ```grunt```, have no style warnings and that all the 
 ### v0.1.0 - 22nd April 2014
 First release of the library, pushed into the NPM registry
 
+### v0.1.4 - 24nd April 2014
+Bug fixes and support for different method definition styles
+
 ## License
 Copyright (c) 2014 Andrew Rea  
 Copyright (c) 2014 James Allen
