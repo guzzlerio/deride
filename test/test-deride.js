@@ -31,18 +31,18 @@ var _ = require('lodash');
 var util = require('util');
 var assert = require('assert');
 
-describe('Excpectations', function(){
-    it('does not invoke original method when override method body', function(){
+describe('Excpectations', function() {
+    it('does not invoke original method when override method body', function() {
 
         var obj = deride.stub(['send']);
         obj.setup.send.toThrow('bang');
 
         obj = deride.wrap(obj);
-        obj.setup.send.toDoThis(function(){
+        obj.setup.send.toDoThis(function() {
             return 'hello';
         });
         var result = obj.send();
-        assert.equal(result,'hello');
+        assert.equal(result, 'hello');
     });
 });
 
@@ -50,6 +50,16 @@ var tests = [{
     name: 'Creating a stub object',
     setup: function() {
         return deride.stub(['greet']);
+    }
+}, {
+    name: 'Wrapping existing objects with Object style methods',
+    setup: function() {
+        var Person = {
+            greet: function(name) {
+                return 'alice sas hello to ' + name;
+            }
+        };
+        return Person;
     }
 }, {
     name: 'Wrapping existing object using Object Freeze with expectations',
@@ -96,14 +106,14 @@ _.forEach(tests, function(test) {
             done();
         });
 
-        it('enables convenience method for called.once', function(done){
+        it('enables convenience method for called.once', function(done) {
             bob = deride.wrap(bob);
             bob.greet('alice');
             bob.expect.greet.called.once();
             done();
         });
 
-        it('enables convenience method for called.twice', function(done){
+        it('enables convenience method for called.twice', function(done) {
             bob = deride.wrap(bob);
             bob.greet('alice');
             bob.greet('sally');
@@ -132,7 +142,7 @@ _.forEach(tests, function(test) {
             });
             var result = bob.greet('alice');
             //result.should.eql('yo alice');
-            assert.equal(result,'yo alice');
+            assert.equal(result, 'yo alice');
             done();
         });
 
@@ -141,7 +151,7 @@ _.forEach(tests, function(test) {
             bob.setup.greet.toReturn('foobar');
             var result = bob.greet('alice');
             //result.should.eql('foobar');
-            assert.equal(result,'foobar');
+            assert.equal(result, 'foobar');
             done();
         });
 
@@ -150,7 +160,7 @@ _.forEach(tests, function(test) {
             bob.setup.greet.toThrow('BANG');
             assert.throws(function() {
                 bob.greet('alice');
-            },/BANG/);
+            }, /BANG/);
             done();
         });
 
@@ -164,8 +174,8 @@ _.forEach(tests, function(test) {
             });
             var result1 = bob.greet('alice');
             var result2 = bob.greet('bob');
-            assert.equal(result1,'yo yo alice');
-            assert.equal(result2,'yo bob');
+            assert.equal(result1, 'yo yo alice');
+            assert.equal(result2, 'yo bob');
             done();
         });
 
@@ -175,8 +185,8 @@ _.forEach(tests, function(test) {
             bob.setup.greet.toReturn('barfoo');
             var result1 = bob.greet('alice');
             var result2 = bob.greet('bob');
-            assert.equal(result1,'foobar');
-            assert.equal(result2,'barfoo');
+            assert.equal(result1, 'foobar');
+            assert.equal(result2, 'barfoo');
             done();
         });
 
@@ -186,10 +196,10 @@ _.forEach(tests, function(test) {
             bob.setup.greet.when('alice').toThrow('BANG');
             assert.throws(function() {
                 bob.greet('alice');
-            },/BANG/);
+            }, /BANG/);
             assert.doesNotThrow(function() {
                 bob.greet('bob');
-            },/BANG/);
+            }, /BANG/);
             done();
         });
     });
