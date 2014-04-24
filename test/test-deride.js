@@ -29,8 +29,7 @@
 var deride = require('../lib/deride.js');
 var _ = require('lodash');
 var util = require('util');
-var should = require('should');
-
+var assert = require('assert');
 
 var tests = [{
     name: 'Creating a stub object',
@@ -117,7 +116,8 @@ _.forEach(tests, function(test) {
                 return util.format('yo %s', otherPersonName);
             });
             var result = bob.greet('alice');
-            result.should.eql('yo alice');
+            //result.should.eql('yo alice');
+            assert.equal(result,'yo alice');
             done();
         });
 
@@ -125,17 +125,17 @@ _.forEach(tests, function(test) {
             bob = deride.wrap(bob);
             bob.setup.greet.toReturn('foobar');
             var result = bob.greet('alice');
-            result.should.eql('foobar');
+            //result.should.eql('foobar');
+            assert.equal(result,'foobar');
             done();
         });
 
         it('enables throwing an exception for a method invocation', function(done) {
             bob = deride.wrap(bob);
             bob.setup.greet.toThrow('BANG');
-            should(function() {
+            assert.throws(function() {
                 bob.greet('alice');
-            }).
-            throw (/BANG/);
+            },/BANG/);
             done();
         });
 
@@ -149,8 +149,8 @@ _.forEach(tests, function(test) {
             });
             var result1 = bob.greet('alice');
             var result2 = bob.greet('bob');
-            result1.should.eql('yo yo alice');
-            result2.should.eql('yo bob');
+            assert.equal(result1,'yo yo alice');
+            assert.equal(result2,'yo bob');
             done();
         });
 
@@ -160,8 +160,8 @@ _.forEach(tests, function(test) {
             bob.setup.greet.toReturn('barfoo');
             var result1 = bob.greet('alice');
             var result2 = bob.greet('bob');
-            result1.should.eql('foobar');
-            result2.should.eql('barfoo');
+            assert.equal(result1,'foobar');
+            assert.equal(result2,'barfoo');
             done();
         });
 
@@ -169,14 +169,12 @@ _.forEach(tests, function(test) {
 
             bob = deride.wrap(bob);
             bob.setup.greet.when('alice').toThrow('BANG');
-            should(function() {
+            assert.throws(function() {
                 bob.greet('alice');
-            }).
-            throw (/BANG/);
-            should(function() {
+            },/BANG/);
+            assert.doesNotThrow(function() {
                 bob.greet('bob');
-            }).not.
-            throw (/BANG/);
+            },/BANG/);
             done();
         });
     });
