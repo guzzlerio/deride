@@ -1,18 +1,18 @@
 {
   "name": "deride",
   "description": "Mocking library based on composition",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "homepage": "https://github.com/REAANDREW/deride",
   "author": {
     "name": "Andrew Rea",
     "email": "email@andrewrea.co.uk",
     "url": "http://www.andrewrea.co.uk"
   },
-  "contributors": [ 
+  "contributors": [
     {
       "name": "James Allen",
-      "url" : "https://github.com/jamlen"
-    } 
+      "url": "https://github.com/jamlen"
+    }
   ],
   "repository": {
     "type": "git",
