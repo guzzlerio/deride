@@ -21,6 +21,8 @@ var deride = require('deride');
 ### Expectations
 
 - ```obj```.expect.```method```.called.times(n)
+- ```obj```.expect.```method```.called.once()
+- ```obj```.expect.```method```.called.twice()
 - ```obj```.expect.```method```.called.never()
 - ```obj```.expect.```method```.called.withArgs(args)
 
@@ -52,6 +54,16 @@ bob.greet('alice');
 bob.expect.greet.called.times(1);
 ```
 
+### Has convenience methods for invocation counts
+```javascript
+var bob = new Person('bob');
+bob = deride.wrap(bob);
+bob.greet('alice');
+bob.expect.greet.called.once();
+bob.greet('sally');
+bob.expect.greet.called.twice();
+```
+
 ### Determine if a method has **never** been called
 ```javascript
 var bob = new Person('bob');
@@ -71,6 +83,7 @@ bob.expect.greet.called.withArgs('bob');
 ### Override the method body to change the invocation
 ```javascript
 var bob = new Person('bob');
+bob = deride.wrap(bob);
 bob.setup.greet.toDoThis(function(otherPersonName) {
     return util.format('yo %s', otherPersonName);
 });
