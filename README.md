@@ -112,7 +112,7 @@ should(function() {
 throw(/BANG/);
 ```
 
-### Override the invocation of a calback
+### Override the invocation of a callback
 ```javascript
 var bob = new Person('bob');
 bob = deride.wrap(bob);
@@ -166,7 +166,7 @@ should(function() {
 throw (/BANG/);
 ```
 
-### Override the invocation of a calback when specific arguments are provided
+### Override the invocation of a callback when specific arguments are provided
 ```javascript
 var bob = new Person('bob');
 bob = deride.wrap(bob);
