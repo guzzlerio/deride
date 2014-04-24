@@ -31,6 +31,19 @@ var _ = require('lodash');
 var util = require('util');
 var should = require('should');
 
+describe('Excpectations', function(){
+    it('does not invoke original method when override method body', function(){
+
+        var obj = deride.stub(['send']);
+        obj.setup.send.toThrow('bang');
+
+        obj = deride.wrap(obj);
+        obj.setup.send.toDoThis(function(){
+            return 'hello';
+        });
+        obj.send().should.eql('hello');
+    });
+});
 
 var tests = [{
     name: 'Creating a stub object',
