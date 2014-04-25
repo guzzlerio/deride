@@ -32,7 +32,8 @@ var deride = require('deride');
 - ```obj```.setup.```method```.toReturn(value)
 - ```obj```.setup.```method```.toThrow(message)
 - ```obj```.setup.```method```.toCallbackWith(args)
-- ```obj```.setup.```method```.when(args).[toDoThis|toReturn|toThrow|toCallbackWith]
+- ```obj```.setup.```method```.toTimeWarp(milliseconds)
+- ```obj```.setup.```method```.when(args).[toDoThis|toReturn|toThrow|toCallbackWith|toTimeWarp]
 
 ## Examples
 
@@ -123,6 +124,26 @@ bob.chuckle(function(err, message) {
 });
 ```
 
+### Accelerating the timeout used internally by a function
+```javascript
+var Person = function(name) {
+    return Object.freeze({
+        foobar: function(timeout, callback) {
+            setTimeout(function() {
+                callback('result');
+            }, timeout);
+        }
+    });
+};
+var timeout = 10000;
+var bob = new Person('bob');
+bob = deride.wrap(bob);
+bob.setup.foobar.toTimeWarp(timeout);
+bob.foobar(timeout, function(message) {
+    assert.equal(message, 'result');
+});
+```
+
 ### Setting the return value of a function when specific arguments are used
 ```javascript
 var bob = new Person('bob');
@@ -182,6 +203,33 @@ bob.chuckle(function(err, message) {
 });
 ```
 
+### Accelerating the timeout used internally by a function when specific arguments are provided
+```javascript
+var Person = function(name) {
+    return Object.freeze({
+        foobar: function(timeout, callback) {
+            setTimeout(function() {
+                callback('result');
+            }, timeout);
+        }
+    });
+};
+var timeout1 = 10000;
+var timeout2 = 20000;
+var bob = new Person('bob');
+bob = deride.wrap(bob);
+bob.setup.foobar.toTimeWarp(timeout1);
+bob.setup.foobar.when(timeout2).toTimeWarp(timeout2);
+bob.foobar(timeout1, function(message) {
+    assert.equal(message, 'result');
+    bob.foobar(timeout2, function(message) {
+        assert.equal(message, 'result');
+        done();
+    });
+});
+
+```
+
 ### Creating a stubbed object
 Stubbing an object simply creates an anonymous object, with all the method specified and then the object is wrapped to provide all the expectation functionality of the library
 
@@ -205,6 +253,9 @@ Bug fixes and support for different method definition styles
 
 - v0.1.5 - 24nd April 2014
 Added feature to support overriding a callback
+
+- v0.1.6 - 25th April 2014
+Added feature to support accelerating the timeout used internally by a function
 
 ## License
 Copyright (c) 2014 Andrew Rea  
