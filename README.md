@@ -32,7 +32,8 @@ var deride = require('deride');
 - ```obj```.setup.```method```.toReturn(value)
 - ```obj```.setup.```method```.toThrow(message)
 - ```obj```.setup.```method```.toCallbackWith(args)
-- ```obj```.setup.```method```.when(args).[toDoThis|toReturn|toThrow|toCallbackWith]
+- ```obj```.setup.```method```.toTimeWarp(milliseconds)
+- ```obj```.setup.```method```.when(args).[toDoThis|toReturn|toThrow|toCallbackWith|toTimeWarp]
 
 ## Examples
 
@@ -112,7 +113,7 @@ should(function() {
 throw(/BANG/);
 ```
 
-### Override the invocation of a calback
+### Override the invocation of a callback
 ```javascript
 var bob = new Person('bob');
 bob = deride.wrap(bob);
@@ -120,6 +121,26 @@ bob.setup.chuckle.toCallbackWith([0, 'boom']);
 bob.chuckle(function(err, message) {
     assert.equal(err, 0);
     assert.equal(message, 'boom');
+});
+```
+
+### Accelerating the timeout used internally by a function
+```javascript
+var Person = function(name) {
+    return Object.freeze({
+        foobar: function(timeout, callback) {
+            setTimeout(function() {
+                callback('result');
+            }, timeout);
+        }
+    });
+};
+var timeout = 10000;
+var bob = new Person('bob');
+bob = deride.wrap(bob);
+bob.setup.foobar.toTimeWarp(timeout);
+bob.foobar(timeout, function(message) {
+    assert.equal(message, 'result');
 });
 ```
 
@@ -166,7 +187,7 @@ should(function() {
 throw (/BANG/);
 ```
 
-### Override the invocation of a calback when specific arguments are provided
+### Override the invocation of a callback when specific arguments are provided
 ```javascript
 var bob = new Person('bob');
 bob = deride.wrap(bob);
@@ -180,6 +201,33 @@ bob.chuckle(function(err, message) {
         assert.equal(message, 'bam');
     });
 });
+```
+
+### Accelerating the timeout used internally by a function when specific arguments are provided
+```javascript
+var Person = function(name) {
+    return Object.freeze({
+        foobar: function(timeout, callback) {
+            setTimeout(function() {
+                callback('result');
+            }, timeout);
+        }
+    });
+};
+var timeout1 = 10000;
+var timeout2 = 20000;
+var bob = new Person('bob');
+bob = deride.wrap(bob);
+bob.setup.foobar.toTimeWarp(timeout1);
+bob.setup.foobar.when(timeout2).toTimeWarp(timeout2);
+bob.foobar(timeout1, function(message) {
+    assert.equal(message, 'result');
+    bob.foobar(timeout2, function(message) {
+        assert.equal(message, 'result');
+        done();
+    });
+});
+
 ```
 
 ### Creating a stubbed object
@@ -205,6 +253,9 @@ Bug fixes and support for different method definition styles
 
 - v0.1.5 - 24nd April 2014
 Added feature to support overriding a callback
+
+- v0.1.6 - 25th April 2014
+Added feature to support accelerating the timeout used internally by a function
 
 ## License
 Copyright (c) 2014 Andrew Rea  

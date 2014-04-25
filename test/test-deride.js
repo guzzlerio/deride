@@ -46,10 +46,19 @@ describe('Excpectations', function() {
     });
 });
 
+var fooBarFunction = function(timeout, callback) {
+    setTimeout(function() {
+        callback('result');
+    }, timeout);
+};
+
 var tests = [{
     name: 'Creating a stub object',
     setup: function() {
-        return deride.stub(['greet', 'chuckle']);
+        var stub = deride.stub(['greet', 'chuckle', 'foobar']);
+        stub.setup.foobar.toDoThis(fooBarFunction);
+
+        return stub;
     }
 }, {
     name: 'Wrapping existing objects with Object style methods',
@@ -58,7 +67,8 @@ var tests = [{
             greet: function(name) {
                 return 'alice sas hello to ' + name;
             },
-            chuckle: function() {}
+            chuckle: function() {},
+            foobar: fooBarFunction
         };
         return Person;
     }
@@ -71,7 +81,8 @@ var tests = [{
                 greet: function(otherPersonName) {
                     return util.format('%s says hello to %s', name, otherPersonName);
                 },
-                chuckle: function() {}
+                chuckle: function() {},
+                foobar: fooBarFunction
             });
         };
         return new Person('bob');
@@ -89,6 +100,7 @@ var tests = [{
         };
 
         Person.prototype.chuckle = function() {};
+        Person.prototype.foobar = fooBarFunction;
 
         return new Person('bob proto');
     }
@@ -166,6 +178,16 @@ _.forEach(tests, function(test) {
             done();
         });
 
+        it('enables accelerating timeouts for functions', function(done) {
+            var timeout = 10000;
+            bob = deride.wrap(bob);
+            bob.setup.foobar.toTimeWarp(timeout);
+            bob.foobar(timeout, function(message) {
+                assert.equal(message, 'result');
+                done();
+            });
+        });
+
         it('enables overriding a methods body when specific arguments are provided', function(done) {
             bob = deride.wrap(bob);
             bob.setup.greet.when('alice').toDoThis(function(otherPersonName) {
@@ -226,6 +248,21 @@ _.forEach(tests, function(test) {
                 bob.chuckle('alice', function(err, message) {
                     assert.equal(err, 0);
                     assert.equal(message, 'bam');
+                    done();
+                });
+            });
+        });
+
+        it('enables accelerating timeouts for functions when specific arguments are provided', function(done) {
+            var timeout1 = 10000;
+            var timeout2 = 20000;
+            bob = deride.wrap(bob);
+            bob.setup.foobar.toTimeWarp(timeout1);
+            bob.setup.foobar.when(timeout2).toTimeWarp(timeout2);
+            bob.foobar(timeout1, function(message) {
+                assert.equal(message, 'result');
+                bob.foobar(timeout2, function(message) {
+                    assert.equal(message, 'result');
                     done();
                 });
             });
