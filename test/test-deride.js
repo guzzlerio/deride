@@ -46,6 +46,18 @@ describe('Excpectations', function() {
     });
 });
 
+
+describe('Eventing', function() {
+    it('should allow the force of an emit', function(done) {
+        var bob = deride.stub([]);
+        bob = deride.wrap(bob);
+        bob.on('message', function() {
+            done();
+        });
+        bob.emit('message', 'payload');
+    });
+});
+
 var fooBarFunction = function(timeout, callback) {
     setTimeout(function() {
         callback('result');
