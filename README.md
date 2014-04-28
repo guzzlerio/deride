@@ -246,16 +246,20 @@ Please ensure that you run ```grunt```, have no style warnings and that all the 
 ## Release History
 
 - v0.1.0 - 22nd April 2014
-First release of the library, pushed into the NPM registry
+  - First release of the library, pushed into the NPM registry
 
 - v0.1.4 - 24nd April 2014
-Bug fixes and support for different method definition styles
+  - Bug fixes and support for different method definition styles
 
 - v0.1.5 - 24nd April 2014
-Added feature to support overriding a callback
+  - Added feature to support overriding a callback
 
 - v0.1.6 - 25th April 2014
-Added feature to support accelerating the timeout used internally by a function
+  - Added feature to support accelerating the timeout used internally by a function
+
+- v0.1.6 - 25th April 2014
+  - Pull request from stono to support custom error messages
+  - Made the withArgs evaluate equivalence of the args not strict object equality
 
 ## License
 Copyright (c) 2014 Andrew Rea  
