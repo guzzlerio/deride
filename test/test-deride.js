@@ -134,6 +134,14 @@ _.forEach(tests, function(test) {
             done();
         });
 
+        it('can return a bespoke error when counting number of invocations', function(done) {
+            bob = deride.wrap(bob);
+            assert.throws(function() {
+               bob.expect.greet.called.times(1, 'This is a bespoke error');
+            }, /This is a bespoke error/);
+            done();
+        });
+
         it('enables convenience method for called.once', function(done) {
             bob = deride.wrap(bob);
             bob.greet('alice');
