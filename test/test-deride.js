@@ -134,10 +134,26 @@ _.forEach(tests, function(test) {
             done();
         });
 
+        it('can return a bespoke error when counting number of invocations', function(done) {
+            bob = deride.wrap(bob);
+            assert.throws(function() {
+               bob.expect.greet.called.times(1, 'This is a bespoke error');
+            }, /This is a bespoke error/);
+            done();
+        });
+
         it('enables convenience method for called.once', function(done) {
             bob = deride.wrap(bob);
             bob.greet('alice');
             bob.expect.greet.called.once();
+            done();
+        });
+
+        it('can return a bespoke error for called once', function(done) {
+            bob = deride.wrap(bob);
+            assert.throws(function() {
+               bob.expect.greet.called.once('This is a bespoke error');
+            }, /This is a bespoke error/);
             done();
         });
 
@@ -149,9 +165,26 @@ _.forEach(tests, function(test) {
             done();
         });
 
+        it('can return a bespoke error for called twice', function(done) {
+            bob = deride.wrap(bob);
+            assert.throws(function() {
+               bob.expect.greet.called.twice('This is a bespoke error');
+            }, /This is a bespoke error/);
+            done();
+        });
+
         it('enables the determination that a method has NEVER been called', function(done) {
             bob = deride.wrap(bob);
             bob.expect.greet.called.never();
+            done();
+        });
+
+        it('can return a bespoke error for called NEVER', function(done) {
+            bob = deride.wrap(bob);
+            bob.greet('alice');
+            assert.throws(function() {
+                bob.expect.greet.called.never('This is a bespoke error');
+            }, /This is a bespoke error/);
             done();
         });
 
@@ -162,7 +195,7 @@ _.forEach(tests, function(test) {
             bob.expect.greet.called.withArgs('bob');
             done();
         });
-
+        
         it('enables overriding a methods body', function(done) {
             bob = deride.wrap(bob);
             bob.setup.greet.toDoThis(function(otherPersonName) {
