@@ -165,6 +165,14 @@ _.forEach(tests, function(test) {
             done();
         });
 
+        it('can return a bespoke error for called twice', function(done) {
+            bob = deride.wrap(bob);
+            assert.throws(function() {
+               bob.expect.greet.called.twice('This is a bespoke error');
+            }, /This is a bespoke error/);
+            done();
+        });
+
         it('enables the determination that a method has NEVER been called', function(done) {
             bob = deride.wrap(bob);
             bob.expect.greet.called.never();
