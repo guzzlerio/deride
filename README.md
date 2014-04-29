@@ -287,6 +287,12 @@ Please ensure that you run ```grunt```, have no style warnings and that all the 
   - Pull request from stono to support custom error messages
   - Made the withArgs evaluate equivalence of the args not strict object equality
 
+- v0.1.9 - 29th April 2014
+  - Pull request from stono to eliminate some duplication
+  - Pull request from jamlen to fix the dependencies badge
+  - Enable stubbing an existing object to generate the method names which exist on the target object
+  - Enable creating a single mocked method with all the setup and expectation capabilities
+
 ## License
 Copyright (c) 2014 Andrew Rea  
 Copyright (c) 2014 James Allen
