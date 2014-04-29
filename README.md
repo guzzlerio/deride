@@ -20,6 +20,9 @@ var deride = require('deride');
 **CAUTION** Remember when you use this function about the good practice recommended in the book **Growing Object-Oriented Software, Guided by Tests**  ***Chapter 8: Only Mock Types That You Own***
 
 - deride.stub(methods)
+  - **methods** Array
+- deride.stub(obj)
+  - **obj** Object
 
 ### Expectations
 
@@ -240,6 +243,18 @@ Stubbing an object simply creates an anonymous object, with all the method speci
 var bob = deride.stub(['greet']);
 bob.greet('alice');
 bob.expect.greet.called.times(1);
+```
+
+### Creating a stubbed object based on an existing object
+```javascript
+var Person = {
+    greet: function(name) {
+        return 'alice sas hello to ' + name;
+    },
+};
+var bob = deride.stub(Person);
+bob.greet('alice');
+bob.expect.greet.called.once();
 ```
 
 
