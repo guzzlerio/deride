@@ -23,6 +23,7 @@ var deride = require('deride');
   - **methods** Array
 - deride.stub(obj)
   - **obj** Object
+- deride.func()
 
 ### Expectations
 
@@ -257,6 +258,13 @@ bob.greet('alice');
 bob.expect.greet.called.once();
 ```
 
+### Creating a single mocked method
+```javascript
+var func = deride.func();
+func.setup.toReturn(1);
+var value = func(1, 2, 3);
+assert.equal(value, 1);
+```
 
 ## Contributing
 Please ensure that you run ```grunt```, have no style warnings and that all the tests are passing.

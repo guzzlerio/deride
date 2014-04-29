@@ -33,7 +33,6 @@ var assert = require('assert');
 
 describe('Excpectations', function() {
     it('does not invoke original method when override method body', function() {
-
         var obj = deride.stub(['send']);
         obj.setup.send.toThrow('bang');
 
@@ -43,6 +42,26 @@ describe('Excpectations', function() {
         });
         var result = obj.send();
         assert.equal(result, 'hello');
+    });
+});
+
+describe('Single function', function() {
+    it('can setup a return value', function(done) {
+        var func = deride.func();
+        func.setup.toReturn(1);
+        var value = func(1, 2, 3);
+        assert.equal(value, 1);
+        done();
+    });
+
+    it('can setup to invoke a callback', function(done) {
+        var func = deride.func();
+        func.setup.toCallbackWith(['hello', 'world']);
+        func(function(arg1, arg2) {
+            assert.equal(arg1, 'hello');
+            assert.equal(arg2, 'world');
+            done();
+        });
     });
 });
 
