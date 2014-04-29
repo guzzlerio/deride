@@ -16,6 +16,9 @@ var deride = require('deride');
 ### Mocking
 
 - deride.wrap(obj)
+
+**CAUTION** Remember when you use this function about the good practice recomended in the book **Growing Object-Oriented Software, Guided by Tests**  ***Chapter 8: Only Mock Types That You Own***
+
 - deride.stub(methods)
 
 ### Expectations
@@ -257,7 +260,7 @@ Please ensure that you run ```grunt```, have no style warnings and that all the 
 - v0.1.6 - 25th April 2014
   - Added feature to support accelerating the timeout used internally by a function
 
-- v0.1.6 - 25th April 2014
+- v0.1.8 - 28th April 2014
   - Pull request from stono to support custom error messages
   - Made the withArgs evaluate equivalence of the args not strict object equality
 
