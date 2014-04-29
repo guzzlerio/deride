@@ -15,31 +15,34 @@ var deride = require('deride');
 
 ### Mocking
 
-- deride.wrap(obj)
+#### deride.wrap(obj)
 
 **CAUTION** Remember when you use this function about the good practice recommended in the book **Growing Object-Oriented Software, Guided by Tests**  ***Chapter 8: Only Mock Types That You Own***
 
-- deride.stub(methods)
-  - **methods** Array
-- deride.stub(obj)
-  - **obj** Object
+#### deride.stub(methods)
+
+**methods** Array
+
+#### deride.stub(obj)
+
+**obj** Object
 
 ### Expectations
 
-- ```obj```.expect.```method```.called.times(n)
-- ```obj```.expect.```method```.called.once()
-- ```obj```.expect.```method```.called.twice()
-- ```obj```.expect.```method```.called.never()
-- ```obj```.expect.```method```.called.withArgs(args)
+#### ```obj```.expect.```method```.called.times(n)
+#### ```obj```.expect.```method```.called.once()
+#### ```obj```.expect.```method```.called.twice()
+#### ```obj```.expect.```method```.called.never()
+#### ```obj```.expect.```method```.called.withArgs(args)
 
 ### Setup
 
-- ```obj```.setup.```method```.toDoThis(func)
-- ```obj```.setup.```method```.toReturn(value)
-- ```obj```.setup.```method```.toThrow(message)
-- ```obj```.setup.```method```.toCallbackWith(args)
-- ```obj```.setup.```method```.toTimeWarp(milliseconds)
-- ```obj```.setup.```method```.when(args).[toDoThis|toReturn|toThrow|toCallbackWith|toTimeWarp]
+#### ```obj```.setup.```method```.toDoThis(func)
+#### ```obj```.setup.```method```.toReturn(value)
+#### ```obj```.setup.```method```.toThrow(message)
+#### ```obj```.setup.```method```.toCallbackWith(args)
+#### ```obj```.setup.```method```.toTimeWarp(milliseconds)
+#### ```obj```.setup.```method```.when(args).[toDoThis|toReturn|toThrow|toCallbackWith|toTimeWarp]
 
 ## Examples
 
