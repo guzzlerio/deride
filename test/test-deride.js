@@ -73,6 +73,21 @@ var tests = [{
         return stub;
     }
 }, {
+    name: 'Creating a stub object from an object with Object style methods',
+    setup: function() {
+
+        var Person = {
+            greet: function(name) {
+                return 'alice sas hello to ' + name;
+            },
+            chuckle: function() {},
+            foobar: fooBarFunction
+        };
+        var stub = deride.stub(Person);
+        stub.setup.foobar.toDoThis(fooBarFunction);
+        return stub;
+    }
+}, {
     name: 'Wrapping existing objects with Object style methods',
     setup: function() {
         var Person = {
@@ -137,7 +152,7 @@ _.forEach(tests, function(test) {
         it('can return a bespoke error when counting number of invocations', function(done) {
             bob = deride.wrap(bob);
             assert.throws(function() {
-               bob.expect.greet.called.times(1, 'This is a bespoke error');
+                bob.expect.greet.called.times(1, 'This is a bespoke error');
             }, /This is a bespoke error/);
             done();
         });
@@ -152,7 +167,7 @@ _.forEach(tests, function(test) {
         it('can return a bespoke error for called once', function(done) {
             bob = deride.wrap(bob);
             assert.throws(function() {
-               bob.expect.greet.called.once('This is a bespoke error');
+                bob.expect.greet.called.once('This is a bespoke error');
             }, /This is a bespoke error/);
             done();
         });
@@ -168,7 +183,7 @@ _.forEach(tests, function(test) {
         it('can return a bespoke error for called twice', function(done) {
             bob = deride.wrap(bob);
             assert.throws(function() {
-               bob.expect.greet.called.twice('This is a bespoke error');
+                bob.expect.greet.called.twice('This is a bespoke error');
             }, /This is a bespoke error/);
             done();
         });
@@ -195,7 +210,7 @@ _.forEach(tests, function(test) {
             bob.expect.greet.called.withArgs('bob');
             done();
         });
-        
+
         it('enables overriding a methods body', function(done) {
             bob = deride.wrap(bob);
             bob.setup.greet.toDoThis(function(otherPersonName) {
