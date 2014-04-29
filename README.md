@@ -17,7 +17,7 @@ var deride = require('deride');
 
 - deride.wrap(obj)
 
-**CAUTION** Remember when you use this function about the good practice recomended in the book **Growing Object-Oriented Software, Guided by Tests**  ***Chapter 8: Only Mock Types That You Own***
+**CAUTION** Remember when you use this function about the good practice recommended in the book **Growing Object-Oriented Software, Guided by Tests**  ***Chapter 8: Only Mock Types That You Own***
 
 - deride.stub(methods)
 
