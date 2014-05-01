@@ -3,7 +3,6 @@
 Mocking library based on composition
 
 The inspiration for this was that my colleague was having a look at other mocking frameworks and mentioned to me that they do not work when using ```Object.freeze``` in the objects to enforce encapsulation.  This library builds on composition to create a mocking library that can work with objects which are frozen.
-
 ## Getting Started
 Install the module with: `npm install deride`
 
@@ -264,6 +263,15 @@ var func = deride.func();
 func.setup.toReturn(1);
 var value = func(1, 2, 3);
 assert.equal(value, 1);
+```
+
+### Force the emit of an event on an object
+```javascript
+var bob = deride.stub([]);
+bob.on('message', function() {
+    done();
+});
+bob.emit('message', 'payload');
 ```
 
 ## Contributing

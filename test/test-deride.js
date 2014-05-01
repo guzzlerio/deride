@@ -69,7 +69,6 @@ describe('Single function', function() {
 describe('Eventing', function() {
     it('should allow the force of an emit', function(done) {
         var bob = deride.stub([]);
-        bob = deride.wrap(bob);
         bob.on('message', function() {
             done();
         });
