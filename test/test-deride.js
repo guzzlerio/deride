@@ -58,6 +58,13 @@ describe('Excpectations', function() {
         });
         done();
     });
+
+    it('handles comparison of withArgs when an argument is a function', function(done) {
+        var obj = deride.stub(['send']);
+        obj.send({a:1}, function(){});
+        obj.expect.send.called.withArgs({a:1});
+        done();
+    });
 });
 
 describe('Single function', function() {
