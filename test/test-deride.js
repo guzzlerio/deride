@@ -59,6 +59,15 @@ describe('Excpectations', function() {
         done();
     });
 
+    it('throws exception when object not called withArgs', function(done){
+        var obj = deride.stub(['send']);
+        obj.send(1,2,3);
+        assert.throws(function(){
+            obj.expect.send.called.withArgs(4);
+        }, Error);
+        done();
+    });
+
     it('handles comparison of withArgs when an argument is a function', function(done) {
         var obj = deride.stub(['send']);
         obj.send({a:1}, function(){});
