@@ -301,6 +301,9 @@ Please ensure that you run ```grunt```, have no style warnings and that all the 
   - Enable stubbing an existing object to generate the method names which exist on the target object
   - Enable creating a single mocked method with all the setup and expectation capabilities
 
+- v0.1.12 - 5th May 2014
+  - Fixed a bug with the withArgs expectation function where it did not function correctly with multiple expected arguments
+
 ## License
 Copyright (c) 2014 Andrew Rea  
 Copyright (c) 2014 James Allen
