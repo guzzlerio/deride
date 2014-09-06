@@ -27,9 +27,36 @@ OTHER DEALINGS IN THE SOFTWARE.
 'use strict';
 
 var deride = require('../lib/deride.js');
+var utils = require('../lib/utils');
 var _ = require('lodash');
 var util = require('util');
 var assert = require('assert');
+require('should');
+
+describe('utils', function(){
+    it('finds object style methods', function(){
+        var obj  = {
+            greet : function(){},
+            depart : function(){}
+        };
+        utils.methods(obj).should.eql(['greet', 'depart']);
+    });
+
+    it('finds protoype style methods', function(){
+        function Obj(){}
+        Obj.prototype.greet = function(){};
+        Obj.prototype.depart = function(){};
+        utils.methods(new Obj()).should.eql(['greet', 'depart']);
+    });
+
+    it('finds methods attached to functions', function(){
+        function obj(){}
+        obj.greet = function(){};
+        obj.depart = function(){};
+        utils.methods(obj).should.eql(['greet', 'depart']);
+    });
+
+});
 
 describe('Excpectations', function() {
     it('does not invoke original method when override method body', function() {

@@ -29,16 +29,16 @@
     "test": "grunt mochaTest"
   },
   "devDependencies": {
+    "blanket": "~1.1.6",
+    "grunt": "~0.4.4",
+    "grunt-blanket": "0.0.8",
     "grunt-contrib-jshint": "~0.10.0",
     "grunt-contrib-nodeunit": "~0.2.0",
     "grunt-contrib-watch": "~0.6.1",
-    "grunt": "~0.4.4",
-    "sinon": "~1.9.1",
-    "grunt-notify": "~0.2.20",
     "grunt-mocha-test": "~0.10.2",
-    "grunt-blanket": "0.0.8",
-    "blanket": "~1.1.6",
-    "grunt-pmkr-license": "~1.1.0"
+    "grunt-notify": "~0.2.20",
+    "should": "^4.0.4",
+    "sinon": "~1.9.1"
   },
   "keywords": [],
   "dependencies": {
