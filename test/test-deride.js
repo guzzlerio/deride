@@ -104,6 +104,37 @@ describe('Excpectations', function() {
 });
 
 describe('Single function', function() {
+    it('Resetting the called count', function(done) {
+      var MyClass = function() {
+        return {
+          doStuff: function() {}
+        };
+      };
+      var myClass = deride.wrap(new MyClass());
+      myClass.doStuff();
+      myClass.expect.doStuff.called.once();
+      myClass.expect.doStuff.called.reset();
+      myClass.expect.doStuff.called.never();
+      done();
+    });
+
+    it('Resetting the called with count', function(done) {
+      var MyClass = function() {
+        return {
+          doStuff: function() {}
+        };
+      };
+      var myClass = deride.wrap(new MyClass());
+      myClass.doStuff('test');
+      myClass.expect.doStuff.called.withArgs('test');
+      myClass.expect.doStuff.called.reset();
+      /* jshint immed: false */
+      (function() {
+        myClass.expect.doStuff.called.withArgs('test');
+      }).should.throw('false == true');
+      done();
+    });
+
     it('can setup a return value', function(done) {
         var func = deride.func();
         func.setup.toReturn(1);
