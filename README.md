@@ -32,6 +32,9 @@ var deride = require('deride');
 - ```obj```.expect.```method```.called.never()
 - ```obj```.expect.```method```.called.withArgs(args)
 
+### Resetting the counts / called with args
+- ```obj```.expect.```method```.called.reset()
+
 ### Setup
 
 - ```obj```.setup.```method```.toDoThis(func)
