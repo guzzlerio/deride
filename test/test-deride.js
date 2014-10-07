@@ -135,6 +135,17 @@ describe('Single function', function() {
       done();
     });
 
+    it('Wrapping a class does not remove non-functions', function() {
+      var MyClass = function() {
+        return {
+          aValue: 1,
+          doStuff: function() {}
+        };
+      };
+      var myClass = deride.wrap(new MyClass());
+      myClass.should.have.property('aValue');
+    });
+
     it('can setup a return value', function(done) {
         var func = deride.func();
         func.setup.toReturn(1);
