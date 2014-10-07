@@ -27,9 +27,36 @@ OTHER DEALINGS IN THE SOFTWARE.
 'use strict';
 
 var deride = require('../lib/deride.js');
+var utils = require('../lib/utils');
 var _ = require('lodash');
 var util = require('util');
 var assert = require('assert');
+require('should');
+
+describe('utils', function(){
+    it('finds object style methods', function(){
+        var obj  = {
+            greet : function(){},
+            depart : function(){}
+        };
+        utils.methods(obj).should.eql(['greet', 'depart']);
+    });
+
+    it('finds protoype style methods', function(){
+        function Obj(){}
+        Obj.prototype.greet = function(){};
+        Obj.prototype.depart = function(){};
+        utils.methods(new Obj()).should.eql(['greet', 'depart']);
+    });
+
+    it('finds methods attached to functions', function(){
+        function obj(){}
+        obj.greet = function(){};
+        obj.depart = function(){};
+        utils.methods(obj).should.eql(['greet', 'depart']);
+    });
+
+});
 
 describe('Excpectations', function() {
     it('does not invoke original method when override method body', function() {
@@ -77,6 +104,48 @@ describe('Excpectations', function() {
 });
 
 describe('Single function', function() {
+    it('Resetting the called count', function(done) {
+      var MyClass = function() {
+        return {
+          doStuff: function() {}
+        };
+      };
+      var myClass = deride.wrap(new MyClass());
+      myClass.doStuff();
+      myClass.expect.doStuff.called.once();
+      myClass.expect.doStuff.called.reset();
+      myClass.expect.doStuff.called.never();
+      done();
+    });
+
+    it('Resetting the called with count', function(done) {
+      var MyClass = function() {
+        return {
+          doStuff: function() {}
+        };
+      };
+      var myClass = deride.wrap(new MyClass());
+      myClass.doStuff('test');
+      myClass.expect.doStuff.called.withArgs('test');
+      myClass.expect.doStuff.called.reset();
+      /* jshint immed: false */
+      (function() {
+        myClass.expect.doStuff.called.withArgs('test');
+      }).should.throw('false == true');
+      done();
+    });
+
+    it('Wrapping a class does not remove non-functions', function() {
+      var MyClass = function() {
+        return {
+          aValue: 1,
+          doStuff: function() {}
+        };
+      };
+      var myClass = deride.wrap(new MyClass());
+      myClass.should.have.property('aValue');
+    });
+
     it('can setup a return value', function(done) {
         var func = deride.func();
         func.setup.toReturn(1);

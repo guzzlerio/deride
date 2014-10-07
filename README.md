@@ -32,6 +32,9 @@ var deride = require('deride');
 - ```obj```.expect.```method```.called.never()
 - ```obj```.expect.```method```.called.withArgs(args)
 
+### Resetting the counts / called with args
+- ```obj```.expect.```method```.called.reset()
+
 ### Setup
 
 - ```obj```.setup.```method```.toDoThis(func)
@@ -276,33 +279,6 @@ bob.emit('message', 'payload');
 
 ## Contributing
 Please ensure that you run ```grunt```, have no style warnings and that all the tests are passing.
-
-## Release History
-
-- v0.1.0 - 22nd April 2014
-  - First release of the library, pushed into the NPM registry
-
-- v0.1.4 - 24nd April 2014
-  - Bug fixes and support for different method definition styles
-
-- v0.1.5 - 24nd April 2014
-  - Added feature to support overriding a callback
-
-- v0.1.6 - 25th April 2014
-  - Added feature to support accelerating the timeout used internally by a function
-
-- v0.1.8 - 28th April 2014
-  - Pull request from stono to support custom error messages
-  - Made the withArgs evaluate equivalence of the args not strict object equality
-
-- v0.1.9 - 29th April 2014
-  - Pull request from stono to eliminate some duplication
-  - Pull request from jamlen to fix the dependencies badge
-  - Enable stubbing an existing object to generate the method names which exist on the target object
-  - Enable creating a single mocked method with all the setup and expectation capabilities
-
-- v0.1.12 - 5th May 2014
-  - Fixed a bug with the withArgs expectation function where it did not function correctly with multiple expected arguments
 
 ## License
 Copyright (c) 2014 Andrew Rea  
