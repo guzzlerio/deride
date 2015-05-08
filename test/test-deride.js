@@ -450,26 +450,30 @@ _.forEach(tests, function(test) {
             });
         });
 
-        it('enables resolving a promise', function(done) {
-            bob = deride.wrap(bob);
-            bob.setup.greet.toResolveWith('foobar');
-            bob.greet('alice').then(function(result) {
-                assert.equal(result, 'foobar');
-                done();
+        describe('with promises', function() {
+            beforeEach(function(){
+                bob = deride.wrap(bob);
+                bob.setup.greet.when('alice').toResolveWith('foobar');
+                bob.setup.greet.when('norman').toRejectWith(new Error('foobar'));
             });
-        });
 
-        it('enables rejecting a promise', function(done) {
-            bob = deride.wrap(bob);
-            bob.setup.greet.toRejectWith('foobar');
-            bob.greet('alice')
-                .then(function() {
-                    done('should not have resolved');
-                })
-                .catch(function(result) {
+            it('enables resolving a promise', function(done) {
+                bob.greet('alice').then(function(result) {
                     assert.equal(result, 'foobar');
                     done();
                 });
+            });
+
+            it('enables rejecting a promise', function(done) {
+                bob.greet('norman')
+                    .then(function() {
+                        done('should not have resolved');
+                    })
+                    .catch(function(result) {
+                        assert.equal(result.message, 'foobar');
+                        done();
+                    });
+            });
         });
 
     });
