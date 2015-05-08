@@ -39,10 +39,12 @@ var deride = require('deride');
 
 - ```obj```.setup.```method```.toDoThis(func)
 - ```obj```.setup.```method```.toReturn(value)
+- ```obj```.setup.```method```.toResolveWith(value)
+- ```obj```.setup.```method```.toRejectWith(value)
 - ```obj```.setup.```method```.toThrow(message)
 - ```obj```.setup.```method```.toCallbackWith(args)
 - ```obj```.setup.```method```.toTimeWarp(milliseconds)
-- ```obj```.setup.```method```.when(args).[toDoThis|toReturn|toThrow|toCallbackWith|toTimeWarp]
+- ```obj```.setup.```method```.when(args).[toDoThis|toReturn|toRejectWith|toResolveWith|toThrow|toCallbackWith|toTimeWarp]
 
 ## Examples
 
@@ -109,6 +111,27 @@ bob = deride.wrap(bob);
 bob.setup.greet.toReturn('foobar');
 var result = bob.greet('alice');
 result.should.eql('foobar');
+```
+
+### Overriding the promise resolver for a function
+#### To resolve with a value
+```javascript
+var bob = new Person('bob');
+bob = deride.wrap(bob);
+bob.setup.greet.toResolveWith('foobar');
+bob.greet('alice').then(function(result) {
+    result.should.eql('foobar');
+});
+```
+
+#### To reject with a value
+```javascript
+var bob = new Person('bob');
+bob = deride.wrap(bob);
+bob.setup.greet.toRejectWith('foobar');
+bob.greet('alice').catch(function(result) {
+    result.should.eql('foobar');
+});
 ```
 
 ### Force a method invocation to throw a specific error
