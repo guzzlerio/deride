@@ -33,27 +33,49 @@ var util = require('util');
 var assert = require('assert');
 require('should');
 
-describe('utils', function(){
-    it('finds object style methods', function(){
-        var obj  = {
-            greet : function(){},
-            depart : function(){}
+describe('utils', function() {
+    it('finds object style methods', function() {
+        var obj = {
+            greet: function() {},
+            depart: function() {}
         };
         utils.methods(obj).should.eql(['greet', 'depart']);
     });
 
-    it('finds protoype style methods', function(){
-        function Obj(){}
-        Obj.prototype.greet = function(){};
-        Obj.prototype.depart = function(){};
+    it('finds protoype style methods', function() {
+        function Obj() {}
+        Obj.prototype.greet = function() {};
+        Obj.prototype.depart = function() {};
         utils.methods(new Obj()).should.eql(['greet', 'depart']);
     });
 
-    it('finds methods attached to functions', function(){
-        function obj(){}
-        obj.greet = function(){};
-        obj.depart = function(){};
+    it('finds methods attached to functions', function() {
+        function obj() {}
+        obj.greet = function() {};
+        obj.depart = function() {};
         utils.methods(obj).should.eql(['greet', 'depart']);
+    });
+
+    describe('converts number to correct times text', function() {
+        var testCases = [{
+            name: 'once',
+            value: 1,
+        }, {
+            name: 'twice',
+            value: 2,
+        }, {
+            name: '3 times',
+            value: 3,
+        }, {
+            name: '10 times',
+            value: 10,
+        }];
+
+        _.each(testCases, function(test) {
+            it('returns ' + test.name, function() {
+                utils.humanise(test.value).should.eql(test.name);
+            });
+        });
     });
 
 });
@@ -86,10 +108,10 @@ describe('Excpectations', function() {
         done();
     });
 
-    it('throws exception when object not called withArgs', function(done){
+    it('throws exception when object not called withArgs', function(done) {
         var obj = deride.stub(['send']);
-        obj.send(1,2,3);
-        assert.throws(function(){
+        obj.send(1, 2, 3);
+        assert.throws(function() {
             obj.expect.send.called.withArgs(4);
         }, Error);
         done();
@@ -97,53 +119,57 @@ describe('Excpectations', function() {
 
     it('handles comparison of withArgs when an argument is a function', function(done) {
         var obj = deride.stub(['send']);
-        obj.send({a:1}, function(){});
-        obj.expect.send.called.withArgs({a:1});
+        obj.send({
+            a: 1
+        }, function() {});
+        obj.expect.send.called.withArgs({
+            a: 1
+        });
         done();
     });
 });
 
 describe('Single function', function() {
     it('Resetting the called count', function(done) {
-      var MyClass = function() {
-        return {
-          doStuff: function() {}
+        var MyClass = function() {
+            return {
+                doStuff: function() {}
+            };
         };
-      };
-      var myClass = deride.wrap(new MyClass());
-      myClass.doStuff();
-      myClass.expect.doStuff.called.once();
-      myClass.expect.doStuff.called.reset();
-      myClass.expect.doStuff.called.never();
-      done();
+        var myClass = deride.wrap(new MyClass());
+        myClass.doStuff();
+        myClass.expect.doStuff.called.once();
+        myClass.expect.doStuff.called.reset();
+        myClass.expect.doStuff.called.never();
+        done();
     });
 
     it('Resetting the called with count', function(done) {
-      var MyClass = function() {
-        return {
-          doStuff: function() {}
+        var MyClass = function() {
+            return {
+                doStuff: function() {}
+            };
         };
-      };
-      var myClass = deride.wrap(new MyClass());
-      myClass.doStuff('test');
-      myClass.expect.doStuff.called.withArgs('test');
-      myClass.expect.doStuff.called.reset();
-      /* jshint immed: false */
-      (function() {
+        var myClass = deride.wrap(new MyClass());
+        myClass.doStuff('test');
         myClass.expect.doStuff.called.withArgs('test');
-      }).should.throw('false == true');
-      done();
+        myClass.expect.doStuff.called.reset();
+        /* jshint immed: false */
+        (function() {
+            myClass.expect.doStuff.called.withArgs('test');
+        }).should.throw('false == true');
+        done();
     });
 
     it('Wrapping a class does not remove non-functions', function() {
-      var MyClass = function() {
-        return {
-          aValue: 1,
-          doStuff: function() {}
+        var MyClass = function() {
+            return {
+                aValue: 1,
+                doStuff: function() {}
+            };
         };
-      };
-      var myClass = deride.wrap(new MyClass());
-      myClass.should.have.property('aValue');
+        var myClass = deride.wrap(new MyClass());
+        myClass.should.have.property('aValue');
     });
 
     it('can setup a return value', function(done) {
@@ -445,5 +471,32 @@ _.forEach(tests, function(test) {
                 });
             });
         });
+
+        describe('with promises', function() {
+            beforeEach(function(){
+                bob = deride.wrap(bob);
+                bob.setup.greet.when('alice').toResolveWith('foobar');
+                bob.setup.greet.when('norman').toRejectWith(new Error('foobar'));
+            });
+
+            it('enables resolving a promise', function(done) {
+                bob.greet('alice').then(function(result) {
+                    assert.equal(result, 'foobar');
+                    done();
+                });
+            });
+
+            it('enables rejecting a promise', function(done) {
+                bob.greet('norman')
+                    .then(function() {
+                        done('should not have resolved');
+                    })
+                    .catch(function(result) {
+                        assert.equal(result.message, 'foobar');
+                        done();
+                    });
+            });
+        });
+
     });
 });
