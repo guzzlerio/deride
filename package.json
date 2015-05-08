@@ -38,7 +38,7 @@
     "istanbul": "^0.3.13",
     "should": "^6.0.1"
   },
-  "keywords": [],
+  "keywords": ["test","testing", "test double", "mocking", "mock", "stub", "wrap", "expect", "expectations", "setup"],
   "dependencies": {
     "lodash": "~3.8.0",
     "when": "^3.7.3"
