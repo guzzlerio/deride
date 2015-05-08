@@ -1,7 +1,7 @@
 {
   "name": "deride",
   "description": "Mocking library based on composition",
-  "version": "0.1.15",
+  "version": "0.2.0",
   "homepage": "https://github.com/REAANDREW/deride",
   "author": {
     "name": "Andrew Rea",
