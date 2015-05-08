@@ -56,6 +56,28 @@ describe('utils', function() {
         utils.methods(obj).should.eql(['greet', 'depart']);
     });
 
+    describe('converts number to correct times text', function() {
+        var testCases = [{
+            name: 'once',
+            value: 1,
+        }, {
+            name: 'twice',
+            value: 2,
+        }, {
+            name: '3 times',
+            value: 3,
+        }, {
+            name: '10 times',
+            value: 10,
+        }];
+
+        _.each(testCases, function(test) {
+            it('returns ' + test.name, function() {
+                utils.humanise(test.value).should.eql(test.name);
+            });
+        });
+    });
+
 });
 
 describe('Excpectations', function() {
