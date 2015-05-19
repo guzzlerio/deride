@@ -8,12 +8,10 @@
     "email": "email@andrewrea.co.uk",
     "url": "http://www.andrewrea.co.uk"
   },
-  "contributors": [
-    {
-      "name": "James Allen",
-      "url": "https://github.com/jamlen"
-    }
-  ],
+  "contributors": [{
+    "name": "James Allen",
+    "url": "https://github.com/jamlen"
+  }],
   "repository": {
     "type": "git",
     "url": "git://github.com/REAANDREW/deride.git"
@@ -36,9 +34,21 @@
     "grunt-mocha-test": "~0.12.7",
     "grunt-notify": "~0.4.1",
     "istanbul": "^0.3.13",
+    "mocha": "^2.2.5",
     "should": "^6.0.1"
   },
-  "keywords": ["test","testing", "test double", "mocking", "mock", "stub", "wrap", "expect", "expectations", "setup"],
+  "keywords": [
+    "test",
+    "testing",
+    "test double",
+    "mocking",
+    "mock",
+    "stub",
+    "wrap",
+    "expect",
+    "expectations",
+    "setup"
+  ],
   "dependencies": {
     "lodash": "~3.8.0",
     "when": "^3.7.3"

@@ -300,6 +300,8 @@ bob.on('message', function() {
 bob.emit('message', 'payload');
 ```
 
+[![NPM](https://nodei.co/npm/deride.png?downloadRank=true&downloads=true)](https://nodei.co/npm/deride/)
+
 ## Contributing
 Please ensure that you run ```grunt```, have no style warnings and that all the tests are passing.
 

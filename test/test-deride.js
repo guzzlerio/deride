@@ -157,7 +157,7 @@ describe('Single function', function() {
         /* jshint immed: false */
         (function() {
             myClass.expect.doStuff.called.withArgs('test');
-        }).should.throw('false == true');
+        }).should.throw('Expected doStuff to be called with: test');
         done();
     });
 
@@ -473,7 +473,7 @@ _.forEach(tests, function(test) {
         });
 
         describe('with promises', function() {
-            beforeEach(function(){
+            beforeEach(function() {
                 bob = deride.wrap(bob);
                 bob.setup.greet.when('alice').toResolveWith('foobar');
                 bob.setup.greet.when('norman').toRejectWith(new Error('foobar'));
