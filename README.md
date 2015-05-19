@@ -1,5 +1,7 @@
 # deride [![Build Status](https://travis-ci.org/REAANDREW/deride.svg?branch=master)](https://travis-ci.org/REAANDREW/deride) [![NPM version](https://badge.fury.io/js/deride.svg)](http://badge.fury.io/js/deride) [![Dependency Status](https://david-dm.org/REAANDREW/deride.svg)](https://david-dm.org/REAANDREW/deride)
 
+[![NPM](https://nodei.co/npm/deride.png?downloadRank=true&downloads=true)](https://nodei.co/npm/deride/)
+
 Mocking library based on composition
 
 The inspiration for this was that my colleague was having a look at other mocking frameworks and mentioned to me that they do not work when using ```Object.freeze``` in the objects to enforce encapsulation.  This library builds on composition to create a mocking library that can work with objects which are frozen.
@@ -299,8 +301,6 @@ bob.on('message', function() {
 });
 bob.emit('message', 'payload');
 ```
-
-[![NPM](https://nodei.co/npm/deride.png?downloadRank=true&downloads=true)](https://nodei.co/npm/deride/)
 
 ## Contributing
 Please ensure that you run ```grunt```, have no style warnings and that all the tests are passing.
