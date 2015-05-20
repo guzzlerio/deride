@@ -419,7 +419,6 @@ _.forEach(tests, function(test) {
         });
 
         it('enables throwing an exception for a method invocation when specific arguments are provided', function(done) {
-
             bob = deride.wrap(bob);
             bob.setup.greet.when('alice').toThrow('BANG');
             assert.throws(function() {
@@ -442,7 +441,6 @@ _.forEach(tests, function(test) {
         });
 
         it('enables specifying the arguments of a callback and invoking it when specific arguments are provided', function(done) {
-
             bob = deride.wrap(bob);
             bob.setup.chuckle.toCallbackWith([0, 'boom']);
             bob.setup.chuckle.when('alice').toCallbackWith([0, 'bam']);
@@ -473,7 +471,7 @@ _.forEach(tests, function(test) {
         });
 
         describe('with promises', function() {
-            beforeEach(function(){
+            beforeEach(function() {
                 bob = deride.wrap(bob);
                 bob.setup.greet.when('alice').toResolveWith('foobar');
                 bob.setup.greet.when('norman').toRejectWith(new Error('foobar'));
@@ -498,5 +496,58 @@ _.forEach(tests, function(test) {
             });
         });
 
+        describe.skip('multi', function() {
+            it('only uses the stub x times', function() {
+                bob = deride.wrap(bob);
+                bob.setup.greet
+                    .toReturn('alice')
+                    .times(2)
+                    .and.then
+                    .toReturn('sally');
+                bob.greet().should.eql('alice');
+                bob.greet().should.eql('alice');
+                bob.greet().should.eql('sally');
+            });
+            it('only uses the stub x times and then falls back', function() {
+                bob = deride.wrap(bob);
+                bob.setup.greet
+                    .toReturn('sally')
+                    .toReturn('alice')
+                    .times(2);
+                bob.greet().should.eql('alice');
+                bob.greet().should.eql('alice');
+                bob.greet().should.eql('sally');
+            });
+
+            describe('also supports when specific arguments are provided', function() {
+                it('', function() {
+                    bob = deride.wrap(bob);
+                    bob.setup.greet
+                        .when('simon')
+                        .toReturn('alice')
+                        .times(2);
+                    // default Person behaviour
+                    bob.greet('talula').should.eql('howdy from bob proto to talula');
+                    // overridden behaviour
+                    bob.greet('simon').should.eql('alice');
+                    bob.greet('simon').should.eql('alice');
+                    // default Person behaviour
+                    bob.greet('simon').should.eql('howdy from bob proto to talula');
+                });
+                it('does something else 2', function() {
+                    bob = deride.wrap(bob);
+                    // I need to know that the last one added included the when() so it is in the callBasedOnArgs instead
+                    bob.setup.greet
+                        .toReturn('talula')
+                        .but.when('simon')
+                        .toReturn('alice')
+                        .times(2);
+                    bob.greet().should.eql('talula');
+                    bob.greet('simon').should.eql('alice');
+                    bob.greet('simon').should.eql('alice');
+                    bob.greet('simon').should.eql('talula');
+                });
+            });
+        });
     });
 });
