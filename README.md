@@ -1,4 +1,4 @@
-# deride [![Build Status](https://travis-ci.org/REAANDREW/deride.svg?branch=master)](https://travis-ci.org/REAANDREW/deride) [![NPM version](https://badge.fury.io/js/deride.svg)](http://badge.fury.io/js/deride) [![Dependency Status](https://david-dm.org/REAANDREW/deride.svg)](https://david-dm.org/REAANDREW/deride)
+# deride [![Build Status](https://travis-ci.org/guzzlerio/deride.svg?branch=master)](https://travis-ci.org/guzzlerio/deride) [![NPM version](https://badge.fury.io/js/deride.svg)](http://badge.fury.io/js/deride) [![Dependency Status](https://david-dm.org/guzzlerio/deride.svg)](https://david-dm.org/guzzlerio/deride)
 
 [![NPM](https://nodei.co/npm/deride.png?downloadRank=true&downloads=true)](https://nodei.co/npm/deride/)
 
