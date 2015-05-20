@@ -157,7 +157,7 @@ describe('Single function', function() {
         /* jshint immed: false */
         (function() {
             myClass.expect.doStuff.called.withArgs('test');
-        }).should.throw('false == true');
+        }).should.throw('Expected doStuff to be called with: test');
         done();
     });
 
