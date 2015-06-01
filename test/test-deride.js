@@ -355,12 +355,12 @@ _.forEach(tests, function(test) {
             done();
         });
 
-        it.skip('enables access to all the method invocations', function(done){
+        it('enables access to all the method invocations', function(done){
             bob = deride.wrap(bob);
             bob.greet('alice');
             bob.greet('bob');
-            bob.expect.greet.call(0).withArg('alice');
-            bob.expect.greet.call(1).withArg('bob');
+            bob.expect.greet.invocation(0).withArg('alice');
+            bob.expect.greet.invocation(1).withArg('bob');
             done();
         });
 
