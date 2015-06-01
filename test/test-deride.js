@@ -355,6 +355,15 @@ _.forEach(tests, function(test) {
             done();
         });
 
+        it.skip('enables access to all the method invocations', function(done){
+            bob = deride.wrap(bob);
+            bob.greet('alice');
+            bob.greet('bob');
+            bob.expect.greet.call(0).withArg('alice');
+            bob.expect.greet.call(1).withArg('bob');
+            done();
+        });
+
         it('enables overriding a methods body', function(done) {
             bob = deride.wrap(bob);
             bob.setup.greet.toDoThis(function(otherPersonName) {
@@ -419,7 +428,6 @@ _.forEach(tests, function(test) {
         });
 
         it('enables throwing an exception for a method invocation when specific arguments are provided', function(done) {
-
             bob = deride.wrap(bob);
             bob.setup.greet.when('alice').toThrow('BANG');
             assert.throws(function() {
@@ -442,7 +450,6 @@ _.forEach(tests, function(test) {
         });
 
         it('enables specifying the arguments of a callback and invoking it when specific arguments are provided', function(done) {
-
             bob = deride.wrap(bob);
             bob.setup.chuckle.toCallbackWith([0, 'boom']);
             bob.setup.chuckle.when('alice').toCallbackWith([0, 'bam']);
