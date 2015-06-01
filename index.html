@@ -1,72 +1,396 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en-us">
   <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Deride by REAANDREW</title>
-
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <meta charset="UTF-8">
+    <title>Deride by guzzlerio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
   </head>
   <body>
-    <div class="wrapper">
-      <header>
-        <h1>Deride</h1>
-        <p>Mocking library based on composition</p>
+    <section class="page-header">
+      <h1 class="project-name">Deride</h1>
+      <h2 class="project-tagline">Mocking library based on composition</h2>
+      <a href="https://github.com/guzzlerio/deride" class="btn">View on GitHub</a>
+      <a href="https://github.com/guzzlerio/deride/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/guzzlerio/deride/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
 
-        <p class="view"><a href="https://github.com/REAANDREW/deride">View the Project on GitHub <small>REAANDREW/deride</small></a></p>
+    <section class="main-content">
+      <h1>
+<a id="deride---" class="anchor" href="#deride---" aria-hidden="true"><span class="octicon octicon-link"></span></a>deride <a href="https://travis-ci.org/guzzlerio/deride"><img src="https://travis-ci.org/guzzlerio/deride.svg?branch=master" alt="Build Status"></a> <a href="http://badge.fury.io/js/deride"><img src="https://badge.fury.io/js/deride.svg" alt="NPM version"></a> <a href="https://david-dm.org/guzzlerio/deride"><img src="https://david-dm.org/guzzlerio/deride.svg" alt="Dependency Status"></a>
+</h1>
 
+<p><a href="https://nodei.co/npm/deride/"><img src="https://nodei.co/npm/deride.png?downloadRank=true&amp;downloads=true" alt="NPM"></a></p>
 
-        <ul>
-          <li><a href="https://github.com/REAANDREW/deride/zipball/master">Download <strong>ZIP File</strong></a></li>
-          <li><a href="https://github.com/REAANDREW/deride/tarball/master">Download <strong>TAR Ball</strong></a></li>
-          <li><a href="https://github.com/REAANDREW/deride">View On <strong>GitHub</strong></a></li>
-        </ul>
-      </header>
-      <section>
-        <h3>
-<a name="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages"><span class="octicon octicon-link"></span></a>Welcome to GitHub Pages.</h3>
+<p>Mocking library based on composition</p>
 
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
+<p>The inspiration for this was that my colleague was having a look at other mocking frameworks and mentioned to me that they do not work when using <code>Object.freeze</code> in the objects to enforce encapsulation.  This library builds on composition to create a mocking library that can work with objects which are frozen.</p>
 
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
-</code></pre>
+<h2>
+<a id="getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Started</h2>
 
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
+<p>Install the module with: <code>npm install deride</code></p>
 
-<h3>
-<a name="designer-templates" class="anchor" href="#designer-templates"><span class="octicon octicon-link"></span></a>Designer Templates</h3>
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> deride <span class="pl-k">=</span> <span class="pl-c1">require</span>(<span class="pl-s"><span class="pl-pds">'</span>deride<span class="pl-pds">'</span></span>);</pre></div>
 
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
+<h2>
+<a id="documentation" class="anchor" href="#documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Documentation</h2>
 
 <h3>
-<a name="rather-drive-stick" class="anchor" href="#rather-drive-stick"><span class="octicon octicon-link"></span></a>Rather Drive Stick?</h3>
+<a id="mocking" class="anchor" href="#mocking" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mocking</h3>
 
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
+<ul>
+<li>deride.wrap(obj)</li>
+</ul>
+
+<p><strong>CAUTION</strong> Remember when you use this function about the good practice recommended in the book <strong>Growing Object-Oriented Software, Guided by Tests</strong>  <strong><em>Chapter 8: Only Mock Types That You Own</em></strong></p>
+
+<ul>
+<li>deride.stub(methods)
+
+<ul>
+<li>
+<strong>methods</strong> Array</li>
+</ul>
+</li>
+<li>deride.stub(obj)
+
+<ul>
+<li>
+<strong>obj</strong> Object</li>
+</ul>
+</li>
+<li>deride.func()</li>
+</ul>
 
 <h3>
-<a name="authors-and-contributors" class="anchor" href="#authors-and-contributors"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
+<a id="expectations" class="anchor" href="#expectations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Expectations</h3>
 
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
+<ul>
+<li>
+<code>obj</code>.expect.<code>method</code>.called.times(n)</li>
+<li>
+<code>obj</code>.expect.<code>method</code>.called.once()</li>
+<li>
+<code>obj</code>.expect.<code>method</code>.called.twice()</li>
+<li>
+<code>obj</code>.expect.<code>method</code>.called.never()</li>
+<li>
+<code>obj</code>.expect.<code>method</code>.called.withArgs(args)</li>
+</ul>
 
 <h3>
-<a name="support-or-contact" class="anchor" href="#support-or-contact"><span class="octicon octicon-link"></span></a>Support or Contact</h3>
+<a id="resetting-the-counts--called-with-args" class="anchor" href="#resetting-the-counts--called-with-args" aria-hidden="true"><span class="octicon octicon-link"></span></a>Resetting the counts / called with args</h3>
 
-<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
-      </section>
-      <footer>
-        <p>This project is maintained by <a href="https://github.com/REAANDREW">REAANDREW</a></p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+<ul>
+<li>
+<code>obj</code>.expect.<code>method</code>.called.reset()</li>
+</ul>
+
+<h3>
+<a id="setup" class="anchor" href="#setup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setup</h3>
+
+<ul>
+<li>
+<code>obj</code>.setup.<code>method</code>.toDoThis(func)</li>
+<li>
+<code>obj</code>.setup.<code>method</code>.toReturn(value)</li>
+<li>
+<code>obj</code>.setup.<code>method</code>.toResolveWith(value)</li>
+<li>
+<code>obj</code>.setup.<code>method</code>.toRejectWith(value)</li>
+<li>
+<code>obj</code>.setup.<code>method</code>.toThrow(message)</li>
+<li>
+<code>obj</code>.setup.<code>method</code>.toCallbackWith(args)</li>
+<li>
+<code>obj</code>.setup.<code>method</code>.toTimeWarp(milliseconds)</li>
+<li>
+<code>obj</code>.setup.<code>method</code>.when(args).[toDoThis|toReturn|toRejectWith|toResolveWith|toThrow|toCallbackWith|toTimeWarp]</li>
+</ul>
+
+<h2>
+<a id="examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples</h2>
+
+<h3>
+<a id="the-context" class="anchor" href="#the-context" aria-hidden="true"><span class="octicon octicon-link"></span></a>The context</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> <span class="pl-en">Person</span> <span class="pl-k">=</span> <span class="pl-k">function</span>(<span class="pl-smi">name</span>) {
+    <span class="pl-k">return</span> <span class="pl-c1">Object</span>.freeze({
+        <span class="pl-en">greet</span>: <span class="pl-k">function</span>(<span class="pl-smi">otherPersonName</span>) {
+            <span class="pl-en">console</span><span class="pl-c1">.log</span>(name, <span class="pl-s"><span class="pl-pds">'</span>says hello to<span class="pl-pds">'</span></span>, otherPersonName);
+        }
+    });
+}</pre></div>
+
+<h3>
+<a id="count-the-number-of-invocations-of-a-method" class="anchor" href="#count-the-number-of-invocations-of-a-method" aria-hidden="true"><span class="octicon octicon-link"></span></a>Count the number of invocations of a method</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Person</span>(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+bob <span class="pl-k">=</span> deride.wrap(bob);
+bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>);
+bob.expect.greet.called.times(<span class="pl-c1">1</span>);</pre></div>
+
+<h3>
+<a id="has-convenience-methods-for-invocation-counts" class="anchor" href="#has-convenience-methods-for-invocation-counts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Has convenience methods for invocation counts</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Person</span>(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+bob <span class="pl-k">=</span> deride.wrap(bob);
+bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>);
+bob.expect.greet.called.once();
+bob.greet(<span class="pl-s"><span class="pl-pds">'</span>sally<span class="pl-pds">'</span></span>);
+bob.expect.greet.called.twice();</pre></div>
+
+<h3>
+<a id="determine-if-a-method-has-never-been-called" class="anchor" href="#determine-if-a-method-has-never-been-called" aria-hidden="true"><span class="octicon octicon-link"></span></a>Determine if a method has <strong>never</strong> been called</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Person</span>(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+bob <span class="pl-k">=</span> deride.wrap(bob);
+bob.expect.greet.called.never();</pre></div>
+
+<h3>
+<a id="determine-if-a-method-was-called-with-a-specific-set-of-arguments" class="anchor" href="#determine-if-a-method-was-called-with-a-specific-set-of-arguments" aria-hidden="true"><span class="octicon octicon-link"></span></a>Determine if a method was called with a specific set of arguments</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Person</span>(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+bob <span class="pl-k">=</span> deride.wrap(bob);
+bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>);
+bob.greet(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+bob.expect.greet.called.withArgs(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);</pre></div>
+
+<h3>
+<a id="override-the-method-body-to-change-the-invocation" class="anchor" href="#override-the-method-body-to-change-the-invocation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Override the method body to change the invocation</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Person</span>(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+bob <span class="pl-k">=</span> deride.wrap(bob);
+bob.setup.greet.toDoThis(<span class="pl-k">function</span>(<span class="pl-smi">otherPersonName</span>) {
+    <span class="pl-k">return</span> util.format(<span class="pl-s"><span class="pl-pds">'</span>yo %s<span class="pl-pds">'</span></span>, otherPersonName);
+});
+<span class="pl-k">var</span> result <span class="pl-k">=</span> bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>);
+result.should.eql(<span class="pl-s"><span class="pl-pds">'</span>yo alice<span class="pl-pds">'</span></span>);</pre></div>
+
+<h3>
+<a id="override-the-return-value-for-a-function" class="anchor" href="#override-the-return-value-for-a-function" aria-hidden="true"><span class="octicon octicon-link"></span></a>Override the return value for a function</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Person</span>(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+bob <span class="pl-k">=</span> deride.wrap(bob);
+bob.setup.greet.toReturn(<span class="pl-s"><span class="pl-pds">'</span>foobar<span class="pl-pds">'</span></span>);
+<span class="pl-k">var</span> result <span class="pl-k">=</span> bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>);
+result.should.eql(<span class="pl-s"><span class="pl-pds">'</span>foobar<span class="pl-pds">'</span></span>);</pre></div>
+
+<h3>
+<a id="overriding-the-promise-resolver-for-a-function" class="anchor" href="#overriding-the-promise-resolver-for-a-function" aria-hidden="true"><span class="octicon octicon-link"></span></a>Overriding the promise resolver for a function</h3>
+
+<h4>
+<a id="to-resolve-with-a-value" class="anchor" href="#to-resolve-with-a-value" aria-hidden="true"><span class="octicon octicon-link"></span></a>To resolve with a value</h4>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Person</span>(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+bob <span class="pl-k">=</span> deride.wrap(bob);
+bob.setup.greet.toResolveWith(<span class="pl-s"><span class="pl-pds">'</span>foobar<span class="pl-pds">'</span></span>);
+bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>).then(<span class="pl-k">function</span>(<span class="pl-smi">result</span>) {
+    result.should.eql(<span class="pl-s"><span class="pl-pds">'</span>foobar<span class="pl-pds">'</span></span>);
+});</pre></div>
+
+<h4>
+<a id="to-reject-with-a-value" class="anchor" href="#to-reject-with-a-value" aria-hidden="true"><span class="octicon octicon-link"></span></a>To reject with a value</h4>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Person</span>(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+bob <span class="pl-k">=</span> deride.wrap(bob);
+bob.setup.greet.toRejectWith(<span class="pl-s"><span class="pl-pds">'</span>foobar<span class="pl-pds">'</span></span>);
+bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>).catch(<span class="pl-k">function</span>(<span class="pl-smi">result</span>) {
+    result.should.eql(<span class="pl-s"><span class="pl-pds">'</span>foobar<span class="pl-pds">'</span></span>);
+});</pre></div>
+
+<h3>
+<a id="force-a-method-invocation-to-throw-a-specific-error" class="anchor" href="#force-a-method-invocation-to-throw-a-specific-error" aria-hidden="true"><span class="octicon octicon-link"></span></a>Force a method invocation to throw a specific error</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Person</span>(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+bob <span class="pl-k">=</span> deride.wrap(bob);
+bob.setup.greet.toThrow(<span class="pl-s"><span class="pl-pds">'</span>BANG<span class="pl-pds">'</span></span>);
+should(<span class="pl-k">function</span>() {
+    bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>);
+}).
+<span class="pl-k">throw</span>(<span class="pl-sr"><span class="pl-pds">/</span>BANG<span class="pl-pds">/</span></span>);</pre></div>
+
+<h3>
+<a id="override-the-invocation-of-a-callback" class="anchor" href="#override-the-invocation-of-a-callback" aria-hidden="true"><span class="octicon octicon-link"></span></a>Override the invocation of a callback</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Person</span>(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+bob <span class="pl-k">=</span> deride.wrap(bob);
+bob.setup.chuckle.toCallbackWith([<span class="pl-c1">0</span>, <span class="pl-s"><span class="pl-pds">'</span>boom<span class="pl-pds">'</span></span>]);
+bob.chuckle(<span class="pl-k">function</span>(<span class="pl-smi">err</span>, <span class="pl-smi">message</span>) {
+    assert.equal(err, <span class="pl-c1">0</span>);
+    assert.equal(message, <span class="pl-s"><span class="pl-pds">'</span>boom<span class="pl-pds">'</span></span>);
+});</pre></div>
+
+<h3>
+<a id="accelerating-the-timeout-used-internally-by-a-function" class="anchor" href="#accelerating-the-timeout-used-internally-by-a-function" aria-hidden="true"><span class="octicon octicon-link"></span></a>Accelerating the timeout used internally by a function</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> <span class="pl-en">Person</span> <span class="pl-k">=</span> <span class="pl-k">function</span>(<span class="pl-smi">name</span>) {
+    <span class="pl-k">return</span> <span class="pl-c1">Object</span>.freeze({
+        <span class="pl-en">foobar</span>: <span class="pl-k">function</span>(<span class="pl-smi">timeout</span>, <span class="pl-smi">callback</span>) {
+            <span class="pl-c1">setTimeout</span>(<span class="pl-k">function</span>() {
+                callback(<span class="pl-s"><span class="pl-pds">'</span>result<span class="pl-pds">'</span></span>);
+            }, timeout);
+        }
+    });
+};
+<span class="pl-k">var</span> timeout <span class="pl-k">=</span> <span class="pl-c1">10000</span>;
+<span class="pl-k">var</span> bob <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Person</span>(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+bob <span class="pl-k">=</span> deride.wrap(bob);
+bob.setup.foobar.toTimeWarp(timeout);
+bob.foobar(timeout, <span class="pl-k">function</span>(<span class="pl-smi">message</span>) {
+    assert.equal(message, <span class="pl-s"><span class="pl-pds">'</span>result<span class="pl-pds">'</span></span>);
+});</pre></div>
+
+<h3>
+<a id="setting-the-return-value-of-a-function-when-specific-arguments-are-used" class="anchor" href="#setting-the-return-value-of-a-function-when-specific-arguments-are-used" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setting the return value of a function when specific arguments are used</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Person</span>(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+bob <span class="pl-k">=</span> deride.wrap(bob);
+bob.setup.greet.when(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>).toReturn(<span class="pl-s"><span class="pl-pds">'</span>foobar<span class="pl-pds">'</span></span>);
+bob.setup.greet.toReturn(<span class="pl-s"><span class="pl-pds">'</span>barfoo<span class="pl-pds">'</span></span>);
+<span class="pl-k">var</span> result1 <span class="pl-k">=</span> bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>);
+<span class="pl-k">var</span> result2 <span class="pl-k">=</span> bob.greet(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+result1.should.eql(<span class="pl-s"><span class="pl-pds">'</span>foobar<span class="pl-pds">'</span></span>);
+result2.should.eql(<span class="pl-s"><span class="pl-pds">'</span>barfoo<span class="pl-pds">'</span></span>);</pre></div>
+
+<h3>
+<a id="overriding-a-methods-body-when-specific-arguments-are-provided" class="anchor" href="#overriding-a-methods-body-when-specific-arguments-are-provided" aria-hidden="true"><span class="octicon octicon-link"></span></a>Overriding a method`s body when specific arguments are provided</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Person</span>(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+bob <span class="pl-k">=</span> deride.wrap(bob);
+bob.setup.greet.when(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>).toDoThis(<span class="pl-k">function</span>(<span class="pl-smi">otherPersonName</span>) {
+    <span class="pl-k">return</span> util.format(<span class="pl-s"><span class="pl-pds">'</span>yo yo %s<span class="pl-pds">'</span></span>, otherPersonName);
+});
+bob.setup.greet.toDoThis(<span class="pl-k">function</span>(<span class="pl-smi">otherPersonName</span>) {
+    <span class="pl-k">return</span> util.format(<span class="pl-s"><span class="pl-pds">'</span>yo %s<span class="pl-pds">'</span></span>, otherPersonName);
+});
+<span class="pl-k">var</span> result1 <span class="pl-k">=</span> bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>);
+<span class="pl-k">var</span> result2 <span class="pl-k">=</span> bob.greet(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+result1.should.eql(<span class="pl-s"><span class="pl-pds">'</span>yo yo alice<span class="pl-pds">'</span></span>);
+result2.should.eql(<span class="pl-s"><span class="pl-pds">'</span>yo bob<span class="pl-pds">'</span></span>);</pre></div>
+
+<h3>
+<a id="throwing-an-error-for-a-method-invocation-when-specific-arguments-are-provided" class="anchor" href="#throwing-an-error-for-a-method-invocation-when-specific-arguments-are-provided" aria-hidden="true"><span class="octicon octicon-link"></span></a>Throwing an error for a method invocation when specific arguments are provided</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Person</span>(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+bob <span class="pl-k">=</span> deride.wrap(bob);
+bob.setup.greet.when(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>).toThrow(<span class="pl-s"><span class="pl-pds">'</span>BANG<span class="pl-pds">'</span></span>);
+should(<span class="pl-k">function</span>() {
+    bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>);
+}).
+<span class="pl-k">throw</span> (<span class="pl-sr"><span class="pl-pds">/</span>BANG<span class="pl-pds">/</span></span>);
+should(<span class="pl-k">function</span>() {
+    bob.greet(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+}).not.
+<span class="pl-k">throw</span> (<span class="pl-sr"><span class="pl-pds">/</span>BANG<span class="pl-pds">/</span></span>);</pre></div>
+
+<h3>
+<a id="override-the-invocation-of-a-callback-when-specific-arguments-are-provided" class="anchor" href="#override-the-invocation-of-a-callback-when-specific-arguments-are-provided" aria-hidden="true"><span class="octicon octicon-link"></span></a>Override the invocation of a callback when specific arguments are provided</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Person</span>(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+bob <span class="pl-k">=</span> deride.wrap(bob);
+bob.setup.chuckle.toCallbackWith([<span class="pl-c1">0</span>, <span class="pl-s"><span class="pl-pds">'</span>boom<span class="pl-pds">'</span></span>]);
+bob.setup.chuckle.when(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>).toCallbackWith([<span class="pl-c1">0</span>, <span class="pl-s"><span class="pl-pds">'</span>bam<span class="pl-pds">'</span></span>]);
+bob.chuckle(<span class="pl-k">function</span>(<span class="pl-smi">err</span>, <span class="pl-smi">message</span>) {
+    assert.equal(err, <span class="pl-c1">0</span>);
+    assert.equal(message, <span class="pl-s"><span class="pl-pds">'</span>boom<span class="pl-pds">'</span></span>);
+    bob.chuckle(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">err</span>, <span class="pl-smi">message</span>) {
+        assert.equal(err, <span class="pl-c1">0</span>);
+        assert.equal(message, <span class="pl-s"><span class="pl-pds">'</span>bam<span class="pl-pds">'</span></span>);
+    });
+});</pre></div>
+
+<h3>
+<a id="accelerating-the-timeout-used-internally-by-a-function-when-specific-arguments-are-provided" class="anchor" href="#accelerating-the-timeout-used-internally-by-a-function-when-specific-arguments-are-provided" aria-hidden="true"><span class="octicon octicon-link"></span></a>Accelerating the timeout used internally by a function when specific arguments are provided</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> <span class="pl-en">Person</span> <span class="pl-k">=</span> <span class="pl-k">function</span>(<span class="pl-smi">name</span>) {
+    <span class="pl-k">return</span> <span class="pl-c1">Object</span>.freeze({
+        <span class="pl-en">foobar</span>: <span class="pl-k">function</span>(<span class="pl-smi">timeout</span>, <span class="pl-smi">callback</span>) {
+            <span class="pl-c1">setTimeout</span>(<span class="pl-k">function</span>() {
+                callback(<span class="pl-s"><span class="pl-pds">'</span>result<span class="pl-pds">'</span></span>);
+            }, timeout);
+        }
+    });
+};
+<span class="pl-k">var</span> timeout1 <span class="pl-k">=</span> <span class="pl-c1">10000</span>;
+<span class="pl-k">var</span> timeout2 <span class="pl-k">=</span> <span class="pl-c1">20000</span>;
+<span class="pl-k">var</span> bob <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Person</span>(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+bob <span class="pl-k">=</span> deride.wrap(bob);
+bob.setup.foobar.toTimeWarp(timeout1);
+bob.setup.foobar.when(timeout2).toTimeWarp(timeout2);
+bob.foobar(timeout1, <span class="pl-k">function</span>(<span class="pl-smi">message</span>) {
+    assert.equal(message, <span class="pl-s"><span class="pl-pds">'</span>result<span class="pl-pds">'</span></span>);
+    bob.foobar(timeout2, <span class="pl-k">function</span>(<span class="pl-smi">message</span>) {
+        assert.equal(message, <span class="pl-s"><span class="pl-pds">'</span>result<span class="pl-pds">'</span></span>);
+        done();
+    });
+});
+</pre></div>
+
+<h3>
+<a id="creating-a-stubbed-object" class="anchor" href="#creating-a-stubbed-object" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating a stubbed object</h3>
+
+<p>Stubbing an object simply creates an anonymous object, with all the method specified and then the object is wrapped to provide all the expectation functionality of the library</p>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> deride.stub([<span class="pl-s"><span class="pl-pds">'</span>greet<span class="pl-pds">'</span></span>]);
+bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>);
+bob.expect.greet.called.times(<span class="pl-c1">1</span>);</pre></div>
+
+<h3>
+<a id="creating-a-stubbed-object-based-on-an-existing-object" class="anchor" href="#creating-a-stubbed-object-based-on-an-existing-object" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating a stubbed object based on an existing object</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> Person <span class="pl-k">=</span> {
+    <span class="pl-en">greet</span>: <span class="pl-k">function</span>(<span class="pl-smi">name</span>) {
+        <span class="pl-k">return</span> <span class="pl-s"><span class="pl-pds">'</span>alice sas hello to <span class="pl-pds">'</span></span> <span class="pl-k">+</span> name;
+    },
+};
+<span class="pl-k">var</span> bob <span class="pl-k">=</span> deride.stub(Person);
+bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>);
+bob.expect.greet.called.once();</pre></div>
+
+<h3>
+<a id="creating-a-single-mocked-method" class="anchor" href="#creating-a-single-mocked-method" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating a single mocked method</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> func <span class="pl-k">=</span> deride.func();
+func.setup.toReturn(<span class="pl-c1">1</span>);
+<span class="pl-k">var</span> value <span class="pl-k">=</span> func(<span class="pl-c1">1</span>, <span class="pl-c1">2</span>, <span class="pl-c1">3</span>);
+assert.equal(value, <span class="pl-c1">1</span>);</pre></div>
+
+<h3>
+<a id="force-the-emit-of-an-event-on-an-object" class="anchor" href="#force-the-emit-of-an-event-on-an-object" aria-hidden="true"><span class="octicon octicon-link"></span></a>Force the emit of an event on an object</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> deride.stub([]);
+bob.on(<span class="pl-s"><span class="pl-pds">'</span>message<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>() {
+    done();
+});
+bob.emit(<span class="pl-s"><span class="pl-pds">'</span>message<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>payload<span class="pl-pds">'</span></span>);</pre></div>
+
+<h2>
+<a id="contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>Please ensure that you run <code>grunt</code>, have no style warnings and that all the tests are passing.</p>
+
+<h2>
+<a id="license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Copyright (c) 2014 Andrew Rea<br>
+Copyright (c) 2014 James Allen</p>
+
+<p>Licensed under the MIT license.</p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/guzzlerio/deride">Deride</a> is maintained by <a href="https://github.com/guzzlerio">guzzlerio</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
       </footer>
-    </div>
-    <script src="javascripts/scale.fix.js"></script>
-              <script type="text/javascript">
+
+    </section>
+
+            <script type="text/javascript">
             var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
             document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
           </script>
@@ -79,3 +403,4 @@ $ git checkout gh-pages
 
   </body>
 </html>
+
