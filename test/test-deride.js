@@ -364,6 +364,16 @@ _.forEach(tests, function(test) {
             done();
         });
 
+        it('throws an exception for an invocation requested which is out of range', function(done){
+            bob = deride.wrap(bob);
+            bob.greet('alice');
+            bob.greet('bob');
+            (function() {
+                bob.expect.greet.invocation(2).withArg('alice');
+            }).should.throw('invocation out of range');
+            done();
+        });
+
         it('enables overriding a methods body', function(done) {
             bob = deride.wrap(bob);
             bob.setup.greet.toDoThis(function(otherPersonName) {
