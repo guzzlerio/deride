@@ -1,5 +1,4 @@
-[![Stories in Ready](https://badge.waffle.io/guzzlerio/deride.png?label=ready&title=Ready)](https://waffle.io/guzzlerio/deride)
-# deride [![Build Status](https://travis-ci.org/guzzlerio/deride.svg?branch=master)](https://travis-ci.org/guzzlerio/deride) [![NPM version](https://badge.fury.io/js/deride.svg)](http://badge.fury.io/js/deride) [![Dependency Status](https://david-dm.org/guzzlerio/deride.svg)](https://david-dm.org/guzzlerio/deride)
+# deride [![Build Status](https://travis-ci.org/guzzlerio/deride.svg?branch=master)](https://travis-ci.org/guzzlerio/deride) [![NPM version](https://badge.fury.io/js/deride.svg)](http://badge.fury.io/js/deride) [![Dependency Status](https://david-dm.org/guzzlerio/deride.svg)](https://david-dm.org/guzzlerio/deride) [![Stories in Ready](https://badge.waffle.io/guzzlerio/deride.png?label=ready&title=Ready)](https://waffle.io/guzzlerio/deride) [![Stories In Progress](https://badge.waffle.io/guzzlerio/deride.png?label=in%20progress&title=In%20Progres)](https://waffle.io/guzzlerio/deride) 
 
 [![NPM](https://nodei.co/npm/deride.png?downloadRank=true&downloads=true)](https://nodei.co/npm/deride/)
 
