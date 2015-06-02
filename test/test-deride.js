@@ -80,7 +80,7 @@ describe('utils', function() {
 
 });
 
-describe('Excpectations', function() {
+describe('Expectations', function() {
     it('does not invoke original method when override method body', function() {
         var obj = deride.stub(['send']);
         obj.setup.send.toThrow('bang');
@@ -349,15 +349,16 @@ _.forEach(tests, function(test) {
 
         it('enables the determination of the args used to invoke the method', function(done) {
             bob = deride.wrap(bob);
-            bob.greet('alice');
             bob.greet('bob');
-            bob.expect.greet.called.withArgs('bob');
+            bob.greet('alice', 'carol');
+            bob.expect.greet.called.withArgs('bob').withArg('carol');
+            bob.expect.greet.called.withArg('carol');
             done();
         });
 
         it('enables access to all the method invocations', function(done){
             bob = deride.wrap(bob);
-            bob.greet('alice');
+            bob.greet('jack','alice');
             bob.greet('bob');
             bob.expect.greet.invocation(0).withArg('alice');
             bob.expect.greet.invocation(1).withArg('bob');
