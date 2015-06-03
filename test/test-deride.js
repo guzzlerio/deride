@@ -203,88 +203,94 @@ describe('Eventing', function() {
 });
 
 var fooBarFunction = function(timeout, callback) {
-    setTimeout(function() {
-        callback('result');
-    }, timeout);
+	setTimeout(function() {
+		callback('result');
+	}, timeout);
 };
 
 var tests = [{
-    name: 'Creating a stub object',
-    setup: function() {
-        var stub = deride.stub(['greet', 'chuckle', 'foobar']);
-        stub.setup.foobar.toDoThis(fooBarFunction);
+	name: 'Creating a stub object',
+	setup: function() {
+		var stub = deride.stub(['greet', 'chuckle', 'foobar']);
+		stub.setup.foobar.toDoThis(fooBarFunction);
+		stub.setup.greet.toDoThis(function(name) {
+			return 'hello ' + name + 'from a stub';
+		});
 
-        return stub;
-    }
+		return stub;
+	}
 }, {
-    name: 'Creating a stub object from an object with Object style methods',
-    setup: function() {
+	name: 'Creating a stub object from an object with Object style methods',
+	setup: function() {
 
-        var Person = {
-            greet: function(name) {
-                return 'alice sas hello to ' + name;
-            },
-            chuckle: function() {},
-            foobar: fooBarFunction
-        };
-        var stub = deride.stub(Person);
-        stub.setup.foobar.toDoThis(fooBarFunction);
-        return stub;
-    }
+		var Person = {
+			greet: function(name) {
+				return 'alice says hello to ' + name;
+			},
+			chuckle: function() {},
+			foobar: fooBarFunction
+		};
+		var stub = deride.stub(Person);
+		stub.setup.foobar.toDoThis(fooBarFunction);
+		stub.setup.greet.toDoThis(function(name) {
+			return 'hello ' + name + 'from a stub';
+		});
+		return stub;
+	}
 }, {
-    name: 'Wrapping existing objects with Object style methods',
-    setup: function() {
-        var Person = {
-            greet: function(name) {
-                return 'alice sas hello to ' + name;
-            },
-            chuckle: function() {},
-            foobar: fooBarFunction
-        };
-        return Person;
-    }
+	name: 'Wrapping existing objects with Object style methods',
+	setup: function() {
+		var Person = {
+			greet: function(name) {
+				return 'alice sas hello to ' + name;
+			},
+			chuckle: function() {},
+			foobar: fooBarFunction
+		};
+		return Person;
+	}
 }, {
-    name: 'Wrapping existing object using Object Freeze with expectations',
-    setup: function() {
+	name: 'Wrapping existing object using Object Freeze with expectations',
+	setup: function() {
 
-        var Person = function(name) {
-            return Object.freeze({
-                greet: function(otherPersonName) {
-                    return util.format('%s says hello to %s', name, otherPersonName);
-                },
-                chuckle: function() {},
-                foobar: fooBarFunction
-            });
-        };
-        return new Person('bob');
-    }
+		var Person = function(name) {
+			return Object.freeze({
+				greet: function(otherPersonName) {
+					return util.format('%s says hello to %s', name, otherPersonName);
+				},
+				chuckle: function() {},
+				foobar: fooBarFunction
+			});
+		};
+		return new Person('bob');
+	}
 }, {
-    name: 'wrapping existing objects using prototype style with expectations',
-    setup: function() {
+	name: 'wrapping existing objects using prototype style with expectations',
+	setup: function() {
 
-        function Person(name) {
-            this.name = name;
-        }
+		function Person(name) {
+			this.name = name;
+		}
 
-        Person.prototype.greet = function(another) {
-            return 'howdy from ' + this.name + ' to ' + another;
-        };
+		Person.prototype.greet = function(another) {
+			return 'howdy from ' + this.name + ' to ' + another;
+		};
 
-        Person.prototype.chuckle = function() {};
-        Person.prototype.foobar = fooBarFunction;
+		Person.prototype.chuckle = function() {};
+		Person.prototype.foobar = fooBarFunction;
 
-        return new Person('bob proto');
-    }
+		return new Person('bob');
+	}
 }];
 
 _.forEach(tests, function(test) {
-    describe(test.name, function() {
-        var bob;
+	describe(test.name, function() {
+		var bob;
 
-        beforeEach(function(done) {
-            bob = test.setup();
-            done();
-        });
+		beforeEach(function(done) {
+			bob = test.setup();
+			done();
+		});
 
         it('enables counting the number of invocations of a method', function(done) {
             bob = deride.wrap(bob);
@@ -496,58 +502,58 @@ _.forEach(tests, function(test) {
             });
         });
 
-        describe.skip('multi', function() {
-            it('only uses the stub x times', function() {
-                bob = deride.wrap(bob);
-                bob.setup.greet
-                    .toReturn('alice')
-                    .times(2)
-                    .and.then
-                    .toReturn('sally');
-                bob.greet().should.eql('alice');
-                bob.greet().should.eql('alice');
-                bob.greet().should.eql('sally');
-            });
-            it('only uses the stub x times and then falls back', function() {
-                bob = deride.wrap(bob);
-                bob.setup.greet
-                    .toReturn('sally')
-                    .toReturn('alice')
-                    .times(2);
-                bob.greet().should.eql('alice');
-                bob.greet().should.eql('alice');
-                bob.greet().should.eql('sally');
-            });
+		describe('multi', function() {
+			it('only uses the stub x times', function() {
+				bob = deride.wrap(bob);
+				bob.setup.greet
+					.toReturn('alice')
+					.twice()
+					.and.then
+					.toReturn('sally');
+				bob.greet().should.eql('alice');
+				bob.greet().should.eql('alice');
+				bob.greet().should.eql('sally');
+			});
 
-            describe('also supports when specific arguments are provided', function() {
-                it('', function() {
-                    bob = deride.wrap(bob);
-                    bob.setup.greet
-                        .when('simon')
-                        .toReturn('alice')
-                        .times(2);
-                    // default Person behaviour
-                    bob.greet('talula').should.eql('howdy from bob proto to talula');
-                    // overridden behaviour
-                    bob.greet('simon').should.eql('alice');
-                    bob.greet('simon').should.eql('alice');
-                    // default Person behaviour
-                    bob.greet('simon').should.eql('howdy from bob proto to talula');
-                });
-                it('does something else 2', function() {
-                    bob = deride.wrap(bob);
-                    // I need to know that the last one added included the when() so it is in the callBasedOnArgs instead
-                    bob.setup.greet
-                        .toReturn('talula')
-                        .but.when('simon')
-                        .toReturn('alice')
-                        .times(2);
-                    bob.greet().should.eql('talula');
-                    bob.greet('simon').should.eql('alice');
-                    bob.greet('simon').should.eql('alice');
-                    bob.greet('simon').should.eql('talula');
-                });
-            });
-        });
-    });
+			it('only uses the stub x times and then falls back', function() {
+				bob = deride.wrap(bob);
+				bob.setup.greet
+					.toReturn('alice')
+					.twice();
+				bob.greet('alice').should.eql('alice');
+				bob.greet('alice').should.eql('alice');
+				bob.greet('alice').should.not.eql('alice');
+			});
+
+			describe.skip('also supports when specific arguments are provided', function() {
+				it('does something', function() {
+					bob = deride.wrap(bob);
+					bob.setup.greet
+						.when('simon')
+						.toReturn('alice')
+						.times(2);
+					// default Person behaviour
+					bob.greet('talula').should.not.eql('alice');
+					// overridden behaviour
+					bob.greet('simon').should.eql('alice');
+					bob.greet('simon').should.eql('alice');
+					// default Person behaviour
+					bob.greet('simon').should.not.eql('alice');
+				});
+				it('does something else 2', function() {
+					bob = deride.wrap(bob);
+					// I need to know that the last one added included the when() so it is in the callBasedOnArgs instead
+					bob.setup.greet
+						.toReturn('talula')
+						.but.when('simon')
+						.toReturn('alice')
+						.times(2);
+					bob.greet().should.eql('talula');
+					bob.greet('simon').should.eql('alice');
+					bob.greet('simon').should.eql('alice');
+					bob.greet('simon').should.eql('talula');
+				});
+			});
+		});
+	});
 });
