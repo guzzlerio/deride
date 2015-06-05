@@ -161,6 +161,29 @@ describe('Single function', function() {
         done();
     });
 
+    it('Resetting the called count on all methods', function(done) {
+        var MyClass = function() {
+            return {
+                doStuff: function() {},
+                echo: function(name) {
+                    return name;
+                }
+            };
+        };
+        var myClass = deride.wrap(new MyClass());
+        myClass.doStuff('test1');
+        myClass.echo('echo1');
+
+        myClass.expect.doStuff.called.once();
+        myClass.expect.echo.called.once();
+        myClass.called.reset();
+
+        myClass.expect.doStuff.called.never();
+        myClass.expect.echo.called.never();
+
+        done();
+    });
+
     it('Wrapping a class does not remove non-functions', function() {
         var MyClass = function() {
             return {
