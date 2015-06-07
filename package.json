@@ -8,10 +8,12 @@
     "email": "email@andrewrea.co.uk",
     "url": "http://www.andrewrea.co.uk"
   },
-  "contributors": [{
-    "name": "James Allen",
-    "url": "https://github.com/jamlen"
-  }],
+  "contributors": [
+    {
+      "name": "James Allen",
+      "url": "https://github.com/jamlen"
+    }
+  ],
   "repository": {
     "type": "git",
     "url": "git://github.com/guzzlerio/deride.git"
@@ -50,6 +52,7 @@
     "setup"
   ],
   "dependencies": {
+    "debug": "^2.2.0",
     "lodash": "~3.9.1",
     "when": "^3.7.3"
   },
