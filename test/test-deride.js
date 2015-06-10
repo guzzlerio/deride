@@ -157,7 +157,30 @@ describe('Single function', function() {
         /* jshint immed: false */
         (function() {
             myClass.expect.doStuff.called.withArgs('test');
-        }).should.throw('false == true');
+        }).should.throw('Expected doStuff to be called with: test');
+        done();
+    });
+
+    it('Resetting the called count on all methods', function(done) {
+        var MyClass = function() {
+            return {
+                doStuff: function() {},
+                echo: function(name) {
+                    return name;
+                }
+            };
+        };
+        var myClass = deride.wrap(new MyClass());
+        myClass.doStuff('test1');
+        myClass.echo('echo1');
+
+        myClass.expect.doStuff.called.once();
+        myClass.expect.echo.called.once();
+        myClass.called.reset();
+
+        myClass.expect.doStuff.called.never();
+        myClass.expect.echo.called.never();
+
         done();
     });
 
@@ -473,7 +496,7 @@ _.forEach(tests, function(test) {
         });
 
         describe('with promises', function() {
-            beforeEach(function(){
+            beforeEach(function() {
                 bob = deride.wrap(bob);
                 bob.setup.greet.when('alice').toResolveWith('foobar');
                 bob.setup.greet.when('norman').toRejectWith(new Error('foobar'));

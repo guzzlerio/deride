@@ -1,4 +1,6 @@
-# deride [![Build Status](https://travis-ci.org/REAANDREW/deride.svg?branch=master)](https://travis-ci.org/REAANDREW/deride) [![NPM version](https://badge.fury.io/js/deride.svg)](http://badge.fury.io/js/deride) [![Dependency Status](https://david-dm.org/REAANDREW/deride.svg)](https://david-dm.org/REAANDREW/deride)
+# deride [![Build Status](https://travis-ci.org/guzzlerio/deride.svg?branch=master)](https://travis-ci.org/guzzlerio/deride) [![NPM version](https://badge.fury.io/js/deride.svg)](http://badge.fury.io/js/deride) [![Dependency Status](https://david-dm.org/guzzlerio/deride.svg)](https://david-dm.org/guzzlerio/deride) [![Stories in Ready](https://badge.waffle.io/guzzlerio/deride.png?label=ready&title=Ready)](https://waffle.io/guzzlerio/deride) [![Stories In Progress](https://badge.waffle.io/guzzlerio/deride.png?label=in%20progress&title=In%20Progres)](https://waffle.io/guzzlerio/deride) 
+
+[![NPM](https://nodei.co/npm/deride.png?downloadRank=true&downloads=true)](https://nodei.co/npm/deride/)
 
 Mocking library based on composition
 
@@ -34,6 +36,7 @@ var deride = require('deride');
 
 ### Resetting the counts / called with args
 - ```obj```.expect.```method```.called.reset()
+- ```obj```.called.reset()
 
 ### Setup
 
@@ -54,7 +57,10 @@ var Person = function(name) {
     return Object.freeze({
         greet: function(otherPersonName) {
             console.log(name, 'says hello to', otherPersonName);
-        }
+        },
+		echo: function(name) {
+			return name;
+		}
     });
 }
 ```
@@ -82,6 +88,21 @@ bob.expect.greet.called.twice();
 var bob = new Person('bob');
 bob = deride.wrap(bob);
 bob.expect.greet.called.never();
+```
+
+### Resetting the called count on **all** methods
+```javascript
+var bob = new Person('bob');
+bob = deride.wrap(bob);
+bob.greet('alice');
+bob.echo('alice');
+bob.expect.greet.called.once();
+bob.expect.echo.called.once();
+
+bob.called.reset();
+
+bob.expect.greet.called.never();
+bob.expect.echo.called.never();
 ```
 
 ### Determine if a method was called with a specific set of arguments
