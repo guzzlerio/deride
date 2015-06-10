@@ -30,7 +30,12 @@ var deride = require('deride');
 - ```obj```.expect.```method```.called.once()
 - ```obj```.expect.```method```.called.twice()
 - ```obj```.expect.```method```.called.never()
+- ```obj```.expect.```method```.called.withArg(arg)
 - ```obj```.expect.```method```.called.withArgs(args)
+
+**All of the above can be negated e.g. negating the `.withArgs` would be: ** 
+
+- ```obj```.expect.```method```.called`.not`.withArgs(args)
 
 ### Resetting the counts / called with args
 - ```obj```.expect.```method```.called.reset()
@@ -298,6 +303,40 @@ bob.on('message', function() {
     done();
 });
 bob.emit('message', 'payload');
+```
+
+### Provide access to individual calls to a method
+
+```javascript
+var bob = deride.wrap(bob);
+bob.greet('jack', 'alice');
+bob.greet('bob');
+bob.expect.greet.invocation(0).withArg('alice');
+bob.expect.greet.invocation(1).withArg('bob');
+```
+
+## Enable the assertion on a single arg being used in any invocation
+
+### when the arg is a primitive object
+```javascript
+var bob = deride.wrap(bob);
+bob.greet('alice', {
+    name: 'bob',
+    a: 1
+}, 'sam');
+bob.expect.greet.called.withArg('sam');
+```
+
+### when the arg is not a primitive object
+```javascript
+var bob = deride.wrap(bob);
+bob.greet('alice', {
+    name: 'bob',
+    a: 1
+});
+bob.expect.greet.called.withArg({
+    name: 'bob'
+});
 ```
 
 ## Contributing
