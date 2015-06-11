@@ -505,6 +505,7 @@ _.forEach(tests, function(test) {
 		describe('multi', function() {
 			it('only uses the stub x times', function() {
 				bob = deride.wrap(bob);
+				bob.greet('alice').should.not.eql('alice').and.not.eql('sally');
 				bob.setup.greet
 					.toReturn('alice')
 					.twice()
@@ -512,6 +513,7 @@ _.forEach(tests, function(test) {
 					.toReturn('sally');
 				bob.greet().should.eql('alice');
 				bob.greet().should.eql('alice');
+				bob.greet().should.eql('sally');
 				bob.greet().should.eql('sally');
 			});
 
@@ -525,7 +527,7 @@ _.forEach(tests, function(test) {
 				bob.greet('alice').should.not.eql('alice');
 			});
 
-			describe.skip('also supports when specific arguments are provided', function() {
+			describe.only('also supports when specific arguments are provided', function() {
 				it('does something', function() {
 					bob = deride.wrap(bob);
 					bob.setup.greet
@@ -540,6 +542,7 @@ _.forEach(tests, function(test) {
 					// default Person behaviour
 					bob.greet('simon').should.not.eql('alice');
 				});
+
 				it('does something else 2', function() {
 					bob = deride.wrap(bob);
 					// I need to know that the last one added included the when() so it is in the callBasedOnArgs instead
@@ -548,10 +551,11 @@ _.forEach(tests, function(test) {
 						.but.when('simon')
 						.toReturn('alice')
 						.times(2);
-					bob.greet().should.eql('talula');
+					bob.greet('alice').should.eql('talula');
 					bob.greet('simon').should.eql('alice');
 					bob.greet('simon').should.eql('alice');
 					bob.greet('simon').should.eql('talula');
+					bob.greet('alice').should.eql('talula');
 				});
 			});
 		});
