@@ -71,10 +71,11 @@ var Person = function(name) {
 }
 ```
 
+<a name="stub-methods" />
+
 ### Creating a stubbed object
 Stubbing an object simply creates an anonymous object, with all the method specified and then the object is wrapped to provide all the expectation functionality of the library
 
-<a href="stub-methods" />
 
 ```javascript
 var bob = deride.stub(['greet']);
@@ -82,7 +83,7 @@ bob.greet('alice');
 bob.expect.greet.called.times(1);
 ```
 
-<a href="stub-obj" />
+<a name="stub-obj" />
 
 ### Creating a stubbed object based on an existing object
 ```javascript
@@ -96,7 +97,7 @@ bob.greet('alice');
 bob.expect.greet.called.once();
 ```
 
-<a href="func" />
+<a name="func" />
 
 ### Creating a single mocked method
 ```javascript
@@ -138,7 +139,7 @@ bob.greet('bob');
 ```
 
 
-<a href="called-times" />
+<a name="called-times" />
 
 ### Count the number of invocations of a method
 ```javascript
@@ -148,7 +149,7 @@ bob.greet('alice');
 bob.expect.greet.called.times(1);
 ```
 
-<a href="called-once" />
+<a name="called-once" />
 
 ### Has convenience methods for invocation counts
 ```javascript
@@ -160,7 +161,7 @@ bob.greet('sally');
 bob.expect.greet.called.twice();
 ```
 
-<a href="called-never" />
+<a name="called-never" />
 
 ### Determine if a method has **never** been called
 ```javascript
@@ -169,7 +170,7 @@ bob = deride.wrap(bob);
 bob.expect.greet.called.never();
 ```
 
-<a href="called-reset" />
+<a name="called-reset" />
 
 ### Resetting the called count on **all** methods
 ```javascript
@@ -186,7 +187,7 @@ bob.expect.greet.called.never();
 bob.expect.echo.called.never();
 ```
 
-<a href="called-withargs" />
+<a name="called-withargs" />
 
 ### Determine if a method was called with a specific set of arguments
 ```javascript
@@ -197,7 +198,7 @@ bob.greet('bob');
 bob.expect.greet.called.withArgs('bob');
 ```
 
-<a href="setup-todothis" />
+<a name="setup-todothis" />
 
 ### Override the method body to change the invocation
 ```javascript
@@ -210,7 +211,7 @@ var result = bob.greet('alice');
 result.should.eql('yo alice');
 ```
 
-<a href="setup-toreturn" />
+<a name="setup-toreturn" />
 
 ### Override the return value for a function
 ```javascript
@@ -222,7 +223,7 @@ result.should.eql('foobar');
 ```
 
 ### Overriding the promise resolver for a function
-<a href="setup-promise-resolve" />
+<a name="setup-promise-resolve" />
 
 #### To resolve with a value
 ```javascript
@@ -234,7 +235,7 @@ bob.greet('alice').then(function(result) {
 });
 ```
 
-<a href="setup-promise-reject" />
+<a name="setup-promise-reject" />
 
 #### To reject with a value
 ```javascript
@@ -246,7 +247,7 @@ bob.greet('alice').catch(function(result) {
 });
 ```
 
-<a href="setup-tothrow" />
+<a name="setup-tothrow" />
 
 ### Force a method invocation to throw a specific error
 ```javascript
@@ -259,7 +260,7 @@ should(function() {
 throw(/BANG/);
 ```
 
-<a href="setup-tocallback" />
+<a name="setup-tocallback" />
 
 ### Override the invocation of a callback
 ```javascript
@@ -272,7 +273,7 @@ bob.chuckle(function(err, message) {
 });
 ```
 
-<a href="setup-totimewarp" />
+<a name="setup-totimewarp" />
 
 ### Accelerating the timeout used internally by a function
 ```javascript
@@ -296,7 +297,7 @@ bob.foobar(timeout, function(message) {
 
 ## Setup for specific arguments
 
-<a href="setup-toreturn-when" />
+<a name="setup-toreturn-when" />
 
 ### Setting the return value of a function when specific arguments are used
 ```javascript
@@ -310,7 +311,7 @@ result1.should.eql('foobar');
 result2.should.eql('barfoo');
 ```
 
-<a href="setup-todothis-when" />
+<a name="setup-todothis-when" />
 
 ### Overriding a method`s body when specific arguments are provided
 ``` javascript
@@ -328,7 +329,7 @@ result1.should.eql('yo yo alice');
 result2.should.eql('yo bob');
 ```
 
-<a href="setup-tothrow-when" />
+<a name="setup-tothrow-when" />
 
 ### Throwing an error for a method invocation when specific arguments are provided
 ```javascript
@@ -345,7 +346,7 @@ should(function() {
 throw (/BANG/);
 ```
 
-<a href="setup-tocallback-when" />
+<a name="setup-tocallback-when" />
 
 ### Override the invocation of a callback when specific arguments are provided
 ```javascript
@@ -363,7 +364,7 @@ bob.chuckle(function(err, message) {
 });
 ```
 
-<a href="setup-totimewarp-when" />
+<a name="setup-totimewarp-when" />
 
 ### Accelerating the timeout used internally by a function when specific arguments are provided
 ```javascript
@@ -404,7 +405,7 @@ bob.expect.greet.invocation(1).withArg('bob');
 
 ## Enable the assertion on a single arg being used in any invocation
 
-<a href="called-witharg" />
+<a name="called-witharg" />
 
 ### when the arg is a primitive object
 ```javascript
