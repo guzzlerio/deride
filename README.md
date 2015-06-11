@@ -317,6 +317,8 @@ var value = func(1, 2, 3);
 assert.equal(value, 1);
 ```
 
+## Events
+
 ### Force the emit of an event on an object
 ```javascript
 var bob = deride.stub([]);
@@ -324,6 +326,26 @@ bob.on('message', function() {
     done();
 });
 bob.emit('message', 'payload');
+```
+
+### Emit an event on method invocation
+```javascript
+bob.setup.greet.toEmit('testing');
+bob.on('testing', function() {
+	done();
+});
+bob.greet('bob');
+```
+
+### Emit an event with args on method invocation
+```javascript
+bob.setup.greet.toEmit('testing', 'arg1', { a: 1 });
+bob.on('testing', function(a1, a2) {
+	a1.should.eql('arg1');
+	a2.should.eql({ a: 1 });
+	done();
+});
+bob.greet('bob');
 ```
 
 ### Provide access to individual calls to a method
