@@ -75,6 +75,7 @@ var Person = function(name) {
 Stubbing an object simply creates an anonymous object, with all the method specified and then the object is wrapped to provide all the expectation functionality of the library
 
 <a href="stub-methods" />
+
 ```javascript
 var bob = deride.stub(['greet']);
 bob.greet('alice');
@@ -82,6 +83,7 @@ bob.expect.greet.called.times(1);
 ```
 
 <a href="stub-obj" />
+
 ### Creating a stubbed object based on an existing object
 ```javascript
 var Person = {
@@ -95,6 +97,7 @@ bob.expect.greet.called.once();
 ```
 
 <a href="func" />
+
 ### Creating a single mocked method
 ```javascript
 var func = deride.func();
@@ -136,6 +139,7 @@ bob.greet('bob');
 
 
 <a href="called-times" />
+
 ### Count the number of invocations of a method
 ```javascript
 var bob = new Person('bob');
@@ -145,6 +149,7 @@ bob.expect.greet.called.times(1);
 ```
 
 <a href="called-once" />
+
 ### Has convenience methods for invocation counts
 ```javascript
 var bob = new Person('bob');
@@ -156,6 +161,7 @@ bob.expect.greet.called.twice();
 ```
 
 <a href="called-never" />
+
 ### Determine if a method has **never** been called
 ```javascript
 var bob = new Person('bob');
@@ -164,6 +170,7 @@ bob.expect.greet.called.never();
 ```
 
 <a href="called-reset" />
+
 ### Resetting the called count on **all** methods
 ```javascript
 var bob = new Person('bob');
@@ -180,6 +187,7 @@ bob.expect.echo.called.never();
 ```
 
 <a href="called-withargs" />
+
 ### Determine if a method was called with a specific set of arguments
 ```javascript
 var bob = new Person('bob');
@@ -190,6 +198,7 @@ bob.expect.greet.called.withArgs('bob');
 ```
 
 <a href="setup-todothis" />
+
 ### Override the method body to change the invocation
 ```javascript
 var bob = new Person('bob');
@@ -202,6 +211,7 @@ result.should.eql('yo alice');
 ```
 
 <a href="setup-toreturn" />
+
 ### Override the return value for a function
 ```javascript
 var bob = new Person('bob');
@@ -213,6 +223,7 @@ result.should.eql('foobar');
 
 ### Overriding the promise resolver for a function
 <a href="setup-promise-resolve" />
+
 #### To resolve with a value
 ```javascript
 var bob = new Person('bob');
@@ -224,6 +235,7 @@ bob.greet('alice').then(function(result) {
 ```
 
 <a href="setup-promise-reject" />
+
 #### To reject with a value
 ```javascript
 var bob = new Person('bob');
@@ -235,6 +247,7 @@ bob.greet('alice').catch(function(result) {
 ```
 
 <a href="setup-tothrow" />
+
 ### Force a method invocation to throw a specific error
 ```javascript
 var bob = new Person('bob');
@@ -247,6 +260,7 @@ throw(/BANG/);
 ```
 
 <a href="setup-tocallback" />
+
 ### Override the invocation of a callback
 ```javascript
 var bob = new Person('bob');
@@ -259,6 +273,7 @@ bob.chuckle(function(err, message) {
 ```
 
 <a href="setup-totimewarp" />
+
 ### Accelerating the timeout used internally by a function
 ```javascript
 var Person = function(name) {
@@ -282,6 +297,7 @@ bob.foobar(timeout, function(message) {
 ## Setup for specific arguments
 
 <a href="setup-toreturn-when" />
+
 ### Setting the return value of a function when specific arguments are used
 ```javascript
 var bob = new Person('bob');
@@ -295,6 +311,7 @@ result2.should.eql('barfoo');
 ```
 
 <a href="setup-todothis-when" />
+
 ### Overriding a method`s body when specific arguments are provided
 ``` javascript
 var bob = new Person('bob');
@@ -312,6 +329,7 @@ result2.should.eql('yo bob');
 ```
 
 <a href="setup-tothrow-when" />
+
 ### Throwing an error for a method invocation when specific arguments are provided
 ```javascript
 var bob = new Person('bob');
@@ -328,6 +346,7 @@ throw (/BANG/);
 ```
 
 <a href="setup-tocallback-when" />
+
 ### Override the invocation of a callback when specific arguments are provided
 ```javascript
 var bob = new Person('bob');
@@ -345,6 +364,7 @@ bob.chuckle(function(err, message) {
 ```
 
 <a href="setup-totimewarp-when" />
+
 ### Accelerating the timeout used internally by a function when specific arguments are provided
 ```javascript
 var Person = function(name) {
@@ -385,6 +405,7 @@ bob.expect.greet.invocation(1).withArg('bob');
 ## Enable the assertion on a single arg being used in any invocation
 
 <a href="called-witharg" />
+
 ### when the arg is a primitive object
 ```javascript
 var bob = deride.wrap(bob);
