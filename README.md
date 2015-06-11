@@ -50,9 +50,10 @@ var deride = require('deride');
 - ```obj```.setup.```method```.toResolveWith(value)
 - ```obj```.setup.```method```.toRejectWith(value)
 - ```obj```.setup.```method```.toThrow(message)
+- ```obj```.setup.```method```.toEmit(event, args)
 - ```obj```.setup.```method```.toCallbackWith(args)
 - ```obj```.setup.```method```.toTimeWarp(milliseconds)
-- ```obj```.setup.```method```.when(args).[toDoThis|toReturn|toRejectWith|toResolveWith|toThrow|toCallbackWith|toTimeWarp]
+- ```obj```.setup.```method```.when(args).[toDoThis|toReturn|toRejectWith|toResolveWith|toThrow|toEmit|toCallbackWith|toTimeWarp]
 
 ## Examples
 
