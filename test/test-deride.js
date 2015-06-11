@@ -5,7 +5,7 @@ Copyright (c) 2014 James Allen
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
 files (the "Software"), to deal in the Software without
-restriction, including without limitation the rights to use,
+restriction, including without limitation the rights to use,30
 copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the
 Software is furnished to do so, subject to the following
@@ -80,7 +80,7 @@ describe('utils', function() {
 
 });
 
-describe('Excpectations', function() {
+describe('Expectations', function() {
     it('does not invoke original method when override method body', function() {
         var obj = deride.stub(['send']);
         obj.setup.send.toThrow('bang');
@@ -110,9 +110,9 @@ describe('Excpectations', function() {
 
     it('throws exception when object not called withArgs', function(done) {
         var obj = deride.stub(['send']);
-        obj.send(1, 2, 3);
+        obj.send('1', '2', '3');
         assert.throws(function() {
-            obj.expect.send.called.withArgs(4);
+            obj.expect.send.called.withArgs('4');
         }, Error);
         done();
     });
@@ -301,6 +301,83 @@ var tests = [{
 }];
 
 _.forEach(tests, function(test) {
+
+    describe(test.name + ':withArg', function() {
+        var bob;
+        beforeEach(function(done) {
+            bob = test.setup();
+            done();
+        });
+
+        it('enables the determination of the single arg used when the arg is a primitive object', function() {
+            bob = deride.wrap(bob);
+            bob.greet('alice', {
+                name: 'bob',
+                a: 1
+            }, 'sam');
+            bob.expect.greet.called.withArg('sam');
+        });
+
+        it('enables the determination of the single arg used when the arg is not a primitive object', function(done) {
+            bob = deride.wrap(bob);
+            bob.greet('alice', {
+                name: 'bob',
+                a: 1
+            });
+            bob.expect.greet.called.withArg({
+                name: 'bob'
+            });
+            done();
+        });
+
+        it('enables the determination of single arg used to invoke the method', function(done) {
+            bob = deride.wrap(bob);
+            bob.greet('bob');
+            bob.greet('alice', 'carol');
+            bob.expect.greet.called.withArg('bob');
+            bob.expect.greet.called.withArg('alice');
+            bob.expect.greet.called.withArg('carol');
+            done();
+        });
+
+        it('the determination of single arg NOT used to invoke the method', function(done) {
+            bob = deride.wrap(bob);
+            bob.greet('bob');
+            bob.greet('alice', 'carol');
+            bob.expect.greet.called.not.withArg('talula');
+            done();
+        });
+    });
+
+    describe(test.name + ':invocation', function() {
+
+        var bob;
+
+        beforeEach(function(done) {
+            bob = test.setup();
+            done();
+        });
+
+        it('enables access to all the method invocations', function(done) {
+            bob = deride.wrap(bob);
+            bob.greet('jack', 'alice');
+            bob.greet('bob');
+            bob.expect.greet.invocation(0).withArg('alice');
+            bob.expect.greet.invocation(1).withArg('bob');
+            done();
+        });
+
+        it('throws an exception for an invocation requested which is out of range', function(done) {
+            bob = deride.wrap(bob);
+            bob.greet('alice');
+            bob.greet('bob');
+            (function() {
+                bob.expect.greet.invocation(2).withArg('alice');
+            }).should.throw('invocation out of range');
+            done();
+        });
+    });
+
     describe(test.name, function() {
         var bob;
 
@@ -313,6 +390,22 @@ _.forEach(tests, function(test) {
             bob = deride.wrap(bob);
             bob.greet('alice');
             bob.expect.greet.called.times(1);
+            done();
+        });
+
+        it('enables counting the negation of the number of invocations of a method', function(done) {
+            bob = deride.wrap(bob);
+            bob.greet('alice');
+            bob.expect.greet.called.not.times(2);
+            done();
+        });
+
+        it('enables counting the negation of the number of invocations of a method - should fail', function(done) {
+            bob = deride.wrap(bob);
+            bob.greet('alice');
+            assert.throws(function() {
+                bob.expect.greet.called.not.times(1);
+            }, /AssertionError/);
             done();
         });
 
@@ -372,11 +465,17 @@ _.forEach(tests, function(test) {
 
         it('enables the determination of the args used to invoke the method', function(done) {
             bob = deride.wrap(bob);
-            bob.greet('alice');
             bob.greet('bob');
+            bob.greet('alice', 'carol');
             bob.expect.greet.called.withArgs('bob');
             done();
         });
+
+
+
+
+
+
 
         it('enables overriding a methods body', function(done) {
             bob = deride.wrap(bob);
@@ -442,7 +541,6 @@ _.forEach(tests, function(test) {
         });
 
         it('enables throwing an exception for a method invocation when specific arguments are provided', function(done) {
-
             bob = deride.wrap(bob);
             bob.setup.greet.when('alice').toThrow('BANG');
             assert.throws(function() {
@@ -465,7 +563,6 @@ _.forEach(tests, function(test) {
         });
 
         it('enables specifying the arguments of a callback and invoking it when specific arguments are provided', function(done) {
-
             bob = deride.wrap(bob);
             bob.setup.chuckle.toCallbackWith([0, 'boom']);
             bob.setup.chuckle.when('alice').toCallbackWith([0, 'bam']);
