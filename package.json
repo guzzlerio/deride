@@ -1,7 +1,7 @@
 {
   "name": "deride",
   "description": "Mocking library based on composition",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "homepage": "https://github.com/guzzlerio/deride",
   "author": {
     "name": "Andrew Rea",
