@@ -47,8 +47,8 @@ var deride = require('deride');
 
 - [```obj```.setup.```method```.toDoThis(func)](#setup-todothis)
 - [```obj```.setup.```method```.toReturn(value)](#setup-toreturn)
-- [```obj```.setup.```method```.toResolveWith(value)](#promise-resolve)
-- [```obj```.setup.```method```.toRejectWith(value)](#promise-reject)
+- [```obj```.setup.```method```.toResolveWith(value)](#setup-promise-resolve)
+- [```obj```.setup.```method```.toRejectWith(value)](#setup-promise-reject)
 - [```obj```.setup.```method```.toThrow(message)](#setup-tothrow)
 - [```obj```.setup.```method```.toEmit(event, args)](#events)
 - [```obj```.setup.```method```.toCallbackWith(args)](#setup-tocallback)
