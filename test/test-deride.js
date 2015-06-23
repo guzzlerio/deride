@@ -596,6 +596,15 @@ _.forEach(tests, function(test) {
 		});
 
 		it('enables specifying the arguments of a callback and invoking it', function(done) {
+			bob.setup.chuckle.toCallbackWith(0, 'boom');
+			bob.chuckle(function(err, message) {
+				assert.equal(err, 0);
+				assert.equal(message, 'boom');
+				done();
+			});
+		});
+
+		it('enables specifying the arguments as an array of a callback and invoking it', function(done) {
 			bob.setup.chuckle.toCallbackWith([0, 'boom']);
 			bob.chuckle(function(err, message) {
 				assert.equal(err, 0);
