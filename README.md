@@ -262,14 +262,30 @@ throw(/BANG/);
 
 <a name="setup-tocallback" />
 
-### Override the invocation of a callback
+## Override the invocation of a callback
+
+### when there is only one function passed as args
 ```javascript
 var bob = new Person('bob');
 bob = deride.wrap(bob);
-bob.setup.chuckle.toCallbackWith([0, 'boom']);
+bob.setup.chuckle.toCallbackWith(0, 'boom');
 bob.chuckle(function(err, message) {
     assert.equal(err, 0);
     assert.equal(message, 'boom');
+});
+```
+
+### when the callback is the last arg which is a `function`
+```javascript
+var bob = new Person('bob');
+bob = deride.wrap(bob);
+bob.setup.chuckle.toCallbackWith(0, 'boom');
+bob.chuckle('bob', function() {
+    done('this was not the callback');
+}, function(err, message) {
+    assert.equal(err, 0);
+    assert.equal(message, 'boom');
+    done();
 });
 ```
 
