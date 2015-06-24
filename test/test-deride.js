@@ -430,7 +430,7 @@ _.forEach(tests, function(test) {
 		});
 	});
 
-	describe('with promises', function() {
+	describe(test.name + ':with promises', function() {
 		beforeEach(function() {
 			bob = test.setup();
 			bob.setup.greet.when('alice').toResolveWith('foobar');
@@ -453,6 +453,33 @@ _.forEach(tests, function(test) {
 					assert.equal(result.message, 'foobar');
 					done();
 				});
+		});
+	});
+
+	describe(test.name + ':callbackWith', function() {
+		beforeEach(function(done) {
+			bob = test.setup();
+			done();
+		});
+
+		it('can find the callback', function(done) {
+			bob.setup.greet.toCallbackWith([null, 'hello']);
+			bob.greet('joe', function(err, msg) {
+				msg.should.eql('hello');
+				done();
+			});
+		});
+
+		describe('when multiple args are functions', function() {
+			it('can find the callback', function(done) {
+				bob.setup.greet.toCallbackWith([null, 'hello']);
+				bob.greet('joe', function() {
+					done('this is not the callback');
+				}, function(err, msg) {
+					msg.should.eql('hello');
+					done();
+				});
+			});
 		});
 	});
 
@@ -596,6 +623,15 @@ _.forEach(tests, function(test) {
 		});
 
 		it('enables specifying the arguments of a callback and invoking it', function(done) {
+			bob.setup.chuckle.toCallbackWith(0, 'boom');
+			bob.chuckle(function(err, message) {
+				assert.equal(err, 0);
+				assert.equal(message, 'boom');
+				done();
+			});
+		});
+
+		it('enables specifying the arguments as an array of a callback and invoking it', function(done) {
 			bob.setup.chuckle.toCallbackWith([0, 'boom']);
 			bob.chuckle(function(err, message) {
 				assert.equal(err, 0);
