@@ -20,7 +20,7 @@
 
     <section class="main-content">
       <h1>
-<a id="deride---" class="anchor" href="#deride---" aria-hidden="true"><span class="octicon octicon-link"></span></a>deride <a href="https://travis-ci.org/guzzlerio/deride"><img src="https://travis-ci.org/guzzlerio/deride.svg?branch=master" alt="Build Status"></a> <a href="http://badge.fury.io/js/deride"><img src="https://badge.fury.io/js/deride.svg" alt="NPM version"></a> <a href="https://david-dm.org/guzzlerio/deride"><img src="https://david-dm.org/guzzlerio/deride.svg" alt="Dependency Status"></a>
+<a id="deride-----" class="anchor" href="#deride-----" aria-hidden="true"><span class="octicon octicon-link"></span></a>deride <a href="https://travis-ci.org/guzzlerio/deride"><img src="https://travis-ci.org/guzzlerio/deride.svg?branch=master" alt="Build Status"></a> <a href="http://badge.fury.io/js/deride"><img src="https://badge.fury.io/js/deride.svg" alt="NPM version"></a> <a href="https://david-dm.org/guzzlerio/deride"><img src="https://david-dm.org/guzzlerio/deride.svg" alt="Dependency Status"></a> <a href="https://waffle.io/guzzlerio/deride"><img src="https://badge.waffle.io/guzzlerio/deride.png?label=ready&amp;title=Ready" alt="Stories in Ready"></a> <a href="https://waffle.io/guzzlerio/deride"><img src="https://badge.waffle.io/guzzlerio/deride.png?label=in%20progress&amp;title=In%20Progres" alt="Stories In Progress"></a>
 </h1>
 
 <p><a href="https://nodei.co/npm/deride/"><img src="https://nodei.co/npm/deride.png?downloadRank=true&amp;downloads=true" alt="NPM"></a></p>
@@ -49,67 +49,66 @@
 <p><strong>CAUTION</strong> Remember when you use this function about the good practice recommended in the book <strong>Growing Object-Oriented Software, Guided by Tests</strong>  <strong><em>Chapter 8: Only Mock Types That You Own</em></strong></p>
 
 <ul>
-<li>deride.stub(methods)
+<li>
+<a href="#stub-methods">deride.stub(methods)</a>
 
 <ul>
 <li>
 <strong>methods</strong> Array</li>
 </ul>
 </li>
-<li>deride.stub(obj)
+<li>
+<a href="#stub-obj">deride.stub(obj)</a>
 
 <ul>
 <li>
 <strong>obj</strong> Object</li>
 </ul>
 </li>
-<li>deride.func()</li>
+<li><a href="#func">deride.func()</a></li>
 </ul>
 
 <h3>
 <a id="expectations" class="anchor" href="#expectations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Expectations</h3>
 
 <ul>
+<li><a href="#called-times"><code>obj</code>.expect.<code>method</code>.called.times(n)</a></li>
+<li><a href="#called-once"><code>obj</code>.expect.<code>method</code>.called.once()</a></li>
+<li><a href="#called-once"><code>obj</code>.expect.<code>method</code>.called.twice()</a></li>
+<li><a href="#called-never"><code>obj</code>.expect.<code>method</code>.called.never()</a></li>
+<li><a href="#called-witharg"><code>obj</code>.expect.<code>method</code>.called.withArg(arg)</a></li>
+<li><a href="#called-withargs"><code>obj</code>.expect.<code>method</code>.called.withArgs(args)</a></li>
+</ul>
+
+<p>*<em>All of the above can be negated e.g. negating the <code>.withArgs</code> would be: *</em> </p>
+
+<ul>
 <li>
-<code>obj</code>.expect.<code>method</code>.called.times(n)</li>
-<li>
-<code>obj</code>.expect.<code>method</code>.called.once()</li>
-<li>
-<code>obj</code>.expect.<code>method</code>.called.twice()</li>
-<li>
-<code>obj</code>.expect.<code>method</code>.called.never()</li>
-<li>
-<code>obj</code>.expect.<code>method</code>.called.withArgs(args)</li>
+<code>obj</code>.expect.<code>method</code>.called<code>.not</code>.withArgs(args)</li>
 </ul>
 
 <h3>
 <a id="resetting-the-counts--called-with-args" class="anchor" href="#resetting-the-counts--called-with-args" aria-hidden="true"><span class="octicon octicon-link"></span></a>Resetting the counts / called with args</h3>
 
 <ul>
+<li><a href="#called-reset"><code>obj</code>.expect.<code>method</code>.called.reset()</a></li>
 <li>
-<code>obj</code>.expect.<code>method</code>.called.reset()</li>
+<code>obj</code>.called.reset()</li>
 </ul>
 
 <h3>
 <a id="setup" class="anchor" href="#setup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setup</h3>
 
 <ul>
-<li>
-<code>obj</code>.setup.<code>method</code>.toDoThis(func)</li>
-<li>
-<code>obj</code>.setup.<code>method</code>.toReturn(value)</li>
-<li>
-<code>obj</code>.setup.<code>method</code>.toResolveWith(value)</li>
-<li>
-<code>obj</code>.setup.<code>method</code>.toRejectWith(value)</li>
-<li>
-<code>obj</code>.setup.<code>method</code>.toThrow(message)</li>
-<li>
-<code>obj</code>.setup.<code>method</code>.toCallbackWith(args)</li>
-<li>
-<code>obj</code>.setup.<code>method</code>.toTimeWarp(milliseconds)</li>
-<li>
-<code>obj</code>.setup.<code>method</code>.when(args).[toDoThis|toReturn|toRejectWith|toResolveWith|toThrow|toCallbackWith|toTimeWarp]</li>
+<li><a href="#setup-todothis"><code>obj</code>.setup.<code>method</code>.toDoThis(func)</a></li>
+<li><a href="#setup-toreturn"><code>obj</code>.setup.<code>method</code>.toReturn(value)</a></li>
+<li><a href="#setup-promise-resolve"><code>obj</code>.setup.<code>method</code>.toResolveWith(value)</a></li>
+<li><a href="#setup-promise-reject"><code>obj</code>.setup.<code>method</code>.toRejectWith(value)</a></li>
+<li><a href="#setup-tothrow"><code>obj</code>.setup.<code>method</code>.toThrow(message)</a></li>
+<li><a href="#events"><code>obj</code>.setup.<code>method</code>.toEmit(event, args)</a></li>
+<li><a href="#setup-tocallback"><code>obj</code>.setup.<code>method</code>.toCallbackWith(args)</a></li>
+<li><a href="#setup-totimewarp"><code>obj</code>.setup.<code>method</code>.toTimeWarp(milliseconds)</a></li>
+<li><a href="#setup-toreturn-when"><code>obj</code>.setup.<code>method</code>.when(args).[toDoThis|toReturn|toRejectWith|toResolveWith|toThrow|toEmit|toCallbackWith|toTimeWarp]</a></li>
 </ul>
 
 <h2>
@@ -120,11 +119,83 @@
 
 <div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> <span class="pl-en">Person</span> <span class="pl-k">=</span> <span class="pl-k">function</span>(<span class="pl-smi">name</span>) {
     <span class="pl-k">return</span> <span class="pl-c1">Object</span>.freeze({
-        <span class="pl-en">greet</span>: <span class="pl-k">function</span>(<span class="pl-smi">otherPersonName</span>) {
+        <span class="pl-en">greet</span><span class="pl-k">:</span> <span class="pl-k">function</span>(<span class="pl-smi">otherPersonName</span>) {
             <span class="pl-en">console</span><span class="pl-c1">.log</span>(name, <span class="pl-s"><span class="pl-pds">'</span>says hello to<span class="pl-pds">'</span></span>, otherPersonName);
+        },
+        <span class="pl-en">echo</span><span class="pl-k">:</span> <span class="pl-k">function</span>(<span class="pl-smi">name</span>) {
+            <span class="pl-k">return</span> name;
         }
     });
 }</pre></div>
+
+<p><a name="stub-methods"></a></p>
+
+<h3>
+<a id="creating-a-stubbed-object" class="anchor" href="#creating-a-stubbed-object" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating a stubbed object</h3>
+
+<p>Stubbing an object simply creates an anonymous object, with all the method specified and then the object is wrapped to provide all the expectation functionality of the library</p>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> deride.stub([<span class="pl-s"><span class="pl-pds">'</span>greet<span class="pl-pds">'</span></span>]);
+bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>);
+bob.expect.greet.called.times(<span class="pl-c1">1</span>);</pre></div>
+
+<p><a name="stub-obj"></a></p>
+
+<h3>
+<a id="creating-a-stubbed-object-based-on-an-existing-object" class="anchor" href="#creating-a-stubbed-object-based-on-an-existing-object" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating a stubbed object based on an existing object</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> Person <span class="pl-k">=</span> {
+    <span class="pl-en">greet</span><span class="pl-k">:</span> <span class="pl-k">function</span>(<span class="pl-smi">name</span>) {
+        <span class="pl-k">return</span> <span class="pl-s"><span class="pl-pds">'</span>alice sas hello to <span class="pl-pds">'</span></span> <span class="pl-k">+</span> name;
+    },
+};
+<span class="pl-k">var</span> bob <span class="pl-k">=</span> deride.stub(Person);
+bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>);
+bob.expect.greet.called.once();</pre></div>
+
+<p><a name="func"></a></p>
+
+<h3>
+<a id="creating-a-single-mocked-method" class="anchor" href="#creating-a-single-mocked-method" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating a single mocked method</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> func <span class="pl-k">=</span> deride.func();
+func.setup.toReturn(<span class="pl-c1">1</span>);
+<span class="pl-k">var</span> value <span class="pl-k">=</span> func(<span class="pl-c1">1</span>, <span class="pl-c1">2</span>, <span class="pl-c1">3</span>);
+assert.equal(value, <span class="pl-c1">1</span>);</pre></div>
+
+<h2>
+<a id="events" class="anchor" href="#events" aria-hidden="true"><span class="octicon octicon-link"></span></a>Events</h2>
+
+<h3>
+<a id="force-the-emit-of-an-event-on-an-object" class="anchor" href="#force-the-emit-of-an-event-on-an-object" aria-hidden="true"><span class="octicon octicon-link"></span></a>Force the emit of an event on an object</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> deride.stub([]);
+bob.on(<span class="pl-s"><span class="pl-pds">'</span>message<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>() {
+    done();
+});
+bob.emit(<span class="pl-s"><span class="pl-pds">'</span>message<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>payload<span class="pl-pds">'</span></span>);</pre></div>
+
+<h3>
+<a id="emit-an-event-on-method-invocation" class="anchor" href="#emit-an-event-on-method-invocation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Emit an event on method invocation</h3>
+
+<div class="highlight highlight-javascript"><pre>bob.setup.greet.toEmit(<span class="pl-s"><span class="pl-pds">'</span>testing<span class="pl-pds">'</span></span>);
+bob.on(<span class="pl-s"><span class="pl-pds">'</span>testing<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>() {
+    done();
+});
+bob.greet(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);</pre></div>
+
+<h3>
+<a id="emit-an-event-with-args-on-method-invocation" class="anchor" href="#emit-an-event-with-args-on-method-invocation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Emit an event with args on method invocation</h3>
+
+<div class="highlight highlight-javascript"><pre>bob.setup.greet.toEmit(<span class="pl-s"><span class="pl-pds">'</span>testing<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>arg1<span class="pl-pds">'</span></span>, { a<span class="pl-k">:</span> <span class="pl-c1">1</span> });
+bob.on(<span class="pl-s"><span class="pl-pds">'</span>testing<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">a1</span>, <span class="pl-smi">a2</span>) {
+    a1.should.eql(<span class="pl-s"><span class="pl-pds">'</span>arg1<span class="pl-pds">'</span></span>);
+    a2.should.eql({ a<span class="pl-k">:</span> <span class="pl-c1">1</span> });
+    done();
+});
+bob.greet(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);</pre></div>
+
+<p><a name="called-times"></a></p>
 
 <h3>
 <a id="count-the-number-of-invocations-of-a-method" class="anchor" href="#count-the-number-of-invocations-of-a-method" aria-hidden="true"><span class="octicon octicon-link"></span></a>Count the number of invocations of a method</h3>
@@ -133,6 +204,8 @@
 bob <span class="pl-k">=</span> deride.wrap(bob);
 bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>);
 bob.expect.greet.called.times(<span class="pl-c1">1</span>);</pre></div>
+
+<p><a name="called-once"></a></p>
 
 <h3>
 <a id="has-convenience-methods-for-invocation-counts" class="anchor" href="#has-convenience-methods-for-invocation-counts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Has convenience methods for invocation counts</h3>
@@ -144,12 +217,33 @@ bob.expect.greet.called.once();
 bob.greet(<span class="pl-s"><span class="pl-pds">'</span>sally<span class="pl-pds">'</span></span>);
 bob.expect.greet.called.twice();</pre></div>
 
+<p><a name="called-never"></a></p>
+
 <h3>
 <a id="determine-if-a-method-has-never-been-called" class="anchor" href="#determine-if-a-method-has-never-been-called" aria-hidden="true"><span class="octicon octicon-link"></span></a>Determine if a method has <strong>never</strong> been called</h3>
 
 <div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Person</span>(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
 bob <span class="pl-k">=</span> deride.wrap(bob);
 bob.expect.greet.called.never();</pre></div>
+
+<p><a name="called-reset"></a></p>
+
+<h3>
+<a id="resetting-the-called-count-on-all-methods" class="anchor" href="#resetting-the-called-count-on-all-methods" aria-hidden="true"><span class="octicon octicon-link"></span></a>Resetting the called count on <strong>all</strong> methods</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Person</span>(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+bob <span class="pl-k">=</span> deride.wrap(bob);
+bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>);
+bob.echo(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>);
+bob.expect.greet.called.once();
+bob.expect.echo.called.once();
+
+bob.called.<span class="pl-c1">reset</span>();
+
+bob.expect.greet.called.never();
+bob.expect.echo.called.never();</pre></div>
+
+<p><a name="called-withargs"></a></p>
 
 <h3>
 <a id="determine-if-a-method-was-called-with-a-specific-set-of-arguments" class="anchor" href="#determine-if-a-method-was-called-with-a-specific-set-of-arguments" aria-hidden="true"><span class="octicon octicon-link"></span></a>Determine if a method was called with a specific set of arguments</h3>
@@ -159,6 +253,8 @@ bob <span class="pl-k">=</span> deride.wrap(bob);
 bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>);
 bob.greet(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
 bob.expect.greet.called.withArgs(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);</pre></div>
+
+<p><a name="setup-todothis"></a></p>
 
 <h3>
 <a id="override-the-method-body-to-change-the-invocation" class="anchor" href="#override-the-method-body-to-change-the-invocation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Override the method body to change the invocation</h3>
@@ -170,6 +266,8 @@ bob.setup.greet.toDoThis(<span class="pl-k">function</span>(<span class="pl-smi"
 });
 <span class="pl-k">var</span> result <span class="pl-k">=</span> bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>);
 result.should.eql(<span class="pl-s"><span class="pl-pds">'</span>yo alice<span class="pl-pds">'</span></span>);</pre></div>
+
+<p><a name="setup-toreturn"></a></p>
 
 <h3>
 <a id="override-the-return-value-for-a-function" class="anchor" href="#override-the-return-value-for-a-function" aria-hidden="true"><span class="octicon octicon-link"></span></a>Override the return value for a function</h3>
@@ -183,6 +281,8 @@ result.should.eql(<span class="pl-s"><span class="pl-pds">'</span>foobar<span cl
 <h3>
 <a id="overriding-the-promise-resolver-for-a-function" class="anchor" href="#overriding-the-promise-resolver-for-a-function" aria-hidden="true"><span class="octicon octicon-link"></span></a>Overriding the promise resolver for a function</h3>
 
+<p><a name="setup-promise-resolve"></a></p>
+
 <h4>
 <a id="to-resolve-with-a-value" class="anchor" href="#to-resolve-with-a-value" aria-hidden="true"><span class="octicon octicon-link"></span></a>To resolve with a value</h4>
 
@@ -193,6 +293,8 @@ bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-p
     result.should.eql(<span class="pl-s"><span class="pl-pds">'</span>foobar<span class="pl-pds">'</span></span>);
 });</pre></div>
 
+<p><a name="setup-promise-reject"></a></p>
+
 <h4>
 <a id="to-reject-with-a-value" class="anchor" href="#to-reject-with-a-value" aria-hidden="true"><span class="octicon octicon-link"></span></a>To reject with a value</h4>
 
@@ -202,6 +304,8 @@ bob.setup.greet.toRejectWith(<span class="pl-s"><span class="pl-pds">'</span>foo
 bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>).catch(<span class="pl-k">function</span>(<span class="pl-smi">result</span>) {
     result.should.eql(<span class="pl-s"><span class="pl-pds">'</span>foobar<span class="pl-pds">'</span></span>);
 });</pre></div>
+
+<p><a name="setup-tothrow"></a></p>
 
 <h3>
 <a id="force-a-method-invocation-to-throw-a-specific-error" class="anchor" href="#force-a-method-invocation-to-throw-a-specific-error" aria-hidden="true"><span class="octicon octicon-link"></span></a>Force a method invocation to throw a specific error</h3>
@@ -214,23 +318,45 @@ should(<span class="pl-k">function</span>() {
 }).
 <span class="pl-k">throw</span>(<span class="pl-sr"><span class="pl-pds">/</span>BANG<span class="pl-pds">/</span></span>);</pre></div>
 
+<p><a name="setup-tocallback"></a></p>
+
+<h2>
+<a id="override-the-invocation-of-a-callback" class="anchor" href="#override-the-invocation-of-a-callback" aria-hidden="true"><span class="octicon octicon-link"></span></a>Override the invocation of a callback</h2>
+
 <h3>
-<a id="override-the-invocation-of-a-callback" class="anchor" href="#override-the-invocation-of-a-callback" aria-hidden="true"><span class="octicon octicon-link"></span></a>Override the invocation of a callback</h3>
+<a id="when-there-is-only-one-function-passed-as-args" class="anchor" href="#when-there-is-only-one-function-passed-as-args" aria-hidden="true"><span class="octicon octicon-link"></span></a>when there is only one function passed as args</h3>
 
 <div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Person</span>(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
 bob <span class="pl-k">=</span> deride.wrap(bob);
-bob.setup.chuckle.toCallbackWith([<span class="pl-c1">0</span>, <span class="pl-s"><span class="pl-pds">'</span>boom<span class="pl-pds">'</span></span>]);
+bob.setup.chuckle.toCallbackWith(<span class="pl-c1">0</span>, <span class="pl-s"><span class="pl-pds">'</span>boom<span class="pl-pds">'</span></span>);
 bob.chuckle(<span class="pl-k">function</span>(<span class="pl-smi">err</span>, <span class="pl-smi">message</span>) {
     assert.equal(err, <span class="pl-c1">0</span>);
     assert.equal(message, <span class="pl-s"><span class="pl-pds">'</span>boom<span class="pl-pds">'</span></span>);
 });</pre></div>
 
 <h3>
+<a id="when-the-callback-is-the-last-arg-which-is-a-function" class="anchor" href="#when-the-callback-is-the-last-arg-which-is-a-function" aria-hidden="true"><span class="octicon octicon-link"></span></a>when the callback is the last arg which is a <code>function</code>
+</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Person</span>(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+bob <span class="pl-k">=</span> deride.wrap(bob);
+bob.setup.chuckle.toCallbackWith(<span class="pl-c1">0</span>, <span class="pl-s"><span class="pl-pds">'</span>boom<span class="pl-pds">'</span></span>);
+bob.chuckle(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>() {
+    done(<span class="pl-s"><span class="pl-pds">'</span>this was not the callback<span class="pl-pds">'</span></span>);
+}, <span class="pl-k">function</span>(<span class="pl-smi">err</span>, <span class="pl-smi">message</span>) {
+    assert.equal(err, <span class="pl-c1">0</span>);
+    assert.equal(message, <span class="pl-s"><span class="pl-pds">'</span>boom<span class="pl-pds">'</span></span>);
+    done();
+});</pre></div>
+
+<p><a name="setup-totimewarp"></a></p>
+
+<h3>
 <a id="accelerating-the-timeout-used-internally-by-a-function" class="anchor" href="#accelerating-the-timeout-used-internally-by-a-function" aria-hidden="true"><span class="octicon octicon-link"></span></a>Accelerating the timeout used internally by a function</h3>
 
 <div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> <span class="pl-en">Person</span> <span class="pl-k">=</span> <span class="pl-k">function</span>(<span class="pl-smi">name</span>) {
     <span class="pl-k">return</span> <span class="pl-c1">Object</span>.freeze({
-        <span class="pl-en">foobar</span>: <span class="pl-k">function</span>(<span class="pl-smi">timeout</span>, <span class="pl-smi">callback</span>) {
+        <span class="pl-en">foobar</span><span class="pl-k">:</span> <span class="pl-k">function</span>(<span class="pl-smi">timeout</span>, <span class="pl-smi">callback</span>) {
             <span class="pl-c1">setTimeout</span>(<span class="pl-k">function</span>() {
                 callback(<span class="pl-s"><span class="pl-pds">'</span>result<span class="pl-pds">'</span></span>);
             }, timeout);
@@ -245,6 +371,11 @@ bob.foobar(timeout, <span class="pl-k">function</span>(<span class="pl-smi">mess
     assert.equal(message, <span class="pl-s"><span class="pl-pds">'</span>result<span class="pl-pds">'</span></span>);
 });</pre></div>
 
+<h2>
+<a id="setup-for-specific-arguments" class="anchor" href="#setup-for-specific-arguments" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setup for specific arguments</h2>
+
+<p><a name="setup-toreturn-when"></a></p>
+
 <h3>
 <a id="setting-the-return-value-of-a-function-when-specific-arguments-are-used" class="anchor" href="#setting-the-return-value-of-a-function-when-specific-arguments-are-used" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setting the return value of a function when specific arguments are used</h3>
 
@@ -256,6 +387,8 @@ bob.setup.greet.toReturn(<span class="pl-s"><span class="pl-pds">'</span>barfoo<
 <span class="pl-k">var</span> result2 <span class="pl-k">=</span> bob.greet(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
 result1.should.eql(<span class="pl-s"><span class="pl-pds">'</span>foobar<span class="pl-pds">'</span></span>);
 result2.should.eql(<span class="pl-s"><span class="pl-pds">'</span>barfoo<span class="pl-pds">'</span></span>);</pre></div>
+
+<p><a name="setup-todothis-when"></a></p>
 
 <h3>
 <a id="overriding-a-methods-body-when-specific-arguments-are-provided" class="anchor" href="#overriding-a-methods-body-when-specific-arguments-are-provided" aria-hidden="true"><span class="octicon octicon-link"></span></a>Overriding a method`s body when specific arguments are provided</h3>
@@ -273,6 +406,8 @@ bob.setup.greet.toDoThis(<span class="pl-k">function</span>(<span class="pl-smi"
 result1.should.eql(<span class="pl-s"><span class="pl-pds">'</span>yo yo alice<span class="pl-pds">'</span></span>);
 result2.should.eql(<span class="pl-s"><span class="pl-pds">'</span>yo bob<span class="pl-pds">'</span></span>);</pre></div>
 
+<p><a name="setup-tothrow-when"></a></p>
+
 <h3>
 <a id="throwing-an-error-for-a-method-invocation-when-specific-arguments-are-provided" class="anchor" href="#throwing-an-error-for-a-method-invocation-when-specific-arguments-are-provided" aria-hidden="true"><span class="octicon octicon-link"></span></a>Throwing an error for a method invocation when specific arguments are provided</h3>
 
@@ -287,6 +422,8 @@ should(<span class="pl-k">function</span>() {
     bob.greet(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
 }).not.
 <span class="pl-k">throw</span> (<span class="pl-sr"><span class="pl-pds">/</span>BANG<span class="pl-pds">/</span></span>);</pre></div>
+
+<p><a name="setup-tocallback-when"></a></p>
 
 <h3>
 <a id="override-the-invocation-of-a-callback-when-specific-arguments-are-provided" class="anchor" href="#override-the-invocation-of-a-callback-when-specific-arguments-are-provided" aria-hidden="true"><span class="octicon octicon-link"></span></a>Override the invocation of a callback when specific arguments are provided</h3>
@@ -304,12 +441,14 @@ bob.chuckle(<span class="pl-k">function</span>(<span class="pl-smi">err</span>, 
     });
 });</pre></div>
 
+<p><a name="setup-totimewarp-when"></a></p>
+
 <h3>
 <a id="accelerating-the-timeout-used-internally-by-a-function-when-specific-arguments-are-provided" class="anchor" href="#accelerating-the-timeout-used-internally-by-a-function-when-specific-arguments-are-provided" aria-hidden="true"><span class="octicon octicon-link"></span></a>Accelerating the timeout used internally by a function when specific arguments are provided</h3>
 
 <div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> <span class="pl-en">Person</span> <span class="pl-k">=</span> <span class="pl-k">function</span>(<span class="pl-smi">name</span>) {
     <span class="pl-k">return</span> <span class="pl-c1">Object</span>.freeze({
-        <span class="pl-en">foobar</span>: <span class="pl-k">function</span>(<span class="pl-smi">timeout</span>, <span class="pl-smi">callback</span>) {
+        <span class="pl-en">foobar</span><span class="pl-k">:</span> <span class="pl-k">function</span>(<span class="pl-smi">timeout</span>, <span class="pl-smi">callback</span>) {
             <span class="pl-c1">setTimeout</span>(<span class="pl-k">function</span>() {
                 callback(<span class="pl-s"><span class="pl-pds">'</span>result<span class="pl-pds">'</span></span>);
             }, timeout);
@@ -332,42 +471,40 @@ bob.foobar(timeout1, <span class="pl-k">function</span>(<span class="pl-smi">mes
 </pre></div>
 
 <h3>
-<a id="creating-a-stubbed-object" class="anchor" href="#creating-a-stubbed-object" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating a stubbed object</h3>
+<a id="provide-access-to-individual-calls-to-a-method" class="anchor" href="#provide-access-to-individual-calls-to-a-method" aria-hidden="true"><span class="octicon octicon-link"></span></a>Provide access to individual calls to a method</h3>
 
-<p>Stubbing an object simply creates an anonymous object, with all the method specified and then the object is wrapped to provide all the expectation functionality of the library</p>
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> deride.wrap(bob);
+bob.greet(<span class="pl-s"><span class="pl-pds">'</span>jack<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>);
+bob.greet(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);
+bob.expect.greet.invocation(<span class="pl-c1">0</span>).withArg(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>);
+bob.expect.greet.invocation(<span class="pl-c1">1</span>).withArg(<span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>);</pre></div>
 
-<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> deride.stub([<span class="pl-s"><span class="pl-pds">'</span>greet<span class="pl-pds">'</span></span>]);
-bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>);
-bob.expect.greet.called.times(<span class="pl-c1">1</span>);</pre></div>
+<h2>
+<a id="enable-the-assertion-on-a-single-arg-being-used-in-any-invocation" class="anchor" href="#enable-the-assertion-on-a-single-arg-being-used-in-any-invocation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Enable the assertion on a single arg being used in any invocation</h2>
 
-<h3>
-<a id="creating-a-stubbed-object-based-on-an-existing-object" class="anchor" href="#creating-a-stubbed-object-based-on-an-existing-object" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating a stubbed object based on an existing object</h3>
-
-<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> Person <span class="pl-k">=</span> {
-    <span class="pl-en">greet</span>: <span class="pl-k">function</span>(<span class="pl-smi">name</span>) {
-        <span class="pl-k">return</span> <span class="pl-s"><span class="pl-pds">'</span>alice sas hello to <span class="pl-pds">'</span></span> <span class="pl-k">+</span> name;
-    },
-};
-<span class="pl-k">var</span> bob <span class="pl-k">=</span> deride.stub(Person);
-bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>);
-bob.expect.greet.called.once();</pre></div>
+<p><a name="called-witharg"></a></p>
 
 <h3>
-<a id="creating-a-single-mocked-method" class="anchor" href="#creating-a-single-mocked-method" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating a single mocked method</h3>
+<a id="when-the-arg-is-a-primitive-object" class="anchor" href="#when-the-arg-is-a-primitive-object" aria-hidden="true"><span class="octicon octicon-link"></span></a>when the arg is a primitive object</h3>
 
-<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> func <span class="pl-k">=</span> deride.func();
-func.setup.toReturn(<span class="pl-c1">1</span>);
-<span class="pl-k">var</span> value <span class="pl-k">=</span> func(<span class="pl-c1">1</span>, <span class="pl-c1">2</span>, <span class="pl-c1">3</span>);
-assert.equal(value, <span class="pl-c1">1</span>);</pre></div>
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> deride.wrap(bob);
+bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>, {
+    name<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>,
+    a<span class="pl-k">:</span> <span class="pl-c1">1</span>
+}, <span class="pl-s"><span class="pl-pds">'</span>sam<span class="pl-pds">'</span></span>);
+bob.expect.greet.called.withArg(<span class="pl-s"><span class="pl-pds">'</span>sam<span class="pl-pds">'</span></span>);</pre></div>
 
 <h3>
-<a id="force-the-emit-of-an-event-on-an-object" class="anchor" href="#force-the-emit-of-an-event-on-an-object" aria-hidden="true"><span class="octicon octicon-link"></span></a>Force the emit of an event on an object</h3>
+<a id="when-the-arg-is-not-a-primitive-object" class="anchor" href="#when-the-arg-is-not-a-primitive-object" aria-hidden="true"><span class="octicon octicon-link"></span></a>when the arg is not a primitive object</h3>
 
-<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> deride.stub([]);
-bob.on(<span class="pl-s"><span class="pl-pds">'</span>message<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>() {
-    done();
+<div class="highlight highlight-javascript"><pre><span class="pl-k">var</span> bob <span class="pl-k">=</span> deride.wrap(bob);
+bob.greet(<span class="pl-s"><span class="pl-pds">'</span>alice<span class="pl-pds">'</span></span>, {
+    name<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>,
+    a<span class="pl-k">:</span> <span class="pl-c1">1</span>
 });
-bob.emit(<span class="pl-s"><span class="pl-pds">'</span>message<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>payload<span class="pl-pds">'</span></span>);</pre></div>
+bob.expect.greet.called.withArg({
+    name<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>bob<span class="pl-pds">'</span></span>
+});</pre></div>
 
 <h2>
 <a id="contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
