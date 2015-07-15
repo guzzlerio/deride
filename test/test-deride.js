@@ -298,6 +298,27 @@ var tests = [{
 
 		return deride.wrap(new Person('bob proto'));
 	}
+}, {
+	name: ' Creating a stub object with methods and has properties',
+	setup: function() {
+		var stub = deride.stub(['greet', 'chuckle', 'foobar'], [{
+			name: 'age',
+			options: {
+				value: 25,
+				enumerable: true
+			}
+		}, {
+			name: 'height',
+			options: {
+				value: '180cm',
+				enumerable: true
+			}
+		}]);
+		stub.setup.foobar.toDoThis(fooBarFunction);
+
+		return stub;
+	},
+	hasProperties: true
 }];
 
 _.forEach(tests, function(test) {
@@ -653,5 +674,12 @@ _.forEach(tests, function(test) {
 				});
 			});
 		});
+
+		if (test.hasProperties) {
+			it('enables properties if specified in construction', function() {
+				(bob.age).should.be.equal(25);
+				(bob.height).should.be.equal('180cm');
+			});
+		}
 	});
 });
