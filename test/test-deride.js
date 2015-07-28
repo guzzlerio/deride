@@ -225,6 +225,35 @@ describe('Eventing', function() {
 	});
 });
 
+describe('Properties', function() {
+	var bob;
+	beforeEach(function() {
+		bob = deride.stub(['greet', 'chuckle', 'foobar'], [{
+			name: 'age',
+			options: {
+				value: 25,
+				enumerable: true
+			}
+		}, {
+			name: 'height',
+			options: {
+				value: '180cm',
+				enumerable: true
+			}
+		}]);
+		bob.setup.greet.toReturn('hello');
+	});
+
+	it('enables properties if specified in construction', function() {
+		bob.age.should.be.equal(25);
+		bob.height.should.be.equal('180cm');
+	});
+
+	it('still allows function overriding', function() {
+		bob.greet('sally').should.eql('hello');
+	});
+});
+
 var fooBarFunction = function(timeout, callback) {
 	setTimeout(function() {
 		callback('result');
@@ -653,5 +682,6 @@ _.forEach(tests, function(test) {
 				});
 			});
 		});
+
 	});
 });

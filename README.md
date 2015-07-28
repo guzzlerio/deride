@@ -85,6 +85,16 @@ bob.expect.greet.called.times(1);
 
 <a name="stub-obj" />
 
+### Creating a stubbed object with properties
+To stub an object with pre set properties call the stub method with a properties array in the second parameter. We are following the defineProperty definition as can be found in the below link. 
+
+https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty
+
+
+```javascript
+var bob = deride.stub(['greet'], [{name: 'age', options: { value: 25, enumerable: true}}]);
+bob.age === 25;
+```
 ### Creating a stubbed object based on an existing object
 ```javascript
 var Person = {
