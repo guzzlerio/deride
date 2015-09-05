@@ -683,5 +683,44 @@ _.forEach(tests, function(test) {
 			});
 		});
 
+		describe('providing a predicate to when', function() {
+			function resourceMatchingPredicate(msg) {
+				try {
+					var content = JSON.parse(msg.content.toString());
+					return content.resource === 'talula';
+				} catch (e) {
+					return false;
+				}
+			}
+
+			beforeEach(function() {
+				bob.setup.chuckle.toReturn('chuckling');
+				bob.setup.chuckle.when(resourceMatchingPredicate).toReturn('chuckle talula');
+			});
+
+			it('non matching predicate returns existing response', function() {
+				var nonMatchingMsg = {
+					//...
+					//other properties that we do not know until runtime
+					//...
+					content: new Buffer(JSON.stringify({
+						resource: 'non-matching'
+					}))
+				};
+				bob.chuckle(nonMatchingMsg).should.eql('chuckling');
+			});
+
+			it('matching predicate returns overriden response', function() {
+				var matchingMsg = {
+					//...
+					//other properties that we do not know until runtime
+					//...
+					content: new Buffer(JSON.stringify({
+						resource: 'talula'
+					}))
+				};
+				bob.chuckle(matchingMsg).should.eql('chuckle talula');
+			});
+		});
 	});
 });
