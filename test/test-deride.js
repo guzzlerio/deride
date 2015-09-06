@@ -696,6 +696,7 @@ _.forEach(tests, function(test) {
 			beforeEach(function() {
 				bob.setup.chuckle.toReturn('chuckling');
 				bob.setup.chuckle.when(resourceMatchingPredicate).toReturn('chuckle talula');
+				bob.setup.chuckle.when('alice').toReturn('chuckle alice');
 			});
 
 			it('non matching predicate returns existing response', function() {
@@ -720,6 +721,10 @@ _.forEach(tests, function(test) {
 					}))
 				};
 				bob.chuckle(matchingMsg).should.eql('chuckle talula');
+			});
+
+			it('still allows non-function predicates', function() {
+				bob.chuckle('alice').should.eql('chuckle alice');
 			});
 		});
 	});

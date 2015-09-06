@@ -53,7 +53,7 @@ var deride = require('deride');
 - [```obj```.setup.```method```.toEmit(event, args)](#events)
 - [```obj```.setup.```method```.toCallbackWith(args)](#setup-tocallback)
 - [```obj```.setup.```method```.toTimeWarp(milliseconds)](#setup-totimewarp)
-- [```obj```.setup.```method```.when(args).[toDoThis|toReturn|toRejectWith|toResolveWith|toThrow|toEmit|toCallbackWith|toTimeWarp]](#setup-toreturn-when)
+- [```obj```.setup.```method```.when(args|function).[toDoThis|toReturn|toRejectWith|toResolveWith|toThrow|toEmit|toCallbackWith|toTimeWarp]](#setup-toreturn-when)
 
 ## Examples
 
@@ -418,6 +418,30 @@ bob.foobar(timeout1, function(message) {
 });
 
 ```
+
+### Use a function as a predicate
+
+If a function is passed to the `when`, then this will be invoked with the arguments passed. The function that has been setup will be called if this predicate returns truthy.
+
+```javascript
+function resourceMatchingPredicate(msg) {
+	var content = JSON.parse(msg.content.toString());
+	return content.resource === 'talula';
+}
+bob.setup.chuckle.toReturn('chuckling');
+bob.setup.chuckle.when(resourceMatchingPredicate).toReturn('chuckle talula');
+
+var matchingMsg = {
+	//...
+	//other properties that we do not know until runtime
+	//...
+	content: new Buffer(JSON.stringify({
+		resource: 'talula'
+	}))
+};
+bob.chuckle(matchingMsg).should.eql('chuckle talula');
+```
+
 
 ### Provide access to individual calls to a method
 
