@@ -753,6 +753,30 @@ _.forEach(tests, function(test) {
 					bob.chuckle('alice').should.eql('chuckle alice');
 				});
 			});
+
+			describe('with null argument', function(){
+				function resourceMatchingPredicate(arg1) {
+					return arg1 === null;
+				}
+
+				beforeEach(function() {
+					bob.setup.chuckle.toReturn('chuckling');
+					bob.setup.chuckle.when(resourceMatchingPredicate).toReturn('chuckle talula');
+					bob.setup.chuckle.when('alice').toReturn('chuckle alice');
+				});
+
+				it('non matching predicate returns existing response', function() {
+					bob.chuckle(1).should.eql('chuckling');
+				});
+
+				it('matching predicate returns overriden response', function() {
+					bob.chuckle(null).should.eql('chuckle talula');
+				});
+
+				it('still allows non-function predicates', function() {
+					bob.chuckle('alice').should.eql('chuckle alice');
+				});
+			});
 		});
 	});
 });
