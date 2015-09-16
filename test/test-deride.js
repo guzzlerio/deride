@@ -22,7 +22,7 @@ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
- */
+*/
 
 'use strict';
 
@@ -475,13 +475,13 @@ _.forEach(tests, function(test) {
 
 		it('enables rejecting a promise', function(done) {
 			bob.greet('norman')
-				.then(function() {
-					done('should not have resolved');
-				})
-				.catch(function(result) {
-					assert.equal(result.message, 'foobar');
-					done();
-				});
+			.then(function() {
+				done('should not have resolved');
+			})
+			.catch(function(result) {
+				assert.equal(result.message, 'foobar');
+				done();
+			});
 		});
 	});
 
@@ -684,47 +684,74 @@ _.forEach(tests, function(test) {
 		});
 
 		describe('providing a predicate to when', function() {
-			function resourceMatchingPredicate(msg) {
-				try {
-					var content = JSON.parse(msg.content.toString());
-					return content.resource === 'talula';
-				} catch (e) {
-					return false;
+
+			describe('with a single argument', function(){
+				function resourceMatchingPredicate(msg) {
+					try {
+						var content = JSON.parse(msg.content.toString());
+						return content.resource === 'talula';
+					} catch (e) {
+						return false;
+					}
 				}
-			}
 
-			beforeEach(function() {
-				bob.setup.chuckle.toReturn('chuckling');
-				bob.setup.chuckle.when(resourceMatchingPredicate).toReturn('chuckle talula');
-				bob.setup.chuckle.when('alice').toReturn('chuckle alice');
+				beforeEach(function() {
+					bob.setup.chuckle.toReturn('chuckling');
+					bob.setup.chuckle.when(resourceMatchingPredicate).toReturn('chuckle talula');
+					bob.setup.chuckle.when('alice').toReturn('chuckle alice');
+				});
+
+				it('non matching predicate returns existing response', function() {
+					var nonMatchingMsg = {
+						//...
+						//other properties that we do not know until runtime
+						//...
+						content: new Buffer(JSON.stringify({
+							resource: 'non-matching'
+						}))
+					};
+					bob.chuckle(nonMatchingMsg).should.eql('chuckling');
+				});
+
+				it('matching predicate returns overriden response', function() {
+					var matchingMsg = {
+						//...
+						//other properties that we do not know until runtime
+						//...
+						content: new Buffer(JSON.stringify({
+							resource: 'talula'
+						}))
+					};
+					bob.chuckle(matchingMsg).should.eql('chuckle talula');
+				});
+
+				it('still allows non-function predicates', function() {
+					bob.chuckle('alice').should.eql('chuckle alice');
+				});
 			});
 
-			it('non matching predicate returns existing response', function() {
-				var nonMatchingMsg = {
-					//...
-					//other properties that we do not know until runtime
-					//...
-					content: new Buffer(JSON.stringify({
-						resource: 'non-matching'
-					}))
-				};
-				bob.chuckle(nonMatchingMsg).should.eql('chuckling');
-			});
+			describe('with multiple arguments', function(){
+				function resourceMatchingPredicate(arg1, arg2, arg3) {
+					return arg1 === 4 && arg2 === 5 && arg3 === 6;
+				}
 
-			it('matching predicate returns overriden response', function() {
-				var matchingMsg = {
-					//...
-					//other properties that we do not know until runtime
-					//...
-					content: new Buffer(JSON.stringify({
-						resource: 'talula'
-					}))
-				};
-				bob.chuckle(matchingMsg).should.eql('chuckle talula');
-			});
+				beforeEach(function() {
+					bob.setup.chuckle.toReturn('chuckling');
+					bob.setup.chuckle.when(resourceMatchingPredicate).toReturn('chuckle talula');
+					bob.setup.chuckle.when('alice').toReturn('chuckle alice');
+				});
 
-			it('still allows non-function predicates', function() {
-				bob.chuckle('alice').should.eql('chuckle alice');
+				it('non matching predicate returns existing response', function() {
+					bob.chuckle(1,2,3).should.eql('chuckling');
+				});
+
+				it('matching predicate returns overriden response', function() {
+					bob.chuckle(4,5,6).should.eql('chuckle talula');
+				});
+
+				it('still allows non-function predicates', function() {
+					bob.chuckle('alice').should.eql('chuckle alice');
+				});
 			});
 		});
 	});
