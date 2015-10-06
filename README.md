@@ -31,6 +31,10 @@ var deride = require('deride');
 - [```obj```.expect.```method```.called.times(n)](#called-times)
 - [```obj```.expect.```method```.called.once()](#called-once)
 - [```obj```.expect.```method```.called.twice()](#called-once)
+- [```obj```.expect.```method```.called.lt()](#called-lte)
+- [```obj```.expect.```method```.called.lte()](#called-lte)
+- [```obj```.expect.```method```.called.gt()](#called-lte)
+- [```obj```.expect.```method```.called.gte()](#called-lte)
 - [```obj```.expect.```method```.called.never()](#called-never)
 - [```obj```.expect.```method```.called.withArg(arg)](#called-witharg)
 - [```obj```.expect.```method```.called.withArgs(args)](#called-withargs)
@@ -169,6 +173,22 @@ bob.greet('alice');
 bob.expect.greet.called.once();
 bob.greet('sally');
 bob.expect.greet.called.twice();
+```
+
+<a name="called-lte" />
+
+### Handy `lt`, `lte`, `gt` and `gte` methods
+```javascript
+var bob = new Person('bob');
+bob = deride.wrap(bob);
+bob.greet('alice');
+bob.greet('alice');
+bob.greet('alice');
+
+bob.expect.greet.called.lt(4);
+bob.expect.greet.called.lte(3);
+bob.expect.greet.called.gt(2);
+bob.expect.greet.called.gte(3);
 ```
 
 <a name="called-never" />
