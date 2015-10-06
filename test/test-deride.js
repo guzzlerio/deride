@@ -552,7 +552,7 @@ _.forEach(tests, function(test) {
 			message: 'less than'
 		}, {
 			method: 'lte',
-			pass: 4,
+			pass: 3,
 			fail: 2,
 			message: 'less than or equal to'
 		}, {
