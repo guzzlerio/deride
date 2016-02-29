@@ -500,8 +500,8 @@ bob.expect.greet.called.withArg({
 });
 ```
 
-## Use a RexExp match for the assertion on any args being used in any invocation
 <a name="called-withmatch" />
+## Use a RexExp match for the assertion on any args being used in any invocation
 
 ### when the arg is a primitive object
 ```javascript
