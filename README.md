@@ -514,12 +514,11 @@ bob.expect.greet.called.withMatch(/^The inspiration for this was/);
 
 ### when the arg is not a primitive object
 
-This currently only supports a flat object and does not compare deep.
 
 ```javascript
 var bob = deride.stub(['greet']);
 bob.greet('The inspiration for this was that my colleague was having a');
-bob.greet({a: 123, b: 'talula'}, 123, 'something');
+bob.greet({a: 123, b: { a: {'talula'}}, 123, 'something');
 
 bob.expect.greet.called.withMatch(/^talula/gi);
 ```
