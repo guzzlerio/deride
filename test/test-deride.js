@@ -127,6 +127,48 @@ describe('Expectations', function() {
         });
         done();
     });
+
+    it('allows matching call args with regex', function() {
+        var bob = deride.stub(['greet']);
+        bob.greet('The inspiration for this was that my colleague was having a');
+        bob.greet({
+            a: 123,
+            b: 'talula'
+        }, 123, 'something');
+
+        bob.expect.greet.called.withMatch(/^The inspiration for this was/);
+    });
+
+    it('allows matching call args with regex', function() {
+        var bob = deride.stub(['greet']);
+        bob.greet('The inspiration for this was that my colleague was having a');
+
+        (function() {
+            bob.expect.greet.called.withMatch(/^talula/);
+        }).should.throw('Expected greet to be called matching: /^talula/');
+    });
+
+    it('allows matching call args with regex in objects', function() {
+        var bob = deride.stub(['greet']);
+        bob.greet('The inspiration for this was that my colleague was having a');
+        bob.greet({
+            a: 123,
+            b: 'talula'
+        }, 123, 'something');
+
+        bob.expect.greet.called.withMatch(/^talula/gi);
+    });
+
+    it('allows matching call args with regex in deep objects', function() {
+        var bob = deride.stub(['greet']);
+        bob.greet('The inspiration for this was that my colleague was having a');
+        bob.greet({
+            a: 123,
+            b: { a: 'talula' }
+        }, 123, 'something');
+
+        bob.expect.greet.called.withMatch(/^talula/gi);
+    });
 });
 
 describe('Single function', function() {
@@ -154,7 +196,6 @@ describe('Single function', function() {
         myClass.doStuff('test');
         myClass.expect.doStuff.called.withArgs('test');
         myClass.expect.doStuff.called.reset();
-        /* jshint immed: false */
         (function() {
             myClass.expect.doStuff.called.withArgs('test');
         }).should.throw('Expected doStuff to be called with: test');
@@ -734,7 +775,6 @@ _.forEach(tests, function(test) {
         });
 
         describe('providing a predicate to when', function() {
-
             describe('with a single argument', function() {
                 function resourceMatchingPredicate(msg) {
                     try {

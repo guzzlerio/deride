@@ -38,6 +38,7 @@ var deride = require('deride');
 - [```obj```.expect.```method```.called.never()](#called-never)
 - [```obj```.expect.```method```.called.withArg(arg)](#called-witharg)
 - [```obj```.expect.```method```.called.withArgs(args)](#called-withargs)
+- [```obj```.expect.```method```.called.withMatch(pattern)](#called-withmatch)
 
 **All of the above can be negated e.g. negating the `.withArgs` would be: ** 
 
@@ -498,6 +499,31 @@ bob.expect.greet.called.withArg({
     name: 'bob'
 });
 ```
+
+<a name="called-withmatch" />
+## Use a RexExp match for the assertion on any args being used in any invocation
+
+### when the arg is a primitive object
+```javascript
+var bob = deride.stub(['greet']);
+bob.greet('The inspiration for this was that my colleague was having a');
+bob.greet({a: 123, b: 'talula'}, 123, 'something');
+
+bob.expect.greet.called.withMatch(/^The inspiration for this was/);
+```
+
+### when the arg is not a primitive object
+
+
+```javascript
+var bob = deride.stub(['greet']);
+bob.greet('The inspiration for this was that my colleague was having a');
+bob.greet({a: 123, b: { a: {'talula'}}, 123, 'something');
+
+bob.expect.greet.called.withMatch(/^talula/gi);
+```
+
+---
 
 ## Contributing
 Please ensure that you run ```grunt```, have no style warnings and that all the tests are passing.
