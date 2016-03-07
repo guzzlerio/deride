@@ -172,12 +172,20 @@ describe('Expectations', function() {
 });
 
 describe('Single function', function() {
-    it('Resetting the called count', function(done) {
-        var MyClass = function() {
+    var MyClass;
+    beforeEach(function () {
+        MyClass = function() {
             return {
-                doStuff: function() {}
+                aValue: 1,
+                doStuff: function() {},
+                echo: function(name) {
+                    return name;
+                }
             };
         };
+    });
+
+    it('Resetting the called count', function(done) {
         var myClass = deride.wrap(new MyClass());
         myClass.doStuff();
         myClass.expect.doStuff.called.once();
@@ -187,11 +195,6 @@ describe('Single function', function() {
     });
 
     it('Resetting the called with count', function(done) {
-        var MyClass = function() {
-            return {
-                doStuff: function() {}
-            };
-        };
         var myClass = deride.wrap(new MyClass());
         myClass.doStuff('test');
         myClass.expect.doStuff.called.withArgs('test');
@@ -203,14 +206,6 @@ describe('Single function', function() {
     });
 
     it('Resetting the called count on all methods', function(done) {
-        var MyClass = function() {
-            return {
-                doStuff: function() {},
-                echo: function(name) {
-                    return name;
-                }
-            };
-        };
         var myClass = deride.wrap(new MyClass());
         myClass.doStuff('test1');
         myClass.echo('echo1');
@@ -226,12 +221,6 @@ describe('Single function', function() {
     });
 
     it('Wrapping a class does not remove non-functions', function() {
-        var MyClass = function() {
-            return {
-                aValue: 1,
-                doStuff: function() {}
-            };
-        };
         var myClass = deride.wrap(new MyClass());
         myClass.should.have.property('aValue');
     });
@@ -250,6 +239,28 @@ describe('Single function', function() {
         func(function(arg1, arg2) {
             assert.equal(arg1, 'hello');
             assert.equal(arg2, 'world');
+            done();
+        });
+    });
+
+    it('can setup an intercept on promises', function (done) {
+        var promise = require('when');
+        var Obj = function() {
+            return {
+                times: function (arg) {
+                    return promise.resolve(arg * 2);
+                }
+            };
+        };
+        var beforeCalledWith;
+
+        var a = deride.wrap(new Obj());
+        a.setup.times.toIntercept(function (value) {
+            beforeCalledWith = value;
+        });
+        a.times(2).then(function (result) {
+            result.should.eql(4);
+            beforeCalledWith.should.eql(2);
             done();
         });
     });

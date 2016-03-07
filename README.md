@@ -59,6 +59,7 @@ var deride = require('deride');
 - [```obj```.setup.```method```.toCallbackWith(args)](#setup-tocallback)
 - [```obj```.setup.```method```.toTimeWarp(milliseconds)](#setup-totimewarp)
 - [```obj```.setup.```method```.when(args|function).[toDoThis|toReturn|toRejectWith|toResolveWith|toThrow|toEmit|toCallbackWith|toTimeWarp]](#setup-toreturn-when)
+- [```obj```.setup.```method```.toIntercept(func)](#setup-tointercept)
 
 ## Examples
 
@@ -341,6 +342,23 @@ bob.foobar(timeout, function(message) {
     assert.equal(message, 'result');
 });
 ```
+
+<a name="setup-tointercept" />
+
+## Setup an intercept
+
+Currently this will allow you to inspect the arguments that are passed to a method, but it will not pass any modifications to the real method.
+
+```javascript
+var bob = new Person('bob');
+bob = deride.wrap(bob);
+bob.setup.greet.toIntercept(function () {
+    console.log(arguments); // { '0': 'sally', '1': { message: 'hello %s'} }
+});
+
+bob.greet('sally', {message: 'hello %s'});
+```
+
 
 ## Setup for specific arguments
 
