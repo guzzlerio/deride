@@ -123,6 +123,24 @@ var value = func(1, 2, 3);
 assert.equal(value, 1);
 ```
 
+### Wrapping an existing function
+```javascript
+var f = function (name) { return 'hello ' + name; };
+var func = deride.func(f);
+assert(func('bob'), 'hello bob');
+func.expect.called.withArg('bob');
+```
+
+### Wrapping an existing promise function
+```javascript
+var f = function (name) { return 'hello ' + name; };
+var func = deride.func(when.lift(f));
+func('bob').then(function (result) {
+    assert(result, 'hello bob');
+    func.expect.called.withArg('bob');
+}).finally(done);
+```
+
 ## Events
 
 ### Force the emit of an event on an object
