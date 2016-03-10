@@ -26,12 +26,13 @@
 
 'use strict';
 
-var deride = require('../lib/deride.js');
-var utils = require('../lib/utils');
+require('should');
 var _ = require('lodash');
 var util = require('util');
 var assert = require('assert');
-require('should');
+var when = require('when');
+var deride = require('../lib/deride.js');
+var utils = require('../lib/utils');
 
 describe('utils', function() {
     it('finds object style methods', function() {
@@ -240,6 +241,29 @@ describe('Single function', function() {
             assert.equal(arg1, 'hello');
             assert.equal(arg2, 'world');
             done();
+        });
+    });
+
+    describe('wrapping an existing function', function (){
+        var f;
+        beforeEach(function () {
+            f = function (name) {
+                return 'hello ' + name;
+            };
+        });
+
+        it('can wrap an existing function', function () {
+            var func = deride.func(f);
+            assert(func('bob'), 'hello bob');
+            func.expect.called.withArg('bob');
+        });
+
+        it('can wrap a promised function', function (done) {
+            var func = deride.func(when.lift(f));
+            func('bob').then(function(result){
+                assert(result, 'hello bob');
+                func.expect.called.withArg('bob');
+            }).finally(done);
         });
     });
 
