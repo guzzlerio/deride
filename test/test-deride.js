@@ -908,7 +908,6 @@ _.forEach(tests, function(test) {
 
 		describe('multi', function() {
 			it('only uses the stub x times', function() {
-				bob = deride.wrap(bob);
 				bob.setup.greet
 					.toReturn('alice')
 					.twice()
@@ -921,7 +920,6 @@ _.forEach(tests, function(test) {
 			});
 
 			it('only uses the stub x times and then falls back', function() {
-				bob = deride.wrap(bob);
 				var normalResult = bob.greet('alice');
 				bob.setup.greet
 					.toReturn('alice')
@@ -931,10 +929,10 @@ _.forEach(tests, function(test) {
 				should(bob.greet('alice')).eql(normalResult);
 			});
 
-			describe.skip('also supports when specific arguments are provided', function() {
+			describe('also supports when specific arguments are provided', function() {
 				it('does something', function() {
-					bob = deride.wrap(bob);
 					var normalResult = bob.greet('talula');
+					var normalSimon = bob.greet('simon');
 					bob.setup.greet
 						.when('simon')
 						.toReturn('alice')
@@ -945,10 +943,10 @@ _.forEach(tests, function(test) {
 					bob.greet('simon').should.eql('alice');
 					bob.greet('simon').should.eql('alice');
 					// default Person behaviour
-					bob.greet('simon').should.not.eql('alice');
+					should(bob.greet('simon')).eql(normalSimon);
 				});
 
-				it('does something else 2', function() {
+				it.skip('does something else 2', function() {
 					bob = deride.wrap(bob);
 					// I need to know that the last one added included the when() so it is in the callBasedOnArgs instead
 					bob.setup.greet
