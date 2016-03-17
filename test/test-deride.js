@@ -26,12 +26,13 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 'use strict';
 
-var deride = require('../lib/deride.js');
-var utils = require('../lib/utils');
+require('should');
 var _ = require('lodash');
 var util = require('util');
 var assert = require('assert');
-require('should');
+var when = require('when');
+var deride = require('../lib/deride.js');
+var utils = require('../lib/utils');
 
 describe('utils', function() {
 	it('finds object style methods', function() {
@@ -127,15 +128,67 @@ describe('Expectations', function() {
 		});
 		done();
 	});
+
+	it('allows matching call args with regex', function() {
+		var bob = deride.stub(['greet']);
+		bob.greet('The inspiration for this was that my colleague was having a');
+		bob.greet({
+			a: 123,
+			b: 'talula'
+		}, 123, 'something');
+
+		bob.expect.greet.called.withMatch(/^The inspiration for this was/);
+	});
+
+	it('allows matching call args with regex', function() {
+		var bob = deride.stub(['greet']);
+		bob.greet('The inspiration for this was that my colleague was having a');
+
+		(function() {
+			bob.expect.greet.called.withMatch(/^talula/);
+		}).should.throw('Expected greet to be called matching: /^talula/');
+	});
+
+	it('allows matching call args with regex in objects', function() {
+		var bob = deride.stub(['greet']);
+		bob.greet('The inspiration for this was that my colleague was having a');
+		bob.greet({
+			a: 123,
+			b: 'talula'
+		}, 123, 'something');
+
+		bob.expect.greet.called.withMatch(/^talula/gi);
+	});
+
+	it('allows matching call args with regex in deep objects', function() {
+		var bob = deride.stub(['greet']);
+		bob.greet('The inspiration for this was that my colleague was having a');
+		bob.greet({
+			a: 123,
+			b: {
+				a: 'talula'
+			}
+		}, 123, 'something');
+
+		bob.expect.greet.called.withMatch(/^talula/gi);
+	});
 });
 
 describe('Single function', function() {
-	it('Resetting the called count', function(done) {
-		var MyClass = function() {
+	var MyClass;
+	beforeEach(function() {
+		MyClass = function() {
 			return {
-				doStuff: function() {}
+				aValue: 1,
+				doStuff: function() {},
+				echo: function(name) {
+					return name;
+				}
 			};
 		};
+	});
+
+	it('Resetting the called count', function(done) {
 		var myClass = deride.wrap(new MyClass());
 		myClass.doStuff();
 		myClass.expect.doStuff.called.once();
@@ -145,16 +198,10 @@ describe('Single function', function() {
 	});
 
 	it('Resetting the called with count', function(done) {
-		var MyClass = function() {
-			return {
-				doStuff: function() {}
-			};
-		};
 		var myClass = deride.wrap(new MyClass());
 		myClass.doStuff('test');
 		myClass.expect.doStuff.called.withArgs('test');
 		myClass.expect.doStuff.called.reset();
-		/* jshint immed: false */
 		(function() {
 			myClass.expect.doStuff.called.withArgs('test');
 		}).should.throw('Expected doStuff to be called with: test');
@@ -162,14 +209,6 @@ describe('Single function', function() {
 	});
 
 	it('Resetting the called count on all methods', function(done) {
-		var MyClass = function() {
-			return {
-				doStuff: function() {},
-				echo: function(name) {
-					return name;
-				}
-			};
-		};
 		var myClass = deride.wrap(new MyClass());
 		myClass.doStuff('test1');
 		myClass.echo('echo1');
@@ -185,12 +224,6 @@ describe('Single function', function() {
 	});
 
 	it('Wrapping a class does not remove non-functions', function() {
-		var MyClass = function() {
-			return {
-				aValue: 1,
-				doStuff: function() {}
-			};
-		};
 		var myClass = deride.wrap(new MyClass());
 		myClass.should.have.property('aValue');
 	});
@@ -212,6 +245,51 @@ describe('Single function', function() {
 			done();
 		});
 	});
+
+	describe('wrapping an existing function', function() {
+		var f;
+		beforeEach(function() {
+			f = function(name) {
+				return 'hello ' + name;
+			};
+		});
+
+		it('can wrap an existing function', function() {
+			var func = deride.func(f);
+			assert(func('bob'), 'hello bob');
+			func.expect.called.withArg('bob');
+		});
+
+		it('can wrap a promised function', function(done) {
+			var func = deride.func(when.lift(f));
+			func('bob').then(function(result) {
+				assert(result, 'hello bob');
+				func.expect.called.withArg('bob');
+			}).finally(done);
+		});
+	});
+
+	it('can setup an intercept on promises', function(done) {
+		var promise = require('when');
+		var Obj = function() {
+			return {
+				times: function(arg) {
+					return promise.resolve(arg * 2);
+				}
+			};
+		};
+		var beforeCalledWith;
+
+		var a = deride.wrap(new Obj());
+		a.setup.times.toIntercept(function(value) {
+			beforeCalledWith = value;
+		});
+		a.times(2).then(function(result) {
+			result.should.eql(4);
+			beforeCalledWith.should.eql(2);
+			done();
+		});
+	});
 });
 
 
@@ -222,6 +300,35 @@ describe('Eventing', function() {
 			done();
 		});
 		bob.emit('message', 'payload');
+	});
+});
+
+describe('Properties', function() {
+	var bob;
+	beforeEach(function() {
+		bob = deride.stub(['greet', 'chuckle', 'foobar'], [{
+			name: 'age',
+			options: {
+				value: 25,
+				enumerable: true
+			}
+		}, {
+			name: 'height',
+			options: {
+				value: '180cm',
+				enumerable: true
+			}
+		}]);
+		bob.setup.greet.toReturn('hello');
+	});
+
+	it('enables properties if specified in construction', function() {
+		bob.age.should.be.equal(25);
+		bob.height.should.be.equal('180cm');
+	});
+
+	it('still allows function overriding', function() {
+		bob.greet('sally').should.eql('hello');
 	});
 });
 
@@ -516,6 +623,56 @@ _.forEach(tests, function(test) {
 			done();
 		});
 
+		var lteTests = [{
+			method: 'lt',
+			pass: 4,
+			fail: 1,
+			message: 'less than'
+		}, {
+			method: 'lte',
+			pass: 3,
+			fail: 2,
+			message: 'less than or equal to'
+		}, {
+			method: 'gt',
+			pass: 2,
+			fail: 4,
+			message: 'greater than'
+		}, {
+			method: 'gte',
+			pass: 3,
+			fail: 4,
+			message: 'greater than or equal to'
+		}];
+		describe('counting invocations with lt, lte, gt and gte methods', function() {
+			_.each(lteTests, function(test) {
+				describe('using the ' + test.method + ' method', function() {
+					beforeEach(function() {
+						bob.greet('alice');
+						bob.greet('alice');
+						bob.greet('alice');
+					});
+
+					it('enables counting invocations', function() {
+						bob.expect.greet.called[test.method](test.pass);
+					});
+
+					it('gives meaningful error when assertion fails', function() {
+						var regex = new RegExp('Expected greet to be called ' + test.message + ' .* but was');
+						assert.throws(function() {
+							bob.expect.greet.called[test.method](test.fail);
+						}, regex);
+					});
+
+					it('allows custom error message when fails', function() {
+						assert.throws(function() {
+							bob.expect.greet.called[test.method](test.fail, 'Talulas on the beach');
+						}, /Talulas on the beach/);
+					});
+				});
+			});
+		});
+
 		it('enables convenience method for called.once', function(done) {
 			bob.greet('alice');
 			bob.expect.greet.called.once();
@@ -625,8 +782,8 @@ _.forEach(tests, function(test) {
 		it('enables specifying the arguments of a callback and invoking it', function(done) {
 			bob.setup.chuckle.toCallbackWith(0, 'boom');
 			bob.chuckle(function(err, message) {
-				assert.equal(err, 0);
-				assert.equal(message, 'boom');
+				err.should.eql(0);
+				message.should.eql('boom');
 				done();
 			});
 		});
@@ -634,8 +791,8 @@ _.forEach(tests, function(test) {
 		it('enables specifying the arguments as an array of a callback and invoking it', function(done) {
 			bob.setup.chuckle.toCallbackWith([0, 'boom']);
 			bob.chuckle(function(err, message) {
-				assert.equal(err, 0);
-				assert.equal(message, 'boom');
+				err.should.eql(0);
+				message.should.eql('boom');
 				done();
 			});
 		});
@@ -644,17 +801,112 @@ _.forEach(tests, function(test) {
 			bob.setup.chuckle.toCallbackWith([0, 'boom']);
 			bob.setup.chuckle.when('alice').toCallbackWith([0, 'bam']);
 			bob.chuckle(function(err, message) {
-				assert.equal(err, 0);
-				assert.equal(message, 'boom');
+				err.should.eql(0);
+				message.should.eql('boom');
 				bob.chuckle('alice', function(err, message) {
-					assert.equal(err, 0);
-					assert.equal(message, 'bam');
+					err.should.eql(0);
+					message.should.eql('bam');
 					done();
 				});
 			});
 		});
 
-		describe('multi', function() {
+		describe('providing a predicate to when', function() {
+			describe('with a single argument', function() {
+				function resourceMatchingPredicate(msg) {
+					try {
+						var content = JSON.parse(msg.content.toString());
+						return content.resource === 'talula';
+					} catch (e) {
+						return false;
+					}
+				}
+
+				beforeEach(function() {
+					bob.setup.chuckle.toReturn('chuckling');
+					bob.setup.chuckle.when(resourceMatchingPredicate).toReturn('chuckle talula');
+					bob.setup.chuckle.when('alice').toReturn('chuckle alice');
+				});
+
+				it('non matching predicate returns existing response', function() {
+					var nonMatchingMsg = {
+						//...
+						//other properties that we do not know until runtime
+						//...
+						content: new Buffer(JSON.stringify({
+							resource: 'non-matching'
+						}))
+					};
+					bob.chuckle(nonMatchingMsg).should.eql('chuckling');
+				});
+
+				it('matching predicate returns overriden response', function() {
+					var matchingMsg = {
+						//...
+						//other properties that we do not know until runtime
+						//...
+						content: new Buffer(JSON.stringify({
+							resource: 'talula'
+						}))
+					};
+					bob.chuckle(matchingMsg).should.eql('chuckle talula');
+				});
+
+				it('still allows non-function predicates', function() {
+					bob.chuckle('alice').should.eql('chuckle alice');
+				});
+			});
+
+			describe('with multiple arguments', function() {
+				function resourceMatchingPredicate(arg1, arg2, arg3) {
+					return arg1 === 4 && arg2 === 5 && arg3 === 6;
+				}
+
+				beforeEach(function() {
+					bob.setup.chuckle.toReturn('chuckling');
+					bob.setup.chuckle.when(resourceMatchingPredicate).toReturn('chuckle talula');
+					bob.setup.chuckle.when('alice').toReturn('chuckle alice');
+				});
+
+				it('non matching predicate returns existing response', function() {
+					bob.chuckle(1, 2, 3).should.eql('chuckling');
+				});
+
+				it('matching predicate returns overriden response', function() {
+					bob.chuckle(4, 5, 6).should.eql('chuckle talula');
+				});
+
+				it('still allows non-function predicates', function() {
+					bob.chuckle('alice').should.eql('chuckle alice');
+				});
+			});
+
+			describe('with null argument', function() {
+				function resourceMatchingPredicate(arg1) {
+					return arg1 === null;
+				}
+
+				beforeEach(function() {
+					bob.setup.chuckle.toReturn('chuckling');
+					bob.setup.chuckle.when(resourceMatchingPredicate).toReturn('chuckle talula');
+					bob.setup.chuckle.when('alice').toReturn('chuckle alice');
+				});
+
+				it('non matching predicate returns existing response', function() {
+					bob.chuckle(1).should.eql('chuckling');
+				});
+
+				it('matching predicate returns overriden response', function() {
+					bob.chuckle(null).should.eql('chuckle talula');
+				});
+
+				it('still allows non-function predicates', function() {
+					bob.chuckle('alice').should.eql('chuckle alice');
+				});
+			});
+		});
+
+		describe.skip('multi', function() {
 			it('only uses the stub x times', function() {
 				bob = deride.wrap(bob);
 				bob.greet('alice').should.not.eql('alice').and.not.eql('sally');
@@ -679,7 +931,7 @@ _.forEach(tests, function(test) {
 				bob.greet('alice').should.not.eql('alice');
 			});
 
-			describe.only('also supports when specific arguments are provided', function() {
+			describe('also supports when specific arguments are provided', function() {
 				it('does something', function() {
 					bob = deride.wrap(bob);
 					bob.setup.greet

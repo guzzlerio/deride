@@ -31,9 +31,14 @@ var deride = require('deride');
 - [```obj```.expect.```method```.called.times(n)](#called-times)
 - [```obj```.expect.```method```.called.once()](#called-once)
 - [```obj```.expect.```method```.called.twice()](#called-once)
+- [```obj```.expect.```method```.called.lt()](#called-lte)
+- [```obj```.expect.```method```.called.lte()](#called-lte)
+- [```obj```.expect.```method```.called.gt()](#called-lte)
+- [```obj```.expect.```method```.called.gte()](#called-lte)
 - [```obj```.expect.```method```.called.never()](#called-never)
 - [```obj```.expect.```method```.called.withArg(arg)](#called-witharg)
 - [```obj```.expect.```method```.called.withArgs(args)](#called-withargs)
+- [```obj```.expect.```method```.called.withMatch(pattern)](#called-withmatch)
 
 **All of the above can be negated e.g. negating the `.withArgs` would be: ** 
 
@@ -53,7 +58,8 @@ var deride = require('deride');
 - [```obj```.setup.```method```.toEmit(event, args)](#events)
 - [```obj```.setup.```method```.toCallbackWith(args)](#setup-tocallback)
 - [```obj```.setup.```method```.toTimeWarp(milliseconds)](#setup-totimewarp)
-- [```obj```.setup.```method```.when(args).[toDoThis|toReturn|toRejectWith|toResolveWith|toThrow|toEmit|toCallbackWith|toTimeWarp]](#setup-toreturn-when)
+- [```obj```.setup.```method```.when(args|function).[toDoThis|toReturn|toRejectWith|toResolveWith|toThrow|toEmit|toCallbackWith|toTimeWarp]](#setup-toreturn-when)
+- [```obj```.setup.```method```.toIntercept(func)](#setup-tointercept)
 
 ## Examples
 
@@ -85,6 +91,16 @@ bob.expect.greet.called.times(1);
 
 <a name="stub-obj" />
 
+### Creating a stubbed object with properties
+To stub an object with pre set properties call the stub method with a properties array in the second parameter. We are following the defineProperty definition as can be found in the below link. 
+
+https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty
+
+
+```javascript
+var bob = deride.stub(['greet'], [{name: 'age', options: { value: 25, enumerable: true}}]);
+bob.age === 25;
+```
 ### Creating a stubbed object based on an existing object
 ```javascript
 var Person = {
@@ -105,6 +121,24 @@ var func = deride.func();
 func.setup.toReturn(1);
 var value = func(1, 2, 3);
 assert.equal(value, 1);
+```
+
+### Wrapping an existing function
+```javascript
+var f = function (name) { return 'hello ' + name; };
+var func = deride.func(f);
+assert(func('bob'), 'hello bob');
+func.expect.called.withArg('bob');
+```
+
+### Wrapping an existing promise function
+```javascript
+var f = function (name) { return 'hello ' + name; };
+var func = deride.func(when.lift(f));
+func('bob').then(function (result) {
+    assert(result, 'hello bob');
+    func.expect.called.withArg('bob');
+}).finally(done);
 ```
 
 ## Events
@@ -159,6 +193,22 @@ bob.greet('alice');
 bob.expect.greet.called.once();
 bob.greet('sally');
 bob.expect.greet.called.twice();
+```
+
+<a name="called-lte" />
+
+### Handy `lt`, `lte`, `gt` and `gte` methods
+```javascript
+var bob = new Person('bob');
+bob = deride.wrap(bob);
+bob.greet('alice');
+bob.greet('alice');
+bob.greet('alice');
+
+bob.expect.greet.called.lt(4);
+bob.expect.greet.called.lte(3);
+bob.expect.greet.called.gt(2);
+bob.expect.greet.called.gte(3);
 ```
 
 <a name="called-never" />
@@ -311,6 +361,23 @@ bob.foobar(timeout, function(message) {
 });
 ```
 
+<a name="setup-tointercept" />
+
+## Setup an intercept
+
+Currently this will allow you to inspect the arguments that are passed to a method, but it will not pass any modifications to the real method.
+
+```javascript
+var bob = new Person('bob');
+bob = deride.wrap(bob);
+bob.setup.greet.toIntercept(function () {
+    console.log(arguments); // { '0': 'sally', '1': { message: 'hello %s'} }
+});
+
+bob.greet('sally', {message: 'hello %s'});
+```
+
+
 ## Setup for specific arguments
 
 <a name="setup-toreturn-when" />
@@ -409,6 +476,30 @@ bob.foobar(timeout1, function(message) {
 
 ```
 
+### Use a function as a predicate
+
+If a function is passed to the `when`, then this will be invoked with the arguments passed. The function that has been setup will be called if this predicate returns truthy.
+
+```javascript
+function resourceMatchingPredicate(msg) {
+	var content = JSON.parse(msg.content.toString());
+	return content.resource === 'talula';
+}
+bob.setup.chuckle.toReturn('chuckling');
+bob.setup.chuckle.when(resourceMatchingPredicate).toReturn('chuckle talula');
+
+var matchingMsg = {
+	//...
+	//other properties that we do not know until runtime
+	//...
+	content: new Buffer(JSON.stringify({
+		resource: 'talula'
+	}))
+};
+bob.chuckle(matchingMsg).should.eql('chuckle talula');
+```
+
+
 ### Provide access to individual calls to a method
 
 ```javascript
@@ -444,6 +535,31 @@ bob.expect.greet.called.withArg({
     name: 'bob'
 });
 ```
+
+<a name="called-withmatch" />
+## Use a RexExp match for the assertion on any args being used in any invocation
+
+### when the arg is a primitive object
+```javascript
+var bob = deride.stub(['greet']);
+bob.greet('The inspiration for this was that my colleague was having a');
+bob.greet({a: 123, b: 'talula'}, 123, 'something');
+
+bob.expect.greet.called.withMatch(/^The inspiration for this was/);
+```
+
+### when the arg is not a primitive object
+
+
+```javascript
+var bob = deride.stub(['greet']);
+bob.greet('The inspiration for this was that my colleague was having a');
+bob.greet({a: 123, b: { a: {'talula'}}, 123, 'something');
+
+bob.expect.greet.called.withMatch(/^talula/gi);
+```
+
+---
 
 ## Contributing
 Please ensure that you run ```grunt```, have no style warnings and that all the tests are passing.
