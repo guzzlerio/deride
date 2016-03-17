@@ -26,7 +26,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 'use strict';
 
-require('should');
+var should = require('should');
 var _ = require('lodash');
 var util = require('util');
 var assert = require('assert');
@@ -906,10 +906,9 @@ _.forEach(tests, function(test) {
 			});
 		});
 
-		describe.skip('multi', function() {
+		describe('multi', function() {
 			it('only uses the stub x times', function() {
 				bob = deride.wrap(bob);
-				bob.greet('alice').should.not.eql('alice').and.not.eql('sally');
 				bob.setup.greet
 					.toReturn('alice')
 					.twice()
@@ -923,23 +922,25 @@ _.forEach(tests, function(test) {
 
 			it('only uses the stub x times and then falls back', function() {
 				bob = deride.wrap(bob);
+				var normalResult = bob.greet('alice');
 				bob.setup.greet
 					.toReturn('alice')
 					.twice();
 				bob.greet('alice').should.eql('alice');
 				bob.greet('alice').should.eql('alice');
-				bob.greet('alice').should.not.eql('alice');
+				should(bob.greet('alice')).eql(normalResult);
 			});
 
-			describe('also supports when specific arguments are provided', function() {
+			describe.skip('also supports when specific arguments are provided', function() {
 				it('does something', function() {
 					bob = deride.wrap(bob);
+					var normalResult = bob.greet('talula');
 					bob.setup.greet
 						.when('simon')
 						.toReturn('alice')
-						.times(2);
+						.twice();
 					// default Person behaviour
-					bob.greet('talula').should.not.eql('alice');
+					should(bob.greet('talula')).eql(normalResult);
 					// overridden behaviour
 					bob.greet('simon').should.eql('alice');
 					bob.greet('simon').should.eql('alice');
