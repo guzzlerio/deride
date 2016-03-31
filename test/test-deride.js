@@ -81,27 +81,31 @@ describe('utils', function() {
 
 });
 
-describe('Expectations', function() {
-    it('does not invoke original method when override method body', function() {
-        var obj = deride.stub(['send']);
-        obj.setup.send.toThrow('bang');
+describe.only('Expectations', function() {
+    var bob;
+    beforeEach(function () {
+        bob = deride.stub(['greet']);
+        bob.setup.greet.toReturn('talula');
+    });
 
-        obj = deride.wrap(obj);
-        obj.setup.send.toDoThis(function() {
+    it('does not invoke original method when override method body', function() {
+        bob.setup.greet.toThrow('bang');
+
+        bob = deride.wrap(bob);
+        bob.setup.greet.toDoThis(function() {
             return 'hello';
         });
-        var result = obj.send();
+        var result = bob.greet();
         assert.equal(result, 'hello');
     });
 
     it('ignores the order of an object properties when comparing equality', function(done) {
-        var obj = deride.stub(['send']);
-        obj.send({
+        bob.greet({
             c: 3,
             b: 2,
             a: 1
         });
-        obj.expect.send.called.withArgs({
+        bob.expect.greet.called.withArgs({
             a: 1,
             b: 2,
             c: 3
@@ -110,21 +114,14 @@ describe('Expectations', function() {
     });
 
     it('throws exception when object not called withArgs', function(done) {
-        var obj = deride.stub(['send']);
-        obj.send('1', '2', '3');
+        bob.greet('1', '2', '3');
         assert.throws(function() {
-            obj.expect.send.called.withArgs('4');
+            bob.expect.greet.called.withArgs('4');
         }, Error);
         done();
     });
 
     describe('withArg called with an array', function () {
-        var obj;
-        beforeEach(function () {
-            obj = deride.stub(['send']);
-            obj.setup.send.toReturn('talula');
-        });
-
         _.forEach([{
             name: 'string', input: 'talula', expectPass: false
         }, {
@@ -138,33 +135,35 @@ describe('Expectations', function() {
         }], function (test) {
             if (test.expectPass) {
                 it('object called with ' + test.name + ' should pass', function() {
-                    obj.send(test.input);
-                    obj.expect.send.called.withArg(['a', 'b']);
+                    bob.greet(test.input);
+                    bob.expect.greet.called.withArg(['a', 'b']);
                 });
             } else {
                 it('object called with ' + test.name + ' should fail', function() {
-                    obj.send(test.input);
+                    bob.greet(test.input);
                     assert.throws(function() {
-                        obj.expect.send.called.withArg(['a', 'b']);
+                        bob.expect.greet.called.withArg(['a', 'b']);
                     }, Error);
                 });
             }
         });
     });
 
-    it('handles comparison of withArgs when an argument is a function', function(done) {
-        var obj = deride.stub(['send']);
-        obj.send({
+    it('handles withArg called with object', function () {
+        bob.greet(new Error('booom'));
+        bob.expect.greet.called.withArgs(new Error('booom'));
+    });
+
+    it('handles comparison of withArgs when an argument is a function', function() {
+        bob.greet({
             a: 1
         }, function() {});
-        obj.expect.send.called.withArgs({
+        bob.expect.greet.called.withArgs({
             a: 1
         });
-        done();
     });
 
     it('allows matching call args with regex', function() {
-        var bob = deride.stub(['greet']);
         bob.greet('The inspiration for this was that my colleague was having a');
         bob.greet({
             a: 123,
@@ -175,7 +174,6 @@ describe('Expectations', function() {
     });
 
     it('allows matching call args with regex', function() {
-        var bob = deride.stub(['greet']);
         bob.greet('The inspiration for this was that my colleague was having a');
 
         (function() {
@@ -184,7 +182,6 @@ describe('Expectations', function() {
     });
 
     it('allows matching call args with regex in objects', function() {
-        var bob = deride.stub(['greet']);
         bob.greet('The inspiration for this was that my colleague was having a');
         bob.greet({
             a: 123,
@@ -195,7 +192,6 @@ describe('Expectations', function() {
     });
 
     it('allows matching call args with regex in deep objects', function() {
-        var bob = deride.stub(['greet']);
         bob.greet('The inspiration for this was that my colleague was having a');
         bob.greet({
             a: 123,
