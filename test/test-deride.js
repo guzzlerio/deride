@@ -118,6 +118,40 @@ describe('Expectations', function() {
         done();
     });
 
+    describe('withArg called with an array', function () {
+        var obj;
+        beforeEach(function () {
+            obj = deride.stub(['send']);
+            obj.setup.send.toReturn('talula');
+        });
+
+        _.forEach([{
+            name: 'string', input: 'talula', expectPass: false
+        }, {
+            name: 'non match array', input: ['d', 'e'], expectPass: false
+        }, {
+            name: 'partial match array', input: ['a', 'd'], expectPass: false
+        }, {
+            name: 'match but wrong order', input: ['b', 'a'], expectPass: false
+        }, {
+            name: 'match', input: ['a', 'b'], expectPass: true
+        }], function (test) {
+            if (test.expectPass) {
+                it('object called with ' + test.name + ' should pass', function() {
+                    obj.send(test.input);
+                    obj.expect.send.called.withArg(['a', 'b']);
+                });
+            } else {
+                it('object called with ' + test.name + ' should fail', function() {
+                    obj.send(test.input);
+                    assert.throws(function() {
+                        obj.expect.send.called.withArg(['a', 'b']);
+                    }, Error);
+                });
+            }
+        });
+    });
+
     it('handles comparison of withArgs when an argument is a function', function(done) {
         var obj = deride.stub(['send']);
         obj.send({
@@ -542,22 +576,12 @@ _.forEach(tests, function(test) {
             bob.setup.greet.when('norman').toRejectWith(new Error('foobar'));
         });
 
-        it('enables resolving a promise', function(done) {
-            bob.greet('alice').then(function(result) {
-                assert.equal(result, 'foobar');
-                done();
-            });
+        it('enables resolving a promise', function() {
+            bob.greet('alice').should.be.fulfilledWith('foobar');
         });
 
-        it('enables rejecting a promise', function(done) {
-            bob.greet('norman')
-                .then(function() {
-                    done('should not have resolved');
-                })
-                .catch(function(result) {
-                    assert.equal(result.message, 'foobar');
-                    done();
-                });
+        it('enables rejecting a promise', function() {
+            bob.greet('norman').should.be.rejectedWith('foobar');
         });
     });
 
