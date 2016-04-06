@@ -81,7 +81,7 @@ describe('utils', function() {
 
 });
 
-describe.only('Expectations', function() {
+describe('Expectations', function() {
     var bob;
     beforeEach(function () {
         bob = deride.stub(['greet']);
