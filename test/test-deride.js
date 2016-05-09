@@ -367,25 +367,25 @@ describe('Exact', function () {
         done();
     });
 
-    it('with a simply primative string', function (done) {
+    it('with a primative string', function (done) {
         bob.greet('bob');
         bob.expect.greet.called.exact('bob');
         done();
     });
 
-    it('with multiple a simply primative string', function (done) {
+    it('with multiple a primative strings', function (done) {
         bob.greet('alice', 'carol');
         bob.expect.greet.called.exact('alice', 'carol');
         done();
     });
 
-    it('with mixed string and primatives', function (done) {
+    it('with mixed strings, arrays and numbers', function (done) {
         bob.greet('alice', ['carol'], 123);
         bob.expect.greet.called.exact('alice', ['carol'], 123);
         done();
     });
 
-    it('with mixture of primative and object args', function () {
+    it('with mixture of primatives and objects', function () {
         bob.greet('alice', ['carol'], 123, {
             name: 'bob',
             a: 1
@@ -405,6 +405,26 @@ describe('Exact', function () {
             name: 'bob',
             a: 1
         }), 'sam');
+    });
+    
+    it('with a new instance', function () {
+        var Obj = function() {
+            return {
+                times: function (arg) {
+                    return arg;
+                }
+            };
+        };
+        bob.greet(new Obj());
+        bob.expect.greet.called.exact(new Obj());
+    });
+    
+    it('with a function', function () {
+        var func = function() {
+            return 12345;
+        };
+        bob.greet(func);
+        bob.expect.greet.called.exact(func);
     });
 });
 
