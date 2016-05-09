@@ -360,6 +360,54 @@ describe('Properties', function() {
     });
 });
 
+describe('Exact', function () {
+    var bob;
+    beforeEach(function (done) {
+        bob = deride.stub(['greet']);
+        done();
+    });
+
+    it('with a simply primative string', function (done) {
+        bob.greet('bob');
+        bob.expect.greet.called.exact('bob');
+        done();
+    });
+
+    it('with multiple a simply primative string', function (done) {
+        bob.greet('alice', 'carol');
+        bob.expect.greet.called.exact('alice', 'carol');
+        done();
+    });
+
+    it('with mixed string and primatives', function (done) {
+        bob.greet('alice', ['carol'], 123);
+        bob.expect.greet.called.exact('alice', ['carol'], 123);
+        done();
+    });
+
+    it('with mixture of primative and object args', function () {
+        bob.greet('alice', ['carol'], 123, {
+            name: 'bob',
+            a: 1
+        }, 'sam');
+        bob.expect.greet.called.exact('alice', ['carol'], 123, {
+            name: 'bob',
+            a: 1
+        }, 'sam');
+    });
+
+    it('with a frozen object', function () {
+        bob.greet(Object.freeze({
+            name: 'bob',
+            a: 1
+        }), 'sam');
+        bob.expect.greet.called.exact(Object.freeze({
+            name: 'bob',
+            a: 1
+        }), 'sam');
+    });
+});
+
 var fooBarFunction = function(timeout, callback) {
     setTimeout(function() {
         callback('result');
