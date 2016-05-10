@@ -200,6 +200,29 @@ describe('Expectations', function() {
 
         bob.expect.greet.called.withMatch(/^talula/gi);
     });
+
+    describe('matchExactly causes failures', function () {
+
+        it('with mixed strings, arrays and numbers', function () {
+            bob.greet('alice', ['carol'], 123);
+            (function () {
+                bob.expect.greet.called.matchExactly('not-alice', ['or-carol'], 987);
+            }).should.throw('Expected greet to be called matchExactly args[ \'not-alice\', [ \'or-carol\' ], 987 ]');
+        });
+
+        it('with mixture of primitives and objects', function () {
+            bob.greet('alice', ['carol'], 123, {
+                name: 'bob',
+                a: 1
+            }, 'sam');
+            (function () {
+                bob.expect.greet.called.matchExactly('alice', ['carol'], 123, {
+                    name: 'not-bob',
+                    a: 1
+                }, 'not-sam');
+            }).should.throw('Expected greet to be called matchExactly args[ \'alice\', [ \'carol\' ], 123, { name: \'not-bob\', a: 1 }, \'not-sam\' ]');
+        });
+    });
 });
 
 describe('Single function', function() {
@@ -480,6 +503,74 @@ _.forEach(tests, function(test) {
         });
     });
 
+    describe(test.name + ':matchExactly', function () {
+        beforeEach(function(done) {
+            bob = test.setup();
+            done();
+        });
+
+        it('with a primitive string', function (done) {
+            bob.greet('bob');
+            bob.expect.greet.called.matchExactly('bob');
+            done();
+        });
+
+        it('with multiple a primitive strings', function (done) {
+            bob.greet('alice', 'carol');
+            bob.expect.greet.called.matchExactly('alice', 'carol');
+            done();
+        });
+
+        it('with mixed strings, arrays and numbers', function (done) {
+            bob.greet('alice', ['carol'], 123);
+            bob.expect.greet.called.matchExactly('alice', ['carol'], 123);
+            done();
+        });
+
+        it('with mixture of primitives and objects', function () {
+            bob.greet('alice', ['carol'], 123, {
+                name: 'bob',
+                a: 1
+            }, 'sam');
+            bob.expect.greet.called.matchExactly('alice', ['carol'], 123, {
+                name: 'bob',
+                a: 1
+            }, 'sam');
+        });
+
+        it('with a frozen object', function () {
+            bob.greet(Object.freeze({
+                name: 'bob',
+                a: 1
+            }), 'sam');
+            bob.expect.greet.called.matchExactly(Object.freeze({
+                name: 'bob',
+                a: 1
+            }), 'sam');
+        });
+
+        it('with same instance', function () {
+            var Obj = function() {
+                return {
+                    times: function (arg) {
+                        return arg;
+                    }
+                };
+            };
+            var o = new Obj();
+            bob.greet(o);
+            bob.expect.greet.called.matchExactly(o);
+        });
+
+        it('with a function', function () {
+            var func = function() {
+                return 12345;
+            };
+            bob.greet(func);
+            bob.expect.greet.called.matchExactly(func);
+        });
+    });
+    
     describe(test.name + ':invocation', function() {
         beforeEach(function(done) {
             bob = test.setup();
