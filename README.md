@@ -39,6 +39,7 @@ var deride = require('deride');
 - [```obj```.expect.```method```.called.withArg(arg)](#called-witharg)
 - [```obj```.expect.```method```.called.withArgs(args)](#called-withargs)
 - [```obj```.expect.```method```.called.withMatch(pattern)](#called-withmatch)
+- [```obj```.expect.```method```.called.matchExactly(args)](#called-matchexactly)
 
 **All of the above can be negated e.g. negating the `.withArgs` would be: ** 
 
@@ -246,6 +247,16 @@ bob = deride.wrap(bob);
 bob.greet('alice');
 bob.greet('bob');
 bob.expect.greet.called.withArgs('bob');
+```
+
+<a name="called-matchexactly" />
+
+### Determine if a method was called with the Exact set of arguments
+```javascript
+var bob = new Person('bob');
+bob = deride.wrap(bob);
+bob.greet('alice', ['james'], 987);
+bob.expect.greet.called.matchExactly('alice', ['james'], 987);
 ```
 
 <a name="setup-todothis" />
