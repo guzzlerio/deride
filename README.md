@@ -251,7 +251,7 @@ bob.expect.greet.called.withArgs('bob');
 
 <a name="called-matchexactly" />
 
-### Determine if a method was called with the Exact set of arguments
+### Determine if a method was called with the exact set of arguments
 ```javascript
 var bob = new Person('bob');
 bob = deride.wrap(bob);
