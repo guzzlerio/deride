@@ -222,6 +222,38 @@ describe('Expectations', function() {
                 }, 'not-sam');
             }).should.throw('Expected greet to be called matchExactly args[ \'alice\', [ \'carol\' ], 123, { name: \'not-bob\', a: 1 }, \'not-sam\' ]');
         });
+
+        describe('should not allow mutation after expectation is defined', function () {
+            var bob, objectToMutate;
+            
+            beforeEach(function () {
+                bob = deride.stub(['greet']);
+                objectToMutate = {
+                    test: 'abc'
+                };
+            });
+
+            describe('with promises', function () {
+                beforeEach(function () {
+                    bob.setup.greet.toResolve();
+                });
+
+                beforeEach(function sampleInvocationWhichMutatesObject(done) {
+                    bob.greet(objectToMutate)
+                        .then(function () {
+                            objectToMutate.test = '123';
+                            done();
+                        });
+                });
+
+                it('should expect original and not mutated object', function () {
+                    bob.expect.greet.called.matchExactly({
+                        test: 'abc'
+                    });
+                });
+            });
+        });
+
     });
 });
 
