@@ -370,6 +370,7 @@ var fooBarFunction = function(timeout, callback) {
 
 var tests = [{
 	name: 'Creating a stub object',
+	debugName: 'stub:object',
 	setup: function() {
 		var stub = deride.stub(['greet', 'chuckle', 'foobar']);
 		stub.setup.foobar.toDoThis(fooBarFunction);
@@ -378,6 +379,7 @@ var tests = [{
 	}
 }, {
 	name: 'Creating a stub object from an object with Object style methods',
+	debugName: 'stub:object:from',
 	setup: function() {
 
 		var Person = {
@@ -393,6 +395,7 @@ var tests = [{
 	}
 }, {
 	name: 'Wrapping existing objects with Object style methods',
+	debugName: 'wrap:object',
 	setup: function() {
 		var Person = {
 			greet: function(name) {
@@ -405,9 +408,10 @@ var tests = [{
 	}
 }, {
 	name: 'Wrapping existing object using Object Freeze with expectations',
+	debugName: 'wrap:object:freeze',
 	setup: function() {
 
-		var Person = function(name) {
+		function Person(name) {
 			return Object.freeze({
 				greet: function(otherPersonName) {
 					return util.format('%s says hello to %s', name, otherPersonName);
@@ -415,11 +419,12 @@ var tests = [{
 				chuckle: function() {},
 				foobar: fooBarFunction
 			});
-		};
+		}
 		return deride.wrap(new Person('bob'));
 	}
 }, {
 	name: 'wrapping existing objects using prototype style with expectations',
+	debugName: 'prototype:wrap',
 	setup: function() {
 
 		function Person(name) {
@@ -438,6 +443,7 @@ var tests = [{
 }];
 
 _.forEach(tests, function(test) {
+	var debug = require('debug')('deride:test:' + test.debugName);
 	var bob;
 
 	describe(test.name + ':withArg', function() {
@@ -926,7 +932,7 @@ _.forEach(tests, function(test) {
 			});
 		});
 
-		describe('multi', function() {
+		describe.only('multi', function() {
 			it('only uses the stub x times', function() {
 				bob.setup.greet
 					.toReturn('alice')
@@ -941,6 +947,7 @@ _.forEach(tests, function(test) {
 
 			it('only uses the stub x times and then falls back', function() {
 				var normalResult = bob.greet('alice');
+				debug('normalResult', normalResult);
 				bob.setup.greet
 					.toReturn('alice')
 					.twice();
@@ -966,14 +973,13 @@ _.forEach(tests, function(test) {
 					should(bob.greet('simon')).eql(normalSimon);
 				});
 
-				it.skip('does something else 2', function() {
-					bob = deride.wrap(bob);
+				it('does something else 2', function() {
 					// I need to know that the last one added included the when() so it is in the callBasedOnArgs instead
 					bob.setup.greet
 						.toReturn('talula')
 						.but.when('simon')
 						.toReturn('alice')
-						.times(2);
+						.twice();
 					bob.greet('alice').should.eql('talula');
 					bob.greet('simon').should.eql('alice');
 					bob.greet('simon').should.eql('alice');
