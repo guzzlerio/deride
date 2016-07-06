@@ -58,7 +58,7 @@ describe('utils', function() {
     });
 
     it('finds es6 class methods', function(){
-        let Something = class {
+        var Something = class {
             greet(){
                 return 'Hello';
             }
