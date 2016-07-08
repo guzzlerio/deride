@@ -32,16 +32,6 @@ var util = require('util');
 var assert = require('assert');
 var deride = require('../lib/deride.js');
 
-describe('Eventing', function() {
-    it('should allow the force of an emit', function(done) {
-        var bob = deride.stub([]);
-        bob.on('message', function() {
-            done();
-        });
-        bob.emit('message', 'payload');
-    });
-});
-
 describe('Properties', function() {
     var bob;
     beforeEach(function() {
