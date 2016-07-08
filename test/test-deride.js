@@ -32,67 +32,6 @@ var util = require('util');
 var assert = require('assert');
 var when = require('when');
 var deride = require('../lib/deride.js');
-var utils = require('../lib/utils');
-
-describe('utils', function() {
-    it('finds object style methods', function() {
-        var obj = {
-            greet: function() {},
-            depart: function() {}
-        };
-        utils.methods(obj).should.eql(['greet', 'depart']);
-    });
-
-    it('finds protoype style methods', function() {
-        function Obj() {}
-        Obj.prototype.greet = function() {};
-        Obj.prototype.depart = function() {};
-        utils.methods(new Obj()).should.eql(['greet', 'depart']);
-    });
-
-    it('finds methods attached to functions', function() {
-        function obj() {}
-        obj.greet = function() {};
-        obj.depart = function() {};
-        utils.methods(obj).should.eql(['greet', 'depart']);
-    });
-
-    it('finds es6 class methods', function(){
-        var Something = class {
-            greet(){
-                return 'Hello';
-            }
-            depart(){
-
-            }
-        };
-
-        utils.methods(new Something()).should.eql(['greet', 'depart']);
-    });
-
-    describe('converts number to correct times text', function() {
-        var testCases = [{
-            name: 'once',
-            value: 1,
-        }, {
-            name: 'twice',
-            value: 2,
-        }, {
-            name: '3 times',
-            value: 3,
-        }, {
-            name: '10 times',
-            value: 10,
-        }];
-
-        _.each(testCases, function(test) {
-            it('returns ' + test.name, function() {
-                utils.humanise(test.value).should.eql(test.name);
-            });
-        });
-    });
-
-});
 
 describe('Expectations', function() {
     var bob;
