@@ -37,7 +37,7 @@ module.exports = function(grunt) {
             },
             stdout: {
                 src: config.targets.all,
-:c
+            },
             checkstyle: {
                 src: config.targets.all,
                 options: {
