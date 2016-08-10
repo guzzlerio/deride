@@ -57,6 +57,19 @@ describe('utils', function() {
         utils.methods(obj).should.eql(['greet', 'depart']);
     });
 
+    it('finds es6 class methods', function(){
+        var Something = class {
+            greet(){
+                return 'Hello';
+            }
+            depart(){
+
+            }
+        };
+
+        utils.methods(new Something()).should.eql(['greet', 'depart']);
+    });
+
     describe('converts number to correct times text', function() {
         var testCases = [{
             name: 'once',
@@ -488,6 +501,26 @@ var tests = [{
 
         return deride.wrap(new Person('bob proto'));
     }
+},{
+    name: 'ES6 Classes',
+    setup: function(){
+        var Person = class {
+            constructor(name){
+                this.name = name;
+            }
+            greet(another){
+                return 'howdy from ' + this.name + ' to ' + another;
+            }
+            chuckle(){
+
+            }
+            foobar(timeout, callback){
+                fooBarFunction(timeout, callback);
+            }
+        };
+
+        return deride.wrap(new Person('bob proto'));
+    }   
 }];
 
 _.forEach(tests, function(test) {
