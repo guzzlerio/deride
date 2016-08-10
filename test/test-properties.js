@@ -27,11 +27,11 @@
 'use strict';
 
 require('should');
+
 var _ = require('lodash');
 var util = require('util');
 var assert = require('assert');
 var deride = require('../lib/deride.js');
-
 describe('Properties', function() {
     var bob;
     beforeEach(function() {
