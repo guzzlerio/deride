@@ -23,7 +23,7 @@
   },
   "main": "lib/deride",
   "engines": {
-    "node": ">= 4.x.x"
+    "node": ">= 4.0.0"
   },
   "scripts": {
     "test": "grunt"
