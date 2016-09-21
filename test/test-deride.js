@@ -238,7 +238,7 @@ describe('Expectations', function() {
 
         describe('should not allow mutation after expectation is defined', function () {
             var bob, objectToMutate;
-            
+
             beforeEach(function () {
                 bob = deride.stub(['greet']);
                 objectToMutate = {
@@ -520,7 +520,7 @@ var tests = [{
         };
 
         return deride.wrap(new Person('bob proto'));
-    }   
+    }
 }];
 
 _.forEach(tests, function(test) {
@@ -635,7 +635,7 @@ _.forEach(tests, function(test) {
             bob.expect.greet.called.matchExactly(func);
         });
     });
-    
+
     describe(test.name + ':invocation', function() {
         beforeEach(function(done) {
             bob = test.setup();
@@ -1024,6 +1024,39 @@ _.forEach(tests, function(test) {
                         }))
                     };
                     bob.chuckle(matchingMsg).should.eql('chuckle talula');
+                });
+
+                it('still allows non-function predicates', function() {
+                    bob.chuckle('alice').should.eql('chuckle alice');
+                });
+            });
+
+            describe('multiple predicates', function() {
+                function bobMatchingPredicate(who) {
+                    return who === 'bob';
+                }
+
+                function charlieMatchingPredicate(who) {
+                    return who === 'charlie';
+                }
+
+                beforeEach(function() {
+                    bob.setup.chuckle.toReturn('chuckling');
+                    bob.setup.chuckle.when('alice').toReturn('chuckle alice');
+                    bob.setup.chuckle.when(bobMatchingPredicate).toReturn('chuckle bob');
+                    bob.setup.chuckle.when(charlieMatchingPredicate).toReturn('chuckle charlie');
+                });
+
+                it('non matching predicate returns existing response', function() {
+                    bob.chuckle('dan').should.eql('chuckling');
+                });
+
+                it('matching first predicate returns overriden response', function() {
+                    bob.chuckle('bob').should.eql('chuckle bob');
+                });
+
+                it('matching second predicate returns overriden response', function() {
+                    bob.chuckle('charlie').should.eql('chuckle charlie');
                 });
 
                 it('still allows non-function predicates', function() {
