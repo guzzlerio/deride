@@ -1,4 +1,4 @@
-# deride [![Build Status](https://travis-ci.org/guzzlerio/deride.svg?branch=master)](https://travis-ci.org/guzzlerio/deride) [![NPM version](https://badge.fury.io/js/deride.svg)](http://badge.fury.io/js/deride) [![Dependency Status](https://david-dm.org/guzzlerio/deride.svg)](https://david-dm.org/guzzlerio/deride) [![Stories in Ready](https://badge.waffle.io/guzzlerio/deride.png?label=ready&title=Ready)](https://waffle.io/guzzlerio/deride) [![Stories In Progress](https://badge.waffle.io/guzzlerio/deride.png?label=in%20progress&title=In%20Progres)](https://waffle.io/guzzlerio/deride) 
+# deride [![Build Status](https://travis-ci.org/guzzlerio/deride.svg?branch=master)](https://travis-ci.org/guzzlerio/deride) [![NPM version](https://badge.fury.io/js/deride.svg)](http://badge.fury.io/js/deride) [![Dependency Status](https://david-dm.org/guzzlerio/deride.svg)](https://david-dm.org/guzzlerio/deride) [![Stories in Ready](https://badge.waffle.io/guzzlerio/deride.png?label=ready&title=Ready)](https://waffle.io/guzzlerio/deride) [![Stories In Progress](https://badge.waffle.io/guzzlerio/deride.png?label=in%20progress&title=In%20Progres)](https://waffle.io/guzzlerio/deride)
 
 [![NPM](https://nodei.co/npm/deride.png?downloadRank=true&downloads=true)](https://nodei.co/npm/deride/)
 
@@ -41,7 +41,7 @@ var deride = require('deride');
 - [```obj```.expect.```method```.called.withMatch(pattern)](#called-withmatch)
 - [```obj```.expect.```method```.called.matchExactly(args)](#called-matchexactly)
 
-**All of the above can be negated e.g. negating the `.withArgs` would be: ** 
+**All of the above can be negated e.g. negating the `.withArgs` would be:**
 
 - ```obj```.expect.```method```.called`.not`.withArgs(args)
 
@@ -93,7 +93,7 @@ bob.expect.greet.called.times(1);
 <a name="stub-obj" />
 
 ### Creating a stubbed object with properties
-To stub an object with pre set properties call the stub method with a properties array in the second parameter. We are following the defineProperty definition as can be found in the below link. 
+To stub an object with pre set properties call the stub method with a properties array in the second parameter. We are following the defineProperty definition as can be found in the below link.
 
 https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty
 
@@ -407,7 +407,7 @@ result2.should.eql('barfoo');
 
 <a name="setup-todothis-when" />
 
-### Overriding a method`s body when specific arguments are provided
+### Overriding a method's body when specific arguments are provided
 ``` javascript
 var bob = new Person('bob');
 bob = deride.wrap(bob);
@@ -508,6 +508,35 @@ var matchingMsg = {
 	}))
 };
 bob.chuckle(matchingMsg).should.eql('chuckle talula');
+```
+
+
+### Setting multiple functions as a predicates
+
+```javascript
+function tatulaMatchingPredicate(msg) {
+	var content = JSON.parse(msg.content.toString());
+	return content.resource === 'talula';
+}
+function babulaMatchingPredicate(msg) {
+	var content = JSON.parse(msg.content.toString());
+	return content.resource === 'babula';
+}
+bob.setup.chuckle.toReturn('chuckling');
+bob.setup.chuckle.when(tatulaMatchingPredicate).toReturn('chuckle talula');
+bob.setup.chuckle.when(babulaMatchingPredicate).toReturn('chuckle babula');
+
+var matchingMsg = {
+	//...
+	//other properties that we do not know until runtime
+	//...
+	content: new Buffer(JSON.stringify({
+		resource: 'talula'
+	}))
+};
+bob.chuckle(matchingMsg).should.eql('chuckle talula');
+matchingMsg.content.resource = 'babula';
+bob.chuckle(matchingMsg).should.eql('chuckle babula');
 ```
 
 
