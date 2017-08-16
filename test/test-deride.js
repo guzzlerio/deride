@@ -57,12 +57,12 @@ describe('utils', function() {
         utils.methods(obj).should.eql(['greet', 'depart']);
     });
 
-    it('finds es6 class methods', function(){
+    it('finds es6 class methods', function() {
         var Something = class {
-            greet(){
+            greet() {
                 return 'Hello';
             }
-            depart(){
+            depart() {
 
             }
         };
@@ -96,7 +96,7 @@ describe('utils', function() {
 
 describe('Expectations', function() {
     var bob;
-    beforeEach(function () {
+    beforeEach(function() {
         bob = deride.stub(['greet']);
         bob.setup.greet.toReturn('talula');
     });
@@ -134,18 +134,28 @@ describe('Expectations', function() {
         done();
     });
 
-    describe('withArg called with an array', function () {
+    describe('withArg called with an array', function() {
         _.forEach([{
-            name: 'string', input: 'talula', expectPass: false
+            name: 'string',
+            input: 'talula',
+            expectPass: false
         }, {
-            name: 'non match array', input: ['d', 'e'], expectPass: false
+            name: 'non match array',
+            input: ['d', 'e'],
+            expectPass: false
         }, {
-            name: 'partial match array', input: ['a', 'd'], expectPass: false
+            name: 'partial match array',
+            input: ['a', 'd'],
+            expectPass: false
         }, {
-            name: 'match but wrong order', input: ['b', 'a'], expectPass: false
+            name: 'match but wrong order',
+            input: ['b', 'a'],
+            expectPass: false
         }, {
-            name: 'match', input: ['a', 'b'], expectPass: true
-        }], function (test) {
+            name: 'match',
+            input: ['a', 'b'],
+            expectPass: true
+        }], function(test) {
             if (test.expectPass) {
                 it('object called with ' + test.name + ' should pass', function() {
                     bob.greet(test.input);
@@ -162,7 +172,7 @@ describe('Expectations', function() {
         });
     });
 
-    it('handles withArg called with object', function () {
+    it('handles withArg called with object', function() {
         bob.greet(new Error('booom'));
         bob.expect.greet.called.withArgs(new Error('booom'));
     });
@@ -208,29 +218,29 @@ describe('Expectations', function() {
         bob.greet('The inspiration for this was that my colleague was having a');
         bob.greet({
             a: 123,
-			b: {
-				a: 'talula'
-			}
+            b: {
+                a: 'talula'
+            }
         }, 123, 'something');
 
         bob.expect.greet.called.withMatch(/^talula/gi);
     });
 
-    describe('matchExactly causes failures', function () {
+    describe('matchExactly causes failures', function() {
 
-        it('with mixed strings, arrays and numbers', function () {
+        it('with mixed strings, arrays and numbers', function() {
             bob.greet('alice', ['carol'], 123);
-            (function () {
+            (function() {
                 bob.expect.greet.called.matchExactly('not-alice', ['or-carol'], 987);
             }).should.throw('Expected greet to be called matchExactly args[ \'not-alice\', [ \'or-carol\' ], 987 ]');
         });
 
-        it('with mixture of primitives and objects', function () {
+        it('with mixture of primitives and objects', function() {
             bob.greet('alice', ['carol'], 123, {
                 name: 'bob',
                 a: 1
             }, 'sam');
-            (function () {
+            (function() {
                 bob.expect.greet.called.matchExactly('alice', ['carol'], 123, {
                     name: 'not-bob',
                     a: 1
@@ -238,30 +248,30 @@ describe('Expectations', function() {
             }).should.throw('Expected greet to be called matchExactly args[ \'alice\', [ \'carol\' ], 123, { name: \'not-bob\', a: 1 }, \'not-sam\' ]');
         });
 
-        describe('should not allow mutation after expectation is defined', function () {
+        describe('should not allow mutation after expectation is defined', function() {
             var bob, objectToMutate;
 
-            beforeEach(function () {
+            beforeEach(function() {
                 bob = deride.stub(['greet']);
                 objectToMutate = {
                     test: 'abc'
                 };
             });
 
-            describe('with promises', function () {
-                beforeEach(function () {
+            describe('with promises', function() {
+                beforeEach(function() {
                     bob.setup.greet.toResolve();
                 });
 
                 beforeEach(function sampleInvocationWhichMutatesObject(done) {
                     bob.greet(objectToMutate)
-                        .then(function () {
+                        .then(function() {
                             objectToMutate.test = '123';
                             done();
                         });
                 });
 
-                it('should expect original and not mutated object', function () {
+                it('should expect original and not mutated object', function() {
                     bob.expect.greet.called.matchExactly({
                         test: 'abc'
                     });
@@ -274,7 +284,7 @@ describe('Expectations', function() {
 
 describe('Single function', function() {
     var MyClass;
-	beforeEach(function() {
+    beforeEach(function() {
         MyClass = function() {
             return {
                 aValue: 1,
@@ -344,34 +354,34 @@ describe('Single function', function() {
         });
     });
 
-	describe('wrapping an existing function', function() {
+    describe('wrapping an existing function', function() {
         var f;
-		beforeEach(function() {
-			f = function(name) {
+        beforeEach(function() {
+            f = function(name) {
                 return 'hello ' + name;
             };
         });
 
-		it('can wrap an existing function', function() {
+        it('can wrap an existing function', function() {
             var func = deride.func(f);
             assert(func('bob'), 'hello bob');
             func.expect.called.withArg('bob');
         });
 
-		it('can wrap a promised function', function(done) {
+        it('can wrap a promised function', function(done) {
             var func = deride.func(when.lift(f));
-			func('bob').then(function(result) {
+            func('bob').then(function(result) {
                 assert(result, 'hello bob');
                 func.expect.called.withArg('bob');
             }).finally(done);
         });
     });
 
-	it('can setup an intercept on promises', function(done) {
+    it('can setup an intercept on promises', function(done) {
         var promise = require('when');
         var Obj = function() {
             return {
-				times: function(arg) {
+                times: function(arg) {
                     return promise.resolve(arg * 2);
                 }
             };
@@ -379,10 +389,10 @@ describe('Single function', function() {
         var beforeCalledWith;
 
         var a = deride.wrap(new Obj());
-		a.setup.times.toIntercept(function(value) {
+        a.setup.times.toIntercept(function(value) {
             beforeCalledWith = value;
         });
-		a.times(2).then(function(result) {
+        a.times(2).then(function(result) {
             result.should.eql(4);
             beforeCalledWith.should.eql(2);
             done();
@@ -438,7 +448,7 @@ var fooBarFunction = function(timeout, callback) {
 
 var tests = [{
     name: 'Creating a stub object',
-	debugName: 'stub:object',
+    debugName: 'stub:object',
     setup: function() {
         var stub = deride.stub(['greet', 'chuckle', 'foobar']);
         stub.setup.foobar.toDoThis(fooBarFunction);
@@ -447,7 +457,7 @@ var tests = [{
     }
 }, {
     name: 'Creating a stub object from an object with Object style methods',
-	debugName: 'stub:object:from',
+    debugName: 'stub:object:from',
     setup: function() {
 
         var Person = {
@@ -463,7 +473,7 @@ var tests = [{
     }
 }, {
     name: 'Wrapping existing objects with Object style methods',
-	debugName: 'wrap:object',
+    debugName: 'wrap:object',
     setup: function() {
         var Person = {
             greet: function(name) {
@@ -476,10 +486,10 @@ var tests = [{
     }
 }, {
     name: 'Wrapping existing object using Object Freeze with expectations',
-	debugName: 'wrap:object:freeze',
+    debugName: 'wrap:object:freeze',
     setup: function() {
 
-		function Person(name) {
+        function Person(name) {
             return Object.freeze({
                 greet: function(otherPersonName) {
                     return util.format('%s says hello to %s', name, otherPersonName);
@@ -487,12 +497,12 @@ var tests = [{
                 chuckle: function() {},
                 foobar: fooBarFunction
             });
-		}
+        }
         return deride.wrap(new Person('bob'));
     }
 }, {
     name: 'wrapping existing objects using prototype style with expectations',
-	debugName: 'prototype:wrap',
+    debugName: 'prototype:wrap',
     setup: function() {
 
         function Person(name) {
@@ -508,20 +518,20 @@ var tests = [{
 
         return deride.wrap(new Person('bob proto'));
     }
-},{
+}, {
     name: 'ES6 Classes',
-    setup: function(){
+    setup: function() {
         var Person = class {
-            constructor(name){
+            constructor(name) {
                 this.name = name;
             }
-            greet(another){
+            greet(another) {
                 return 'howdy from ' + this.name + ' to ' + another;
             }
-            chuckle(){
+            chuckle() {
 
             }
-            foobar(timeout, callback){
+            foobar(timeout, callback) {
                 fooBarFunction(timeout, callback);
             }
         };
@@ -531,7 +541,7 @@ var tests = [{
 }];
 
 _.forEach(tests, function(test) {
-	var debug = require('debug')('deride:test:' + test.debugName);
+    var debug = require('debug')('deride:test:' + test.debugName);
     var bob;
 
     describe(test.name + ':withArg', function() {
@@ -576,31 +586,31 @@ _.forEach(tests, function(test) {
         });
     });
 
-    describe(test.name + ':matchExactly', function () {
+    describe(test.name + ':matchExactly', function() {
         beforeEach(function(done) {
             bob = test.setup();
             done();
         });
 
-        it('with a primitive string', function (done) {
+        it('with a primitive string', function(done) {
             bob.greet('bob');
             bob.expect.greet.called.matchExactly('bob');
             done();
         });
 
-        it('with multiple a primitive strings', function (done) {
+        it('with multiple a primitive strings', function(done) {
             bob.greet('alice', 'carol');
             bob.expect.greet.called.matchExactly('alice', 'carol');
             done();
         });
 
-        it('with mixed strings, arrays and numbers', function (done) {
+        it('with mixed strings, arrays and numbers', function(done) {
             bob.greet('alice', ['carol'], 123);
             bob.expect.greet.called.matchExactly('alice', ['carol'], 123);
             done();
         });
 
-        it('with mixture of primitives and objects', function () {
+        it('with mixture of primitives and objects', function() {
             bob.greet('alice', ['carol'], 123, {
                 name: 'bob',
                 a: 1
@@ -611,7 +621,7 @@ _.forEach(tests, function(test) {
             }, 'sam');
         });
 
-        it('with a frozen object', function () {
+        it('with a frozen object', function() {
             bob.greet(Object.freeze({
                 name: 'bob',
                 a: 1
@@ -622,10 +632,10 @@ _.forEach(tests, function(test) {
             }), 'sam');
         });
 
-        it('with same instance', function () {
+        it('with same instance', function() {
             var Obj = function() {
                 return {
-                    times: function (arg) {
+                    times: function(arg) {
                         return arg;
                     }
                 };
@@ -635,7 +645,7 @@ _.forEach(tests, function(test) {
             bob.expect.greet.called.matchExactly(o);
         });
 
-        it('with a function', function () {
+        it('with a function', function() {
             var func = function() {
                 return 12345;
             };
@@ -1121,62 +1131,64 @@ _.forEach(tests, function(test) {
             });
         });
 
-		describe('multi', function() {
-			it('only uses the stub x times', function() {
-				bob.setup.greet
-					.toReturn('alice')
-					.twice()
-					.and.then
-					.toReturn('sally');
-				bob.greet().should.eql('alice');
-				bob.greet().should.eql('alice');
-				bob.greet().should.eql('sally');
-				bob.greet().should.eql('sally');
-			});
+        describe('multi', function() {
+            it('only uses the stub x times', function() {
+                bob.setup.greet
+                    .toReturn('alice')
+                    .twice()
+                    .and.then
+                    .toReturn('sally');
+                bob.greet().should.eql('alice');
+                bob.greet().should.eql('alice');
+                bob.greet().should.eql('sally');
+                bob.greet().should.eql('sally');
+            });
 
-			it('only uses the stub x times and then falls back', function() {
-				var normalResult = bob.greet('alice');
-				debug('normalResult', normalResult);
-				bob.setup.greet
-					.toReturn('alice')
-					.twice();
-				bob.greet('alice').should.eql('alice');
-				bob.greet('alice').should.eql('alice');
-				should(bob.greet('alice')).eql(normalResult);
-			});
+            it('only uses the stub x times and then falls back', function() {
+                var normalResult = bob.greet('alice');
+                debug('normalResult', normalResult);
+                bob.setup.greet
+                    .toReturn('alice')
+                    .twice()
+                    .and.then
+                    .fallback();
+                bob.greet('alice').should.eql('alice');
+                bob.greet('alice').should.eql('alice');
+                should(bob.greet('alice')).eql(normalResult);
+            });
 
-			describe('also supports when specific arguments are provided', function() {
-				it('does something', function() {
-					var normalResult = bob.greet('talula');
-					var normalSimon = bob.greet('simon');
-					bob.setup.greet
-						.when('simon')
-						.toReturn('alice')
-						.twice();
-					// default Person behaviour
-					should(bob.greet('talula')).eql(normalResult);
-					// overridden behaviour
-					bob.greet('simon').should.eql('alice');
-					bob.greet('simon').should.eql('alice');
-					// default Person behaviour
-					should(bob.greet('simon')).eql(normalSimon);
-				});
+            describe('also supports when specific arguments are provided', function() {
+                it('returns to normal behaviour when times are exhausted', function() {
+                    var normalResult = bob.greet('talula');
+                    var normalSimon = bob.greet('simon');
+                    bob.setup.greet
+                        .when('simon')
+                        .toReturn('alice')
+                        .twice();
+                    // default Person behaviour
+                    should(bob.greet('talula')).eql(normalResult);
+                    // overridden behaviour
+                    bob.greet('simon').should.eql('alice');
+                    bob.greet('simon').should.eql('alice');
+                    // default Person behaviour
+                    should(bob.greet('simon')).eql(normalSimon);
+                });
 
-				it('does something else 2', function() {
-					// I need to know that the last one added included the when() so it is in the callBasedOnArgs instead
-					bob.setup.greet
-						.toReturn('talula')
-						.but.when('simon')
-						.toReturn('alice')
-						.twice();
-					bob.greet('alice').should.eql('talula');
-					bob.greet('simon').should.eql('alice');
-					bob.greet('simon').should.eql('alice');
-					bob.greet('simon').should.eql('talula');
-					bob.greet('alice').should.eql('talula');
-				});
-			});
-		});
+                it('returns to inital stub behaviour when times are exhausted', function() {
+                    // I need to know that the last one added included the when() so it is in the callBasedOnArgs instead
+                    bob.setup.greet
+                        .toReturn('talula')
+                        .but.when('simon')
+                        .toReturn('alice')
+                        .twice();
+                    bob.greet('alice').should.eql('talula');
+                    bob.greet('simon').should.eql('alice');
+                    bob.greet('simon').should.eql('alice');
+                    bob.greet('simon').should.eql('talula');
+                    bob.greet('alice').should.eql('talula');
+                });
+            });
+        });
 
     });
 });
