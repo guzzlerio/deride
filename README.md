@@ -61,6 +61,7 @@ var deride = require('deride');
 - [```obj```.setup.```method```.toTimeWarp(milliseconds)](#setup-totimewarp)
 - [```obj```.setup.```method```.when(args|function).[toDoThis|toReturn|toRejectWith|toResolveWith|toThrow|toEmit|toCallbackWith|toTimeWarp]](#setup-toreturn-when)
 - [```obj```.setup.```method```.toIntercept(func)](#setup-tointercept)
+- [setup for multiple invocations](#setup-multiple-invocations)
 
 ## Examples
 
@@ -539,7 +540,54 @@ matchingMsg.content.resource = 'babula';
 bob.chuckle(matchingMsg).should.eql('chuckle babula');
 ```
 
+<a name="setup-multiple-invocations" />
+### Setup for multiple invocations
 
+#### Using a stub X times
+```javascript
+bob.setup.greet
+    .toReturn('alice')
+    .twice()
+    .and.then
+    .toReturn('sally');
+bob.greet().should.eql('alice');
+bob.greet().should.eql('alice');
+bob.greet().should.eql('sally');
+bob.greet().should.eql('sally');
+```
+
+#### Using a stub when
+
+```javascript
+var normalResult = bob.greet('talula');
+var normalSimon = bob.greet('simon');
+bob.setup.greet
+    .when('simon')
+    .toReturn('alice')
+    .twice();
+// default Person behaviour
+should(bob.greet('talula')).eql(normalResult);
+// overridden behaviour
+bob.greet('simon').should.eql('alice');
+bob.greet('simon').should.eql('alice');
+// default Person behaviour
+should(bob.greet('simon')).eql(normalSimon);
+```
+
+#### Specify to fallback
+
+```javascript
+var normalResult = bob.greet('alice');
+debug('normalResult', normalResult);
+bob.setup.greet
+    .toReturn('alice')
+    .twice()
+    .and.then
+    .fallback();
+bob.greet('alice').should.eql('alice');
+bob.greet('alice').should.eql('alice');
+should(bob.greet('alice')).eql(normalResult);
+```
 ### Provide access to individual calls to a method
 
 ```javascript
