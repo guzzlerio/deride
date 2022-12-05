@@ -521,7 +521,7 @@ var tests = [{
 }, {
     name: 'ES6 Classes',
     setup: function() {
-        var Person = class {
+        class Person  {
             constructor(name) {
                 this.name = name;
             }
@@ -534,7 +534,7 @@ var tests = [{
             foobar(timeout, callback) {
                 fooBarFunction(timeout, callback);
             }
-        };
+        }
 
         return deride.wrap(new Person('bob proto'));
     }
@@ -782,6 +782,7 @@ _.forEach(tests, function(test) {
         });
     });
 
+    //jshint maxstatements:31
     describe(test.name, function() {
         beforeEach(function(done) {
             bob = test.setup();
@@ -1190,5 +1191,34 @@ _.forEach(tests, function(test) {
             });
         });
 
+        describe('checking issue #80', () => {
+            beforeEach(() => {
+                bob.setup.chuckle.toReturn(1);
+            });
+
+            it('callsback with the expected result', () => {
+                bob.chuckle(1).should.eql(1);
+            });
+
+            describe('overriding the setup', () => {
+                it('callsback with the expected result', () => {
+                    bob.setup.chuckle.toReturn(2);
+                    bob.chuckle(1).should.eql(2);
+                });
+            });
+
+            describe('using times', () => {
+                it('does something', () => {
+                    bob.setup.chuckle
+                        .toReturn(2)
+                        .twice()
+                        .and.then
+                        .toReturn(33);
+                    bob.chuckle().should.eql(2);
+                    bob.chuckle().should.eql(2);
+                    bob.chuckle().should.eql(33);
+                });
+            });
+        });
     });
 });
