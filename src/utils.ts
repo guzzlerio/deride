@@ -114,6 +114,60 @@ export function deepEqual(a: any, b: any): boolean {
   return aKeys.every((key) => deepEqual(a[key], b[key]))
 }
 
+export function deepMatch<T extends object>(obj: T, regex: RegExp) {
+  for (const key in obj) {
+    if (!Object.hasOwn(obj, key)) continue
+
+    const value = obj[key]
+
+    if (typeof value === 'string' && regex.test(value)) {
+      return true
+    }
+
+    // Recurse if the value is an object
+    if (typeof value === 'object' && value !== null) {
+      if (deepMatch(value, regex)) {
+        return true
+      }
+    }
+  }
+
+  return false
+}
+export function cloneDeep<T>(obj: T): T {
+  const seen = new WeakMap()
+
+  function deepClone(value: any): any {
+    // Handle primitives and functions directly
+    if (value === null || typeof value !== 'object') return value
+    if (typeof value === 'function') return value
+
+    // Avoid circular references
+    if (seen.has(value)) return seen.get(value)
+
+    // Handle arrays
+    if (Array.isArray(value)) {
+      const result: any[] = []
+      seen.set(value, result)
+      for (const item of value) {
+        result.push(deepClone(item))
+      }
+      return result
+    }
+
+    // Handle plain objects
+    const result: Record<string | symbol, any> = {}
+    seen.set(value, result)
+    for (const key of Reflect.ownKeys(value)) {
+      result[key] = deepClone(value[key])
+    }
+
+    return result
+  }
+
+  return deepClone(obj)
+}
+
 function includes<T>(
   collection: T[] | string | Record<string, T>,
   value: T,
@@ -145,6 +199,8 @@ export function humanise(number: number) {
 }
 
 export const _ = {
+  cloneDeep,
+  deepMatch,
   every,
   filter,
   includes,

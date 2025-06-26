@@ -19,16 +19,126 @@ describe('deride', () => {
       assert.equal(result, 'hello')
     })
 
-    it('ignores the order of an object properties when comparing equality', function () {
-      bob.greet({
-        c: 3,
-        b: 2,
-        a: 1,
+    describe('withArgs', () => {
+      it('ignores the order of an object properties when comparing equality', function () {
+        bob.greet({
+          c: 3,
+          b: 2,
+          a: 1,
+        })
+        bob.expect.greet.called.withArgs({
+          a: 1,
+          b: 2,
+          c: 3,
+        })
       })
-      bob.expect.greet.called.withArgs({
-        a: 1,
-        b: 2,
-        c: 3,
+
+      it('throws exception when object not called withArgs', () => {
+        bob.greet('1', '2', '3')
+        expect(() => bob.expect.greet.called.withArgs('4')).throws
+      })
+
+      describe.each([
+        {
+          name: 'string',
+          input: 'talula',
+          expectPass: false,
+        },
+        {
+          name: 'non match array',
+          input: ['d', 'e'],
+          expectPass: false,
+        },
+        {
+          name: 'partial match array',
+          input: ['a', 'd'],
+          expectPass: false,
+        },
+        {
+          name: 'match but wrong order',
+          input: ['b', 'a'],
+          expectPass: false,
+        },
+        {
+          name: 'match',
+          input: ['a', 'b'],
+          expectPass: true,
+        },
+      ])('withArg called with an array', ({ name, input, expectPass }) => {
+        if (expectPass) {
+          it('object called with ' + name + ' should pass', function () {
+            bob.greet(input)
+            bob.expect.greet.called.withArg(['a', 'b'])
+          })
+        } else {
+          it('object called with ' + name + ' should fail', function () {
+            bob.greet(input)
+            assert.throws(function () {
+              bob.expect.greet.called.withArg(['a', 'b'])
+            }, Error)
+          })
+        }
+      })
+
+      it('handles called with object', () => {
+        const obj = new Object()
+        bob.greet(obj)
+        bob.expect.greet.called.withArgs(obj)
+      })
+
+      it('handles comparison of withArgs when an argument is a function', () => {
+        bob.greet(
+          {
+            a: 1,
+          },
+          function () {},
+        )
+        bob.expect.greet.called.withArgs({
+          a: 1,
+        })
+      })
+    })
+
+    describe('withMatch', () => {
+      beforeEach(() => {
+        bob.greet('The inspiration for this was that my colleague was having a')
+        bob.greet(
+          {
+            a: 123,
+            b: 'talula',
+          },
+          123,
+          'something',
+        )
+      })
+
+      it('allows matching call args with regex', () => {
+        bob.expect.greet.called.withMatch(/^The inspiration for this was/)
+      })
+
+      it('fails when no match is found with regex', function () {
+        expect(() => bob.expect.greet.called.withMatch(/^other/)).throws(
+          'Expected greet to be called matching: /^other/',
+        )
+      })
+
+      it('allows matching call args with regex in objects', () => {
+        bob.expect.greet.called.withMatch(/^talula/gi)
+      })
+
+      it('allows matching call args with regex in deep objects', function () {
+        bob.greet(
+          {
+            a: 123,
+            b: {
+              a: 'talula',
+            },
+          },
+          123,
+          'something',
+        )
+
+        bob.expect.greet.called.withMatch(/^talula/gi)
       })
     })
   })

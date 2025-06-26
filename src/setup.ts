@@ -63,7 +63,7 @@ export function Setup<T extends object>(
     const key = serializeArgs(arguments)
     const callFromQueueBasedOnArgs = callQueueBasedOnArgs[key]
     if (_.isArray(callFromQueueBasedOnArgs)) {
-      var f = callFromQueueBasedOnArgs.pop()
+      const f = callFromQueueBasedOnArgs.pop()
       if (_.isFunction(f)) {
         debug('callFromQueueBasedOnArgs')
         return f.apply(self, args)
@@ -129,7 +129,7 @@ export function Setup<T extends object>(
     })
   self.toThrow = (message: string) =>
     addBehavior(() => {
-      debug('toThrow', message, arguments)
+      debug('toThrow', method, message)
       throw new Error(message)
     })
   self.toTimeWarp = () => {

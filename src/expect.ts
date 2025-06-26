@@ -16,6 +16,7 @@ export type Expectations<T extends object> = T & {
     times: (number: number, err: string) => Expectations<T>
     withArg: (arg: unknown) => void
     withArgs: (args: unknown) => void
+    withMatch: (pattern: RegExp) => void
   }
 }
 export function Expectations<T extends object>(
@@ -48,7 +49,7 @@ export function Expectations<T extends object>(
       withArg: withArg,
       withArgs: withArgs,
       // withArg: withSingleArg,
-      // withMatch: withMatch,
+      withMatch: withMatch,
     },
   }
 
@@ -76,7 +77,7 @@ export function Expectations<T extends object>(
 
   function call() {
     debug('called', JSON.stringify(arguments))
-    calledWithArgs[timesCalled++] = structuredClone(Array.from(arguments))
+    calledWithArgs[timesCalled++] = _.cloneDeep(Array.from(arguments))
   }
 
   function invocation(index: number) {
@@ -118,13 +119,45 @@ export function Expectations<T extends object>(
   //     return evaluator(argResults)
   // }
 
-  function checkAnyArgs(expectedArgs: any[], callArgs: Record<string | number, unknown>) {
+  function checkAnyArgs(
+    expectedArgs: any[],
+    callArgs: Record<string | number, unknown>,
+  ) {
     return checkArgs(expectedArgs, callArgs, _.some)
   }
 
   function withArg(arg: unknown) {
     const args = Object.values(Array.from(arguments))
     assertArgsWithEvaluator(calledWithArgs, args, _.some)
+  }
+
+  function withMatch(pattern: RegExp) {
+    debug('withMatch', pattern, calledWithArgs)
+    let matched = false
+    for (const calls in calledWithArgs) {
+      if (matched) {
+        debug('MATCHED', calls)
+        break
+      }
+      for (const arg of calledWithArgs[calls]) {
+        debug(calls, arg)
+        if (matched) {
+          debug('MATCHED', calls, arg)
+          break
+        }
+        if (_.isObject(arg)) {
+          matched = _.deepMatch(arg, pattern)
+          debug('is object match?', matched, arg, pattern)
+          break
+        }
+        matched = pattern.test(String(arg))
+        debug('is match?', matched, arg, pattern)
+      }
+    }
+    assert(
+      matched,
+      `Expected ${String(method)} to be called matching: ${pattern}`,
+    )
   }
 
   // function assertArgsWithEvaluator(argsToCheck: any[], args: unknown[], evaluator: (args: any[]) => boolean) {

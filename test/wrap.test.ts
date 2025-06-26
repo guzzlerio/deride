@@ -22,7 +22,7 @@ describe('deride', () => {
         return new Person('bob proto')
       },
     },
-  ])('something $name', ({ name, setup }) => {
+  ])('$name', ({ name, setup }) => {
     beforeEach(() => {})
     it('enables the determination of single arg used to invoke the method', () => {
       const bob = deride.wrap(setup())
