@@ -38,7 +38,13 @@ export function wrap<T extends object>(
   self.setup = setupMethods
 
   self.called = {
-    reset: () => {},
+    reset: () => {
+      for (const method in expectMethods) {
+        if (Object.prototype.hasOwnProperty.call(expectMethods, method)) {
+          expectMethods[method].called.reset()
+        }
+      }
+    },
   }
 
   return {

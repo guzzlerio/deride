@@ -9,7 +9,7 @@ describe('deride', () => {
     let bob: Wrapped<IPerson>
     beforeEach(function () {
       // bob = deride.wrap(new Person('bob'))
-      bob = deride.stub<IPerson>(['greet'])
+      bob = deride.stub<IPerson>(['greet', 'chuckle'])
       bob.setup.greet.toReturn('talula')
     })
 
@@ -139,6 +139,36 @@ describe('deride', () => {
         )
 
         bob.expect.greet.called.withMatch(/^talula/gi)
+      })
+    })
+
+    describe('reset', () => {
+      it('Resetting the called count', () => {
+        bob.greet('yo')
+        bob.expect.greet.called.once()
+        bob.expect.greet.called.reset()
+        bob.expect.greet.called.never()
+      })
+
+      it('Resetting the called with count', () => {
+        bob.greet('test')
+        bob.expect.greet.called.withArgs('test')
+        bob.expect.greet.called.reset()
+        expect(() => bob.expect.greet.called.withArgs('test')).throws(
+          'Expected greet to be called with: test',
+        )
+      })
+
+      it('Resetting the called count on all methods', () => {
+        bob.greet('test1')
+        bob.chuckle('echo1')
+
+        bob.expect.greet.called.once()
+        bob.expect.chuckle.called.once()
+        bob.called.reset()
+
+        bob.expect.greet.called.never()
+        bob.expect.chuckle.called.never()
       })
     })
   })

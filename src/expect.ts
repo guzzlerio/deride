@@ -13,6 +13,8 @@ export type Expectations<T extends object> = T & {
   // }
   called: {
     reset: () => void
+    never: () => void
+    once: () => void
     times: (number: number, err: string) => Expectations<T>
     withArg: (arg: unknown) => void
     withArgs: (args: unknown) => void
@@ -37,8 +39,8 @@ export function Expectations<T extends object>(
     // },
     called: {
       times: times,
-      // never: never,
-      // once: calledOnce,
+      never: never,
+      once: calledOnce,
       // twice: calledTwice,
       // lt: calledLt,
       // lte: calledLte,
@@ -219,12 +221,24 @@ export function Expectations<T extends object>(
     assertArgsWithEvaluator(calledWithArgs, args, _.every)
   }
 
-  function times(number: number, err: any) {
+  function times(number: number, err?: any) {
     if (!err) {
       err = `Expected ${String(method)} to be called ${humanise(number)} but was ${timesCalled}`
     }
     assert.equal(timesCalled, number, err)
     return self
+  }
+
+  function never() {
+    return times(0, `Expected ${String(method)} to never be called but was ${humanise(timesCalled)}`)
+  }
+
+  function calledOnce() {
+    return times(1)
+  }
+
+  function calledTwice() {
+    return times(2)
   }
 
   function reset() {
