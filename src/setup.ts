@@ -119,7 +119,11 @@ export function Setup<T extends object>(
   self.toResolve = () => {
     return Object.freeze(self)
   }
-  self.toResolveWith = () => {
+  self.toResolveWith = (value: any) => {
+    addBehavior(() => {
+      debug('toResolveWith', value)
+      return Promise.resolve(value)
+    })
     return Object.freeze(self)
   }
   self.toReturn = (value: any) =>

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import Debug from 'debug'
 import { getAllKeys, humanise, PREFIX, _ } from './utils.js'
 import { Wrapped } from './types.js'
+import { inspect, isDeepStrictEqual } from 'node:util'
 
 export type Expectations<T extends object> = T & {
   invocation: (index: number) => void
@@ -19,6 +20,7 @@ export type Expectations<T extends object> = T & {
     withArg: (arg: unknown) => void
     withArgs: (args: unknown) => void
     withMatch: (pattern: RegExp) => void
+    matchExactly: (...args: unknown[]) => void
   }
 }
 export function Expectations<T extends object>(
@@ -52,6 +54,7 @@ export function Expectations<T extends object>(
       withArgs: withArgs,
       // withArg: withSingleArg,
       withMatch: withMatch,
+      matchExactly: matchExactly,
     },
   }
 
@@ -162,6 +165,26 @@ export function Expectations<T extends object>(
     )
   }
 
+  function matchExactly() {
+    const expectedArgs = Object.values(arguments)
+    debug('matchExactly', calledWithArgs, expectedArgs)
+    let matched = true
+    for (const calls in calledWithArgs) {
+      if (!matched) break
+      for (let i = 0; i < calledWithArgs[calls].length; i++) {
+        const arg = calledWithArgs[calls][i]
+        debug(calls, arg)
+        matched = isDeepStrictEqual(arg, expectedArgs[i])
+        debug('is match?', matched, arg, expectedArgs[i])
+        if (!matched) break
+      }
+    }
+    assert(
+      matched,
+      `Expected ${String(method)} to be called matchExactly args${inspect(expectedArgs, { depth: 10 })}`,
+    )
+  }
+
   // function assertArgsWithEvaluator(argsToCheck: any[], args: unknown[], evaluator: (args: any[]) => boolean) {
   //     const callResults = [];
   //     _.forEach(argsToCheck, function(value: any) {
@@ -230,7 +253,10 @@ export function Expectations<T extends object>(
   }
 
   function never() {
-    return times(0, `Expected ${String(method)} to never be called but was ${humanise(timesCalled)}`)
+    return times(
+      0,
+      `Expected ${String(method)} to never be called but was ${humanise(timesCalled)}`,
+    )
   }
 
   function calledOnce() {

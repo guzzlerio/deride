@@ -3,7 +3,7 @@ import { _, getAllKeys, PREFIX, proxyFunctions } from './utils.js'
 import { wrap } from './wrap.js'
 
 export function stub<T extends object>(
-  target: T | string[],
+  target: T | keyof T[] | string[],
   properties?: any,
   options: Options = { debug: { prefix: PREFIX, suffix: 'wrap' } },
 ){
@@ -11,11 +11,11 @@ export function stub<T extends object>(
     `${options.debug.prefix}:${options.debug.suffix}`,
   )
   debug(target)
-  let methods: string[] = []
-  if (_.isArray<string>(target)) {
+  let methods = []
+  if (_.isArray(target)) {
     methods = target
   } else {
-    methods = getAllKeys(target) as string[]
+    methods = getAllKeys(target as T) as string[]
   }
 
   let stubObj: Record<string, any> = {}
@@ -23,7 +23,7 @@ export function stub<T extends object>(
     return function () {}
   }
   for (let i = 0; i < methods.length; i++) {
-    stubObj[methods[i]] = emptyMethod()
+    stubObj[String(methods[i])] = emptyMethod()
   }
   properties?.forEach((prop: { name: PropertyKey; options: PropertyDescriptor & ThisType<any> }) => {
     Object.defineProperty(stubObj, prop.name, prop.options)

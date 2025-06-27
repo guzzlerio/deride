@@ -9,8 +9,9 @@ describe('deride', () => {
     let bob: Wrapped<IPerson>
     beforeEach(function () {
       // bob = deride.wrap(new Person('bob'))
-      bob = deride.stub<IPerson>(['greet', 'chuckle'])
+      bob = deride.stub<IPerson>(['greet', 'greetAsync', 'chuckle'])
       bob.setup.greet.toReturn('talula')
+      bob.setup.greetAsync.toResolveWith('talula')
     })
 
     it('does not invoke original method when override method body', function () {
@@ -169,6 +170,77 @@ describe('deride', () => {
 
         bob.expect.greet.called.never()
         bob.expect.chuckle.called.never()
+      })
+    })
+    describe('matchExactly', () => {
+      describe('matchExactly causes failures', () => {
+        it('with mixed strings, arrays and numbers', () => {
+          bob.greet('alice', ['carol'], 123)
+          expect(() =>
+            bob.expect.greet.called.matchExactly(
+              'not-alice',
+              ['or-carol'],
+              987,
+            ),
+          ).throws(
+            `Expected greet to be called matchExactly args[ 'not-alice', [ 'or-carol' ], 987 ]`,
+          )
+        })
+
+        it('with mixture of primitives and objects', () => {
+          bob.greet(
+            'alice',
+            ['carol'],
+            123,
+            {
+              name: 'bob',
+              a: 1,
+            },
+            'sam',
+          )
+          expect(() =>
+            bob.expect.greet.called.matchExactly(
+              'alice',
+              ['carol'],
+              123,
+              {
+                name: 'not-bob',
+                a: 1,
+              },
+              'not-sam',
+            ),
+          ).throws(
+            `Expected greet to be called matchExactly args[ 'alice', [ 'carol' ], 123, { name: 'not-bob', a: 1 }, 'not-sam' ]`,
+          )
+        })
+      })
+
+      describe('should not allow mutation after expectation is defined', function () {
+        let objectToMutate
+
+        beforeEach(function () {
+
+          objectToMutate = {
+            test: 'abc',
+          }
+        })
+
+        describe('with promises', function () {
+          beforeEach(function () {
+            bob.setup.greet.toResolve()
+          })
+
+          beforeEach(async () => {
+            await bob.greetAsync(objectToMutate)
+            objectToMutate.test = '123'
+          })
+
+          it('should expect original and not mutated object', function () {
+            bob.expect.greetAsync.called.matchExactly({
+              test: 'abc',
+            })
+          })
+        })
       })
     })
   })

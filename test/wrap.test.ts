@@ -3,6 +3,7 @@ import deride from '../src/index'
 
 export interface IPerson {
   greet(...args: unknown[]): string
+  greetAsync(...args: unknown[]): Promise<string>
   chuckle(...args: unknown[]): void
 }
 
@@ -10,6 +11,9 @@ export class Person implements IPerson {
   constructor(private name: string) {}
   greet(another: string) {
     return `howdy from ${this.name} to ${another}`
+  }
+  greetAsync(another: string) {
+    return Promise.resolve(`howdy from ${this.name} to ${another}`)
   }
   chuckle() {}
 }
