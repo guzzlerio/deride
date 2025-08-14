@@ -7,7 +7,7 @@ import { Options, Wrapped } from './types.js'
 
 export function wrap<T extends object>(
   obj: T,
-  options: Options = { debug: { prefix: PREFIX, suffix: 'wrap' } },
+  options: Options = { debug: { prefix: PREFIX, suffix: 'wrap' } }
 ): Wrapped<T> {
   const debug = Debug(`${options.debug.prefix}:${options.debug.suffix}`)
   const objMethods = getAllKeys(obj)

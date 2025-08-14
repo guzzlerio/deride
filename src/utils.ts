@@ -1,10 +1,6 @@
 export const PREFIX = 'deride'
 
-export function proxyFunctions<S>(
-  source: S,
-  target: Partial<S>,
-  functions: (keyof S)[],
-) {
+export function proxyFunctions<S>(source: S, target: Partial<S>, functions: (keyof S)[]) {
   function createFunction(functionName: keyof S) {
     return function () {
       const func = target[functionName] as Function
@@ -30,18 +26,13 @@ export function getAllKeys<T extends object>(obj: T) {
   return Array.from<keyof T>(keys)
 }
 
-function omit<T extends object, K extends keyof T>(
-  obj: T,
-  keys: K[],
-): Omit<T, K> {
-  return Object.fromEntries(
-    Object.entries(obj).filter(([key]) => !keys.includes(key as K)),
-  ) as Omit<T, K>
+function omit<T extends object, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> {
+  return Object.fromEntries(Object.entries(obj).filter(([key]) => !keys.includes(key as K))) as Omit<T, K>
 }
 
 export function every<T>(
   collection: T[] | Record<string, T>,
-  predicate: (value: T, key?: string | number) => boolean,
+  predicate: (value: T, key?: string | number) => boolean
 ): boolean {
   predicate = isFunction(predicate) ? predicate : truthy
   if (isArray(collection)) {
@@ -52,7 +43,7 @@ export function every<T>(
 
 export function some<T>(
   collection: T[] | Record<string, T>,
-  predicate: (value: T, key?: string | number) => boolean,
+  predicate: (value: T, key?: string | number) => boolean
 ): boolean {
   predicate = isFunction(predicate) ? predicate : truthy
   if (isArray(collection)) {
@@ -72,40 +63,32 @@ function union<T>(...arrays: T[][]): T[] {
 function isArray<T>(value: unknown): value is T[] {
   return Array.isArray(value)
 }
+
 function isObject(value: unknown): value is Record<string, unknown> {
-  return (
-    (typeof value === 'object' && value !== null) || typeof value === 'function'
-  )
+  return (typeof value === 'object' && value !== null) || typeof value === 'function'
 }
 
 function truthy<T>(value: T, key?: string | number) {
   if (value) return true
   return false
 }
+
 function filter<T>(
   collection: T[] | Record<string, T>,
-  predicate?: (value: T, key?: string | number) => boolean,
+  predicate?: (value: T, key?: string | number) => boolean
 ): T[] | Record<string, T> {
   predicate = predicate ?? truthy
   if (Array.isArray(collection)) {
     return collection.filter((v, i) => predicate(v, i))
   }
 
-  return Object.fromEntries(
-    Object.entries(collection).filter(([k, v]) => predicate(v, k)),
-  )
+  return Object.fromEntries(Object.entries(collection).filter(([k, v]) => predicate(v, k)))
 }
 
 export function deepEqual(a: any, b: any): boolean {
   if (a === b) return true
-  if (typeof a !== 'object' || typeof b !== 'object' || a == null || b == null)
-    return false
-  if (Array.isArray(a))
-    return (
-      Array.isArray(b) &&
-      a.length === b.length &&
-      a.every((v, i) => deepEqual(v, b[i]))
-    )
+  if (typeof a !== 'object' || typeof b !== 'object' || a == null || b == null) return false
+  if (Array.isArray(a)) return Array.isArray(b) && a.length === b.length && a.every((v, i) => deepEqual(v, b[i]))
 
   const aKeys = Object.keys(a)
   const bKeys = Object.keys(b)
@@ -134,6 +117,7 @@ export function deepMatch<T extends object>(obj: T, regex: RegExp) {
 
   return false
 }
+
 export function cloneDeep<T>(obj: T): T {
   const seen = new WeakMap()
 
@@ -168,10 +152,13 @@ export function cloneDeep<T>(obj: T): T {
   return deepClone(obj)
 }
 
-function includes<T>(
-  collection: T[] | string | Record<string, T>,
-  value: T,
-): boolean {
+/**
+ * Returns true when `collection` contains `value`
+ * @param collection
+ * @param value
+ * @returns
+ */
+function includes<T>(collection: T[] | string | Record<string, T>, value: T): boolean {
   let arr: any[] = []
 
   if (Array.isArray(collection)) {
@@ -185,6 +172,17 @@ function includes<T>(
     arr = Object.values(collection)
   }
   return arr.some((item) => deepEqual(item, value))
+}
+
+/**
+ * Returns true when `values` contains at least one element whose
+ * properties exactly match the key–value pairs in `expected`.
+ */
+export function hasMatch<T extends object>(values: readonly T[], expected: Partial<T> | unknown): boolean {
+  const predicate = (item: T): boolean =>
+    (Object.entries(expected as Partial<T>) as [keyof T, unknown][]).every(([k, v]) => item?.[k] === v)
+
+  return values.some(predicate)
 }
 
 export function humanise(number: number) {

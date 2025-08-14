@@ -31,11 +31,7 @@ type StubBehavior = {
   times?: number
 }
 
-export function Setup<T extends object>(
-  obj: T,
-  method: keyof T,
-  emitter: EventEmitter,
-): Setup<T> {
+export function Setup<T extends object>(obj: T, method: keyof T, emitter: EventEmitter): Setup<T> {
   const debug = Debug(PREFIX + ':setup:' + String(method))
   const originalMethod: Function = (obj as any)[method]
   let callToInvoke: (...args: unknown[]) => unknown = normalCall
@@ -167,9 +163,11 @@ export function Setup<T extends object>(
   }
 
   function normalCall() {
-    debug('normal call', method)
-    var result = originalMethod.apply(obj, arguments)
-    return result
+    debug('normal call', method, typeof originalMethod)
+    if (typeof originalMethod === 'function') {
+      return originalMethod.apply(obj, arguments)
+    }
+    return obj[originalMethod]
   }
 
   function serializeArgs(args: unknown) {

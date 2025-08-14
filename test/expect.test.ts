@@ -92,7 +92,7 @@ describe('deride', () => {
           {
             a: 1,
           },
-          function () {},
+          function () {}
         )
         bob.expect.greet.called.withArgs({
           a: 1,
@@ -109,7 +109,7 @@ describe('deride', () => {
             b: 'talula',
           },
           123,
-          'something',
+          'something'
         )
       })
 
@@ -119,7 +119,7 @@ describe('deride', () => {
 
       it('fails when no match is found with regex', function () {
         expect(() => bob.expect.greet.called.withMatch(/^other/)).throws(
-          'Expected greet to be called matching: /^other/',
+          'Expected greet to be called matching: /^other/'
         )
       })
 
@@ -136,7 +136,7 @@ describe('deride', () => {
             },
           },
           123,
-          'something',
+          'something'
         )
 
         bob.expect.greet.called.withMatch(/^talula/gi)
@@ -156,7 +156,7 @@ describe('deride', () => {
         bob.expect.greet.called.withArgs('test')
         bob.expect.greet.called.reset()
         expect(() => bob.expect.greet.called.withArgs('test')).throws(
-          'Expected greet to be called with: test',
+          'Expected greet to be called with: test'
         )
       })
 
@@ -176,14 +176,8 @@ describe('deride', () => {
       describe('matchExactly causes failures', () => {
         it('with mixed strings, arrays and numbers', () => {
           bob.greet('alice', ['carol'], 123)
-          expect(() =>
-            bob.expect.greet.called.matchExactly(
-              'not-alice',
-              ['or-carol'],
-              987,
-            ),
-          ).throws(
-            `Expected greet to be called matchExactly args[ 'not-alice', [ 'or-carol' ], 987 ]`,
+          expect(() => bob.expect.greet.called.matchExactly('not-alice', ['or-carol'], 987)).throws(
+            `Expected greet to be called matchExactly args[ 'not-alice', [ 'or-carol' ], 987 ]`
           )
         })
 
@@ -196,7 +190,7 @@ describe('deride', () => {
               name: 'bob',
               a: 1,
             },
-            'sam',
+            'sam'
           )
           expect(() =>
             bob.expect.greet.called.matchExactly(
@@ -207,10 +201,10 @@ describe('deride', () => {
                 name: 'not-bob',
                 a: 1,
               },
-              'not-sam',
-            ),
+              'not-sam'
+            )
           ).throws(
-            `Expected greet to be called matchExactly args[ 'alice', [ 'carol' ], 123, { name: 'not-bob', a: 1 }, 'not-sam' ]`,
+            `Expected greet to be called matchExactly args[ 'alice', [ 'carol' ], 123, { name: 'not-bob', a: 1 }, 'not-sam' ]`
           )
         })
       })
@@ -219,7 +213,6 @@ describe('deride', () => {
         let objectToMutate
 
         beforeEach(function () {
-
           objectToMutate = {
             test: 'abc',
           }

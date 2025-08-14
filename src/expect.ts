@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import Debug from 'debug'
-import { getAllKeys, humanise, PREFIX, _ } from './utils.js'
+import { getAllKeys, humanise, PREFIX, _, hasMatch } from './utils.js'
 import { Wrapped } from './types.js'
 import { inspect, isDeepStrictEqual } from 'node:util'
 
@@ -23,10 +23,7 @@ export type Expectations<T extends object> = T & {
     matchExactly: (...args: unknown[]) => void
   }
 }
-export function Expectations<T extends object>(
-  obj: T,
-  method: keyof T,
-): Expectations<T> {
+export function Expectations<T extends object>(obj: T, method: keyof T): Expectations<T> {
   const debug = Debug(PREFIX + ':expect:' + String(method))
   let timesCalled = 0
   let calledWithArgs: Record<number, Parameters<any>> = {}
@@ -102,10 +99,7 @@ export function Expectations<T extends object>(
     //     values.filter((v) => JSON.stringify(v) === jsonExpected),
     //   )
     // }
-    // if (_.isObject(expected)) {
-    //   return _.some(_.filter(values, expected))
-    // }
-    return _.includes(values, expected)
+    return hasMatch(values, expected)
   }
 
   // function checkArgs(
@@ -124,10 +118,7 @@ export function Expectations<T extends object>(
   //     return evaluator(argResults)
   // }
 
-  function checkAnyArgs(
-    expectedArgs: any[],
-    callArgs: Record<string | number, unknown>,
-  ) {
+  function checkAnyArgs(expectedArgs: any[], callArgs: Record<string | number, unknown>) {
     return checkArgs(expectedArgs, callArgs, _.some)
   }
 
@@ -159,10 +150,7 @@ export function Expectations<T extends object>(
         debug('is match?', matched, arg, pattern)
       }
     }
-    assert(
-      matched,
-      `Expected ${String(method)} to be called matching: ${pattern}`,
-    )
+    assert(matched, `Expected ${String(method)} to be called matching: ${pattern}`)
   }
 
   function matchExactly() {
@@ -179,10 +167,7 @@ export function Expectations<T extends object>(
         if (!matched) break
       }
     }
-    assert(
-      matched,
-      `Expected ${String(method)} to be called matchExactly args${inspect(expectedArgs, { depth: 10 })}`,
-    )
+    assert(matched, `Expected ${String(method)} to be called matchExactly args${inspect(expectedArgs, { depth: 10 })}`)
   }
 
   // function assertArgsWithEvaluator(argsToCheck: any[], args: unknown[], evaluator: (args: any[]) => boolean) {
@@ -200,7 +185,7 @@ export function Expectations<T extends object>(
   function checkArgs(
     expectedArgs: unknown[],
     callArgs: Record<string | number, unknown>,
-    evaluator: EvaluatorFn,
+    evaluator: EvaluatorFn
   ): boolean {
     const values = Object.values(callArgs)
     const argResults: boolean[] = []
@@ -224,7 +209,7 @@ export function Expectations<T extends object>(
   function assertArgsWithEvaluator(
     argsToCheck: Record<string | number, Parameters<any>>,
     expectedArgs: unknown[],
-    evaluator: EvaluatorFn,
+    evaluator: EvaluatorFn
   ): void {
     let callResults = []
     for (const [key, value] of Object.entries(argsToCheck)) {
@@ -233,10 +218,7 @@ export function Expectations<T extends object>(
     }
     const result = callResults.some(Boolean)
 
-    assert(
-      result,
-      `Expected ${String(method)} to be called with: ${expectedArgs.join(', ')}`,
-    )
+    assert(result, `Expected ${String(method)} to be called with: ${expectedArgs.join(', ')}`)
   }
 
   function withArgs() {
@@ -253,10 +235,7 @@ export function Expectations<T extends object>(
   }
 
   function never() {
-    return times(
-      0,
-      `Expected ${String(method)} to never be called but was ${humanise(timesCalled)}`,
-    )
+    return times(0, `Expected ${String(method)} to never be called but was ${humanise(timesCalled)}`)
   }
 
   function calledOnce() {
