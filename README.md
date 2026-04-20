@@ -65,6 +65,11 @@ import { stub, wrap, func } from 'deride'
 - [`obj.expect.method.invocation(i).withArg(arg)`](#invocation)
 - [`obj.called.reset()`](#called-reset-all) — reset all methods
 
+### TypeScript
+
+- [Type-safe setup](#type-safe-setup) — setup methods constrained to method signatures
+- [`as any` escape hatch](#type-safe-setup) — bypass type checking for error path testing
+
 ---
 
 ## Creating mocks
@@ -643,14 +648,32 @@ service.process('hello')
 service.expect.process.called.withArg('hello')
 ```
 
+<a name="type-safe-setup"></a>
+
+### Type-safe setup
+
+Setup methods are constrained to the method's return type:
+
+```typescript
+service.setup.fetch.toResolveWith('valid string')  // OK
+service.setup.fetch.toResolveWith(123)             // Type error!
+```
+
+To intentionally return an invalid type (e.g. testing error paths), cast with `as any`:
+
+```typescript
+service.setup.fetch.toResolveWith(null as any)  // Bypasses type checking
+```
+
 ---
 
 ## Contributing
 
 ```bash
-npm run lint      # eslint
-npm run test      # vitest (watch mode)
-npm run build     # tsup (cjs + esm + types)
+pnpm lint         # eslint (src + tests)
+pnpm typecheck    # tsc --noEmit
+pnpm test         # vitest (watch mode)
+pnpm build        # tsup (cjs + esm + types)
 ```
 
 ## License
