@@ -26,6 +26,12 @@ import { stub, wrap, func } from 'deride'
 - [`deride.wrap(fn)`](#wrap-fn) — wrap a standalone function
 - [`deride.func(original?)`](#func) — create a standalone mocked function
 
+### Usage patterns
+
+- [Constructor / parameter injection](#usage-constructor)
+- [Module mocking (vitest, jest, node:test)](#usage-module-mocking)
+- [Factory functions](#usage-factory)
+
 ### Setup (configure behavior)
 
 - [`obj.setup.method.toReturn(value)`](#setup-toreturn)
@@ -154,6 +160,94 @@ const fn2 = deride.func((x: number) => x * 2)
 fn2(5) // 10
 fn2.setup.toReturn(99)
 fn2(5) // 99
+```
+
+---
+
+## Usage patterns
+
+<a name="usage-constructor"></a>
+
+### Constructor / parameter injection
+
+The simplest approach — pass mocks directly to the code under test:
+
+```typescript
+class UserService {
+  constructor(private db: Database) {}
+  async getAll() { return this.db.query('SELECT * FROM users') }
+}
+
+// Test:
+const mockDb = deride.stub<Database>(['query', 'findById'])
+mockDb.setup.query.toResolveWith([{ id: 1, name: 'alice' }])
+
+const service = new UserService(mockDb)
+const users = await service.getAll()
+mockDb.expect.query.called.once()
+```
+
+<a name="usage-module-mocking"></a>
+
+### Module mocking
+
+When code imports dependencies directly, use your test runner to intercept the import and supply a deride mock:
+
+**Vitest:**
+```typescript
+import { vi } from 'vitest'
+import deride from 'deride'
+
+const mockDb = deride.stub<Database>(['query', 'findById'])
+
+vi.mock('./database', () => ({
+  db: mockDb
+}))
+
+import { userService } from './user-service' // internally imports db
+
+it('fetches users', async () => {
+  mockDb.setup.query.toResolveWith([{ id: 1, name: 'alice' }])
+  const users = await userService.getAll()
+  mockDb.expect.query.called.once()
+})
+```
+
+**Jest:**
+```typescript
+import deride from 'deride'
+
+const mockDb = deride.stub<Database>(['query'])
+
+jest.mock('./database', () => ({
+  db: mockDb
+}))
+```
+
+**Node.js test runner:**
+```typescript
+import { mock } from 'node:test'
+import deride from 'deride'
+
+mock.module('./database', () => ({
+  db: deride.stub<Database>(['query'])
+}))
+```
+
+<a name="usage-factory"></a>
+
+### Factory functions
+
+```typescript
+function createApp(deps: { db: Database; logger: Logger }) {
+  return { /* app that uses deps */ }
+}
+
+// Test:
+const app = createApp({
+  db: deride.stub<Database>(['query']),
+  logger: deride.stub<Logger>(['info', 'error']),
+})
 ```
 
 ---
