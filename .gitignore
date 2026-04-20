@@ -1,9 +1,10 @@
 node_modules
-.npmrc
 .idea
 *.iml
 
+dist/
 reports/
 *.swp
 *.log
+*.tsbuildinfo
 .tern-port
