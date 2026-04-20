@@ -36,7 +36,7 @@ describe('deride', () => {
 
       it('throws exception when object not called withArgs', () => {
         bob.greet('1', '2', '3')
-        expect(() => bob.expect.greet.called.withArgs('4')).throws
+        expect(() => bob.expect.greet.called.withArgs('4')).toThrow()
       })
 
       describe.each([

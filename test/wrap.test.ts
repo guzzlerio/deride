@@ -170,7 +170,7 @@ describe('deride', () => {
         })
       },
     },
-  ])('$name', ({ name, setup }) => {
+  ])('$name', ({ _name, setup }) => {
     let bob: Wrapped<IPerson>
     beforeEach(() => {
       bob = setup()

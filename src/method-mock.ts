@@ -338,43 +338,46 @@ export class MethodMock {
   }
 }
 
-/** Configure the behavior of a mocked method. */
-export interface MockSetup {
-  /** Return a fixed value when invoked. */
-  toReturn(value: any): MockSetup
+/** Configure the behavior of a mocked method. Constrained to the method's signature. Cast value `as any` to bypass type checking. */
+export interface TypedMockSetup<A extends any[] = any[], R = any> {
+  /** Return a fixed value when invoked. Cast `as any` to return an invalid type. */
+  toReturn(value: R): TypedMockSetup<A, R>
   /** Replace the method body with a custom function. */
-  toDoThis(fn: AnyFunc): MockSetup
+  toDoThis(fn: (...args: A) => R): TypedMockSetup<A, R>
   /** Throw an error with the given message when invoked. */
-  toThrow(message: string): MockSetup
+  toThrow(message: string): TypedMockSetup<A, R>
   /** Return a resolved promise with the given value. */
-  toResolveWith(value: any): MockSetup
+  toResolveWith(value: R extends Promise<infer U> ? U : R): TypedMockSetup<A, R>
   /** Return a resolved promise with no value. */
-  toResolve(): MockSetup
+  toResolve(): TypedMockSetup<A, R>
   /** Return a rejected promise with the given error. */
-  toRejectWith(error: any): MockSetup
-  /** Invoke the first callback argument with the given args. */
-  toCallbackWith(...args: any[]): MockSetup
+  toRejectWith(error: unknown): TypedMockSetup<A, R>
+  /** Invoke the last callback argument with the given args. */
+  toCallbackWith(...args: any[]): TypedMockSetup<A, R>
   /** Emit an event on the wrapped object when invoked. */
-  toEmit(eventName: string, ...params: any[]): MockSetup
+  toEmit(eventName: string, ...params: any[]): TypedMockSetup<A, R>
   /** Call the interceptor with args, then call the original method. */
-  toIntercept(fn: AnyFunc): MockSetup
+  toIntercept(fn: (...args: A) => void): TypedMockSetup<A, R>
   /** Schedule the callback with an accelerated timeout. */
-  toTimeWarp(ms: number): MockSetup
+  toTimeWarp(ms: number): TypedMockSetup<A, R>
   /** Apply the next behavior only when args match the predicate or value. */
-  when(predicateOrValue: any): MockSetup
+  when(predicateOrValue: A[0] | ((args: A) => boolean)): TypedMockSetup<A, R>
   /** Apply the next behavior only for the first `n` invocations. */
-  times(n: number): MockSetup
+  times(n: number): TypedMockSetup<A, R>
   /** Apply the next behavior only for the first invocation. */
-  once(): MockSetup
+  once(): TypedMockSetup<A, R>
   /** Apply the next behavior only for the first two invocations. */
-  twice(): MockSetup
+  twice(): TypedMockSetup<A, R>
   /** Clear all configured behaviors, revert to original. */
-  fallback(): MockSetup
+  fallback(): TypedMockSetup<A, R>
   /** Chaining alias — returns the setup object for readability. */
-  readonly and: MockSetup
+  readonly and: TypedMockSetup<A, R>
   /** Chaining alias — returns the setup object for readability. */
-  readonly then: MockSetup
+  readonly then: TypedMockSetup<A, R>
 }
+
+/** Untyped setup — accepts any value. Used internally and for untyped stubs. */
+export type MockSetup = TypedMockSetup<any[], any>
 
 /** Assert expectations about how a method was called. */
 export interface CalledExpect {

@@ -11,11 +11,13 @@ export default tseslint.config(
     files: ['src/**/*.ts', 'test/**/*.ts'],
     languageOptions: {
       parserOptions: {
-        projectService: true,
+        projectService: {
+          allowDefaultProject: ['test/*.test.ts'],
+        },
       },
     },
     rules: {
-      // Mocking library — any is intentional and pervasive
+      // TODO: enable and fix — tracked as follow-up to eliminate internal any usage
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unsafe-function-type': 'off',
       // Used for Proxy handlers and closure-based class patterns

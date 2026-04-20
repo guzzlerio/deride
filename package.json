@@ -55,7 +55,8 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "lint": "eslint \"src/**/*.ts\"",
+    "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "test": "vitest",
     "test:coverage": "vitest run --coverage",

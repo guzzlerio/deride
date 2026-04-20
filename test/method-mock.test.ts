@@ -229,7 +229,7 @@ describe('MethodMock', () => {
         const bob = deride.stub(['doWork'])
         bob.setup.doWork.toTimeWarp(0)
         const results: string[] = []
-        bob.doWork(1000, (result: any) => results.push('done'))
+        bob.doWork(1000, (_result: any) => results.push('done'))
         assert.equal(results.length, 0)
         vi.runAllTimers()
         assert.equal(results.length, 1)

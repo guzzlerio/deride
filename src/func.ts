@@ -1,9 +1,9 @@
-import { MethodMock, MockSetup, MockExpect } from './method-mock.js'
+import { MethodMock, TypedMockSetup, MockExpect } from './method-mock.js'
 
 type AnyFunc = (...args: any[]) => any
 
 export type MockedFunction<F extends AnyFunc = AnyFunc> = F & {
-  setup: MockSetup
+  setup: F extends (...args: infer A) => infer R ? TypedMockSetup<A, R> : TypedMockSetup
   expect: MockExpect
 }
 
