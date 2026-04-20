@@ -18,7 +18,6 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          registry-url: 'https://registry.npmjs.org'
       - name: Verify version matches tag
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#v}"
