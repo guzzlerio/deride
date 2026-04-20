@@ -1,659 +1,702 @@
-# deride [![Build Status](https://travis-ci.org/guzzlerio/deride.svg?branch=master)](https://travis-ci.org/guzzlerio/deride) [![NPM version](https://badge.fury.io/js/deride.svg)](http://badge.fury.io/js/deride) [![Dependency Status](https://david-dm.org/guzzlerio/deride.svg)](https://david-dm.org/guzzlerio/deride) [![Stories in Ready](https://badge.waffle.io/guzzlerio/deride.png?label=ready&title=Ready)](https://waffle.io/guzzlerio/deride) [![Stories In Progress](https://badge.waffle.io/guzzlerio/deride.png?label=in%20progress&title=In%20Progres)](https://waffle.io/guzzlerio/deride)
+# deride
 
-[![NPM](https://nodei.co/npm/deride.png?downloadRank=true&downloads=true)](https://nodei.co/npm/deride/)
+A TypeScript-first mocking library that works with frozen objects, sealed classes, and any coding style — no monkey-patching required.
 
-Mocking library based on composition
+**Why deride?**
 
-The inspiration for this was that my colleague was having a look at other mocking frameworks and mentioned to me that they do not work when using ```Object.freeze``` in the objects to enforce encapsulation.  This library builds on composition to create a mocking library that can work with objects which are frozen.
-## Getting Started
-Install the module with: `npm install deride`
+- Works with `Object.freeze`, ES6 classes, and prototype-based objects
+- Composition-based — wraps objects rather than mutating them
+- Framework-agnostic — works with vitest, jest, node:test, or anything that catches thrown errors
+- Type-safe — setup methods are constrained to your method signatures
+- Zero config — no decorators, no DI container, no babel plugins
+- Tiny — under 15KB packed
 
-```javascript
-var deride = require('deride');
+```typescript
+import { stub, wrap } from 'deride'
+
+const mockDb = stub<Database>(['query', 'findById'])
+mockDb.setup.query.toResolveWith([{ id: 1, name: 'alice' }])
+
+const result = await mockDb.query('SELECT * FROM users')
+mockDb.expect.query.called.once()
+mockDb.expect.query.called.withArg('SELECT * FROM users')
 ```
 
-## Documentation
+## Getting Started
 
-### Mocking
+```bash
+npm install deride
+```
 
-- deride.wrap(obj)
+```typescript
+import deride from 'deride'
+// or use named exports
+import { stub, wrap, func } from 'deride'
+```
 
-**CAUTION** Remember when you use this function about the good practice recommended in the book **Growing Object-Oriented Software, Guided by Tests**  ***Chapter 8: Only Mock Types That You Own***
+## API
 
-- [deride.stub(methods)](#stub-methods)
-  - **methods** Array
-- [deride.stub(obj)](#stub-obj)
-  - **obj** Object
-- [deride.func()](#func)
+### Creating mocks
 
-### Expectations
+- [`deride.stub(methods)`](#stub-methods) — create a stub from method names
+- [`deride.stub(obj)`](#stub-obj) — create a stub from an existing object
+- [`deride.wrap(obj)`](#wrap) — wrap an existing object (works with frozen objects)
+- [`deride.wrap(fn)`](#wrap-fn) — wrap a standalone function
+- [`deride.func(original?)`](#func) — create a standalone mocked function
 
-- [```obj```.expect.```method```.called.times(n)](#called-times)
-- [```obj```.expect.```method```.called.once()](#called-once)
-- [```obj```.expect.```method```.called.twice()](#called-once)
-- [```obj```.expect.```method```.called.lt()](#called-lte)
-- [```obj```.expect.```method```.called.lte()](#called-lte)
-- [```obj```.expect.```method```.called.gt()](#called-lte)
-- [```obj```.expect.```method```.called.gte()](#called-lte)
-- [```obj```.expect.```method```.called.never()](#called-never)
-- [```obj```.expect.```method```.called.withArg(arg)](#called-witharg)
-- [```obj```.expect.```method```.called.withArgs(args)](#called-withargs)
-- [```obj```.expect.```method```.called.withMatch(pattern)](#called-withmatch)
-- [```obj```.expect.```method```.called.matchExactly(args)](#called-matchexactly)
+### Usage patterns
 
-**All of the above can be negated e.g. negating the `.withArgs` would be:**
+- [Constructor / parameter injection](#usage-constructor)
+- [Module mocking (vitest, jest, node:test)](#usage-module-mocking)
+- [Factory functions](#usage-factory)
 
-- ```obj```.expect.```method```.called`.not`.withArgs(args)
+### Setup (configure behavior)
 
-### Resetting the counts / called with args
-- [```obj```.expect.```method```.called.reset()](#called-reset)
-- ```obj```.called.reset()
+- [`obj.setup.method.toReturn(value)`](#setup-toreturn)
+- [`obj.setup.method.toDoThis(fn)`](#setup-todothis)
+- [`obj.setup.method.toThrow(message)`](#setup-tothrow)
+- [`obj.setup.method.toResolveWith(value)`](#setup-toresolvewith)
+- [`obj.setup.method.toRejectWith(error)`](#setup-torejectwith)
+- [`obj.setup.method.toCallbackWith(...args)`](#setup-tocallbackwith)
+- [`obj.setup.method.toEmit(event, ...args)`](#setup-toemit)
+- [`obj.setup.method.toIntercept(fn)`](#setup-tointercept)
+- [`obj.setup.method.toTimeWarp(ms)`](#setup-totimewarp)
+- [`obj.setup.method.when(value | predicate).toReturn(...)`](#setup-when)
+- [`obj.setup.method.once().toReturn(...)`](#setup-times)
+- [`obj.setup.method.times(n).toReturn(...)`](#setup-times)
+- [`obj.setup.method.toReturn(...).twice().and.then.toReturn(...)`](#setup-chaining)
+- [`obj.setup.method.fallback()`](#setup-fallback)
 
-### Setup
+### Expectations (verify calls)
 
-- [```obj```.setup.```method```.toDoThis(func)](#setup-todothis)
-- [```obj```.setup.```method```.toReturn(value)](#setup-toreturn)
-- [```obj```.setup.```method```.toResolveWith(value)](#setup-promise-resolve)
-- [```obj```.setup.```method```.toRejectWith(value)](#setup-promise-reject)
-- [```obj```.setup.```method```.toThrow(message)](#setup-tothrow)
-- [```obj```.setup.```method```.toEmit(event, args)](#events)
-- [```obj```.setup.```method```.toCallbackWith(args)](#setup-tocallback)
-- [```obj```.setup.```method```.toTimeWarp(milliseconds)](#setup-totimewarp)
-- [```obj```.setup.```method```.when(args|function).[toDoThis|toReturn|toRejectWith|toResolveWith|toThrow|toEmit|toCallbackWith|toTimeWarp]](#setup-toreturn-when)
-- [```obj```.setup.```method```.toIntercept(func)](#setup-tointercept)
-- [setup for multiple invocations](#setup-multiple-invocations)
+- [`obj.expect.method.called.times(n)`](#called-times)
+- [`obj.expect.method.called.once()`](#called-once)
+- [`obj.expect.method.called.twice()`](#called-twice)
+- [`obj.expect.method.called.never()`](#called-never)
+- [`obj.expect.method.called.lt(n)` / `lte(n)` / `gt(n)` / `gte(n)`](#called-comparisons)
+- [`obj.expect.method.called.withArg(arg)`](#called-witharg)
+- [`obj.expect.method.called.withArgs(...args)`](#called-withargs)
+- [`obj.expect.method.called.withMatch(regex)`](#called-withmatch)
+- [`obj.expect.method.called.matchExactly(...args)`](#called-matchexactly)
+- [`obj.expect.method.called.not.*`](#called-not) — negated versions of all above
+- [`obj.expect.method.called.reset()`](#called-reset)
+- [`obj.expect.method.invocation(i).withArg(arg)`](#invocation)
+- [`obj.called.reset()`](#called-reset-all) — reset all methods
 
-## Examples
+### TypeScript
 
-### The context
-```javascript
-var Person = function(name) {
-    return Object.freeze({
-        greet: function(otherPersonName) {
-            console.log(name, 'says hello to', otherPersonName);
-        },
-		echo: function(name) {
-			return name;
-		}
-    });
+- [Type-safe setup](#type-safe-setup) — setup methods constrained to method signatures
+- [`as any` escape hatch](#type-safe-setup) — bypass type checking for error path testing
+
+---
+
+## Creating mocks
+
+The examples below use this interface:
+
+```typescript
+interface Person {
+  greet(name: string): string
+  echo(value: string): string
 }
 ```
 
-<a name="stub-methods" />
+<a name="stub-methods"></a>
 
-### Creating a stubbed object
-Stubbing an object simply creates an anonymous object, with all the method specified and then the object is wrapped to provide all the expectation functionality of the library
+### Creating a stub from method names
 
-
-```javascript
-var bob = deride.stub(['greet']);
-bob.greet('alice');
-bob.expect.greet.called.times(1);
+```typescript
+const bob = deride.stub<Person>(['greet', 'echo'])
+bob.setup.greet.toReturn('hello')
+bob.greet('alice') // 'hello'
+bob.expect.greet.called.once()
 ```
 
-<a name="stub-obj" />
+### Creating a stub with properties
 
-### Creating a stubbed object with properties
-To stub an object with pre set properties call the stub method with a properties array in the second parameter. We are following the defineProperty definition as can be found in the below link.
-
-https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty
-
-
-```javascript
-var bob = deride.stub(['greet'], [{name: 'age', options: { value: 25, enumerable: true}}]);
-bob.age === 25;
-```
-### Creating a stubbed object based on an existing object
-```javascript
-var Person = {
-    greet: function(name) {
-        return 'alice sas hello to ' + name;
-    },
-};
-var bob = deride.stub(Person);
-bob.greet('alice');
-bob.expect.greet.called.once();
+```typescript
+const bob = deride.stub<Person & { age: number }>(
+  ['greet'],
+  [{ name: 'age', options: { value: 25, enumerable: true } }]
+)
+bob.age // 25
 ```
 
-<a name="func" />
+<a name="stub-obj"></a>
 
-### Creating a single mocked method
-```javascript
-var func = deride.func();
-func.setup.toReturn(1);
-var value = func(1, 2, 3);
-assert.equal(value, 1);
+### Creating a stub from an existing object
+
+```typescript
+const realPerson: Person = { greet: (n) => `hi ${n}`, echo: (v) => v }
+const bob = deride.stub(realPerson)
+bob.greet('alice')
+bob.expect.greet.called.once()
 ```
 
-### Wrapping an existing function
-```javascript
-var f = function (name) { return 'hello ' + name; };
-var func = deride.func(f);
-assert(func('bob'), 'hello bob');
-func.expect.called.withArg('bob');
+<a name="wrap"></a>
+
+### Wrapping an existing object
+
+Works with `Object.freeze`, ES6 classes, and prototype-based objects:
+
+```typescript
+const person = Object.freeze({
+  greet(name: string) { return `hello ${name}` },
+})
+
+const bob = deride.wrap(person)
+bob.greet('alice') // 'hello alice'
+bob.expect.greet.called.withArg('alice')
 ```
 
-### Wrapping an existing promise function
-```javascript
-var f = function (name) { return 'hello ' + name; };
-var func = deride.func(when.lift(f));
-func('bob').then(function (result) {
-    assert(result, 'hello bob');
-    func.expect.called.withArg('bob');
-}).finally(done);
+<a name="wrap-fn"></a>
+
+### Wrapping a standalone function
+
+`wrap()` also accepts a plain function — it returns a callable mock with `.setup` and `.expect`:
+
+```typescript
+function greet(name: string) { return `hello ${name}` }
+const wrapped = deride.wrap(greet)
+wrapped('world') // 'hello world'
+wrapped.expect.called.withArg('world')
+
+wrapped.setup.toReturn('overridden')
+wrapped('x') // 'overridden'
 ```
+
+<a name="func"></a>
+
+### Creating a standalone mocked function
+
+`func()` creates a mock from scratch (optionally wrapping an existing function). This is what `wrap(fn)` delegates to:
+
+```typescript
+// Empty mock
+const fn = deride.func()
+fn.setup.toReturn(42)
+fn('hello') // 42
+fn.expect.called.withArg('hello')
+
+// Wrapping an existing function
+const fn2 = deride.func((x: number) => x * 2)
+fn2(5) // 10
+fn2.setup.toReturn(99)
+fn2(5) // 99
+```
+
+---
+
+## Usage patterns
+
+<a name="usage-constructor"></a>
+
+### Constructor / parameter injection
+
+The simplest approach — pass mocks directly to the code under test:
+
+```typescript
+class UserService {
+  constructor(private db: Database) {}
+  async getAll() { return this.db.query('SELECT * FROM users') }
+}
+
+// Test:
+const mockDb = deride.stub<Database>(['query', 'findById'])
+mockDb.setup.query.toResolveWith([{ id: 1, name: 'alice' }])
+
+const service = new UserService(mockDb)
+const users = await service.getAll()
+mockDb.expect.query.called.once()
+```
+
+<a name="usage-module-mocking"></a>
+
+### Module mocking
+
+When code imports dependencies directly, use your test runner to intercept the import and supply a deride mock:
+
+**Vitest:**
+```typescript
+import { vi } from 'vitest'
+import deride from 'deride'
+
+const mockDb = deride.stub<Database>(['query', 'findById'])
+
+vi.mock('./database', () => ({
+  db: mockDb
+}))
+
+import { userService } from './user-service' // internally imports db
+
+it('fetches users', async () => {
+  mockDb.setup.query.toResolveWith([{ id: 1, name: 'alice' }])
+  const users = await userService.getAll()
+  mockDb.expect.query.called.once()
+})
+```
+
+**Jest:**
+```typescript
+import deride from 'deride'
+
+const mockDb = deride.stub<Database>(['query'])
+
+jest.mock('./database', () => ({
+  db: mockDb
+}))
+```
+
+**Node.js test runner:**
+```typescript
+import { mock } from 'node:test'
+import deride from 'deride'
+
+mock.module('./database', () => ({
+  db: deride.stub<Database>(['query'])
+}))
+```
+
+<a name="usage-factory"></a>
+
+### Factory functions
+
+```typescript
+function createApp(deps: { db: Database; logger: Logger }) {
+  return { /* app that uses deps */ }
+}
+
+// Test:
+const app = createApp({
+  db: deride.stub<Database>(['query']),
+  logger: deride.stub<Logger>(['info', 'error']),
+})
+```
+
+---
+
+## Setup
+
+<a name="setup-toreturn"></a>
+
+### `toReturn(value)`
+
+```typescript
+bob.setup.greet.toReturn('foobar')
+bob.greet('alice') // 'foobar'
+```
+
+<a name="setup-todothis"></a>
+
+### `toDoThis(fn)`
+
+```typescript
+bob.setup.greet.toDoThis((name) => `yo ${name}`)
+bob.greet('alice') // 'yo alice'
+```
+
+<a name="setup-tothrow"></a>
+
+### `toThrow(message)`
+
+```typescript
+bob.setup.greet.toThrow('BANG')
+bob.greet('alice') // throws Error('BANG')
+```
+
+<a name="setup-toresolvewith"></a>
+
+### `toResolveWith(value)`
+
+```typescript
+bob.setup.greet.toResolveWith('async result')
+await bob.greet('alice') // 'async result'
+```
+
+<a name="setup-torejectwith"></a>
+
+### `toRejectWith(error)`
+
+```typescript
+bob.setup.greet.toRejectWith(new Error('network error'))
+await bob.greet('alice') // rejects with Error('network error')
+```
+
+<a name="setup-tocallbackwith"></a>
+
+### `toCallbackWith(...args)`
+
+Finds the last function argument and invokes it with the provided args:
+
+```typescript
+const bob = deride.stub<{ load: Function }>(['load'])
+bob.setup.load.toCallbackWith(null, 'data')
+bob.load('file.txt', (err, data) => {
+  // err === null, data === 'data'
+})
+```
+
+When multiple function arguments are passed, the last one is treated as the callback:
+
+```typescript
+bob.chuckle('arg', () => { /* ignored */ }, (err, msg) => {
+  // this one is called
+})
+```
+
+<a name="setup-toemit"></a>
+
+### `toEmit(event, ...args)`
+
+Emits an event on the wrapped object when the method is invoked:
+
+```typescript
+bob.setup.greet.toEmit('greeted', 'payload')
+bob.on('greeted', (data) => {
+  // data === 'payload'
+})
+bob.greet('alice')
+```
+
+<a name="setup-tointercept"></a>
+
+### `toIntercept(fn)`
+
+Calls the interceptor with the arguments, then calls the original method:
+
+```typescript
+const log: any[] = []
+bob.setup.greet.toIntercept((...args) => log.push(args))
+bob.greet('alice') // original runs, returns normal result
+// log === [['alice']]
+```
+
+<a name="setup-totimewarp"></a>
+
+### `toTimeWarp(ms)`
+
+Accelerates the timeout — schedules the callback with the given delay instead of the original:
+
+```typescript
+bob.setup.foobar.toTimeWarp(0) // immediate callback
+bob.foobar(10000, (result) => {
+  // called immediately instead of after 10s
+})
+```
+
+<a name="setup-when"></a>
+
+### `when(value | predicate)`
+
+Apply behavior conditionally based on arguments:
+
+```typescript
+// Match by value (compared against first argument)
+bob.setup.greet.when('alice').toReturn('hi alice')
+bob.setup.greet.when('bob').toReturn('hi bob')
+bob.greet('alice') // 'hi alice'
+bob.greet('bob')   // 'hi bob'
+
+// Match by predicate function
+bob.setup.greet.when((args) => args[0].startsWith('Dr')).toReturn('hello doctor')
+bob.greet('Dr Smith') // 'hello doctor'
+```
+
+<a name="setup-times"></a>
+
+### `once()` / `twice()` / `times(n)`
+
+Limit how many times a behavior applies. Use before `toReturn` to set the limit prospectively:
+
+```typescript
+bob.setup.greet.once().toReturn('first')
+bob.setup.greet.toReturn('default')
+bob.greet() // 'first'
+bob.greet() // 'default'
+
+bob.setup.echo.times(3).toReturn('limited')
+bob.setup.echo.toReturn('fallback')
+bob.echo() // 'limited' (x3)
+bob.echo() // 'fallback'
+```
+
+<a name="setup-chaining"></a>
+
+### Chaining with `.and.then`
+
+Use `.and.then` to define sequential behaviors in a single fluent chain:
+
+```typescript
+bob.setup.greet
+  .toReturn('alice')
+  .twice()
+  .and.then
+  .toReturn('sally')
+
+bob.greet() // 'alice'
+bob.greet() // 'alice'
+bob.greet() // 'sally'
+bob.greet() // 'sally'
+```
+
+Can be combined with `when()`:
+
+```typescript
+bob.setup.greet
+  .when('simon')
+  .toReturn('special')
+  .twice()
+  .and.then
+  .toReturn('default')
+
+bob.greet('simon') // 'special'
+bob.greet('simon') // 'special'
+bob.greet('simon') // 'default'
+```
+
+<a name="setup-fallback"></a>
+
+### `fallback()`
+
+Clear all configured behaviors, revert to the original implementation:
+
+```typescript
+bob.setup.greet.toReturn('mocked')
+bob.greet('x') // 'mocked'
+bob.setup.greet.fallback()
+bob.greet('x') // original return value
+```
+
+---
+
+## Expectations
+
+<a name="called-times"></a>
+
+### `called.times(n)`
+
+```typescript
+bob.greet('alice')
+bob.greet('bob')
+bob.expect.greet.called.times(2)
+```
+
+<a name="called-once"></a>
+
+### `called.once()`
+
+```typescript
+bob.greet('alice')
+bob.expect.greet.called.once()
+```
+
+<a name="called-twice"></a>
+
+### `called.twice()`
+
+```typescript
+bob.greet('alice')
+bob.greet('bob')
+bob.expect.greet.called.twice()
+```
+
+<a name="called-never"></a>
+
+### `called.never()`
+
+```typescript
+bob.expect.greet.called.never()
+```
+
+<a name="called-comparisons"></a>
+
+### `lt(n)` / `lte(n)` / `gt(n)` / `gte(n)`
+
+```typescript
+bob.greet('a')
+bob.greet('b')
+bob.greet('c')
+
+bob.expect.greet.called.gt(2)
+bob.expect.greet.called.gte(3)
+bob.expect.greet.called.lt(4)
+bob.expect.greet.called.lte(3)
+```
+
+<a name="called-witharg"></a>
+
+### `called.withArg(arg)`
+
+Assert that any invocation included the given argument (partial deep match):
+
+```typescript
+bob.greet('alice', { name: 'bob', a: 1 })
+bob.expect.greet.called.withArg({ name: 'bob' })
+```
+
+<a name="called-withargs"></a>
+
+### `called.withArgs(...args)`
+
+Assert that all provided arguments were present in a single invocation:
+
+```typescript
+bob.greet('alice', 'bob')
+bob.expect.greet.called.withArgs('alice', 'bob')
+```
+
+<a name="called-withmatch"></a>
+
+### `called.withMatch(regex)`
+
+Match arguments against a regex pattern (searches strings and nested objects):
+
+```typescript
+bob.greet('The quick brown fox')
+bob.expect.greet.called.withMatch(/quick.*fox/)
+
+bob.greet({ message: 'hello world' })
+bob.expect.greet.called.withMatch(/hello/)
+```
+
+<a name="called-matchexactly"></a>
+
+### `called.matchExactly(...args)`
+
+Assert strict deep equality of all arguments for a single invocation:
+
+```typescript
+bob.greet('alice', ['carol'], 123)
+bob.expect.greet.called.matchExactly('alice', ['carol'], 123)
+```
+
+<a name="called-not"></a>
+
+### `called.not.*`
+
+All expectation methods can be negated — they pass when the positive assertion would fail:
+
+```typescript
+bob.greet('alice')
+bob.expect.greet.called.not.never()       // passes (it was called)
+bob.expect.greet.called.not.twice()       // passes (called once, not twice)
+bob.expect.greet.called.not.withArg('bob') // passes (was called with 'alice')
+```
+
+<a name="called-reset"></a>
+
+### `called.reset()`
+
+Reset the call count and recorded arguments for a single method:
+
+```typescript
+bob.greet('alice')
+bob.expect.greet.called.once()
+bob.expect.greet.called.reset()
+bob.expect.greet.called.never()
+```
+
+<a name="called-reset-all"></a>
+
+### `obj.called.reset()`
+
+Reset all methods at once:
+
+```typescript
+bob.greet('alice')
+bob.echo('hello')
+bob.called.reset()
+bob.expect.greet.called.never()
+bob.expect.echo.called.never()
+```
+
+<a name="invocation"></a>
+
+### `invocation(i)`
+
+Access a specific invocation by zero-based index:
+
+```typescript
+bob.greet('first')
+bob.greet('second', 'extra')
+
+bob.expect.greet.invocation(0).withArg('first')
+bob.expect.greet.invocation(1).withArg('second')
+bob.expect.greet.invocation(1).withArgs('second', 'extra')
+```
+
+---
 
 ## Events
 
-### Force the emit of an event on an object
-```javascript
-var bob = deride.stub([]);
-bob.on('message', function() {
-    done();
-});
-bob.emit('message', 'payload');
+### Emit events directly
+
+```typescript
+bob.on('message', (payload) => { /* ... */ })
+bob.emit('message', 'hello')
 ```
 
-### Emit an event on method invocation
-```javascript
-bob.setup.greet.toEmit('testing');
-bob.on('testing', function() {
-	done();
-});
-bob.greet('bob');
+### Emit on method invocation
+
+```typescript
+bob.setup.greet.toEmit('greeted', 'arg1', { a: 1 })
+bob.on('greeted', (a1, a2) => {
+  // a1 === 'arg1', a2 === { a: 1 }
+})
+bob.greet('bob')
 ```
 
-### Emit an event with args on method invocation
-```javascript
-bob.setup.greet.toEmit('testing', 'arg1', { a: 1 });
-bob.on('testing', function(a1, a2) {
-	a1.should.eql('arg1');
-	a2.should.eql({ a: 1 });
-	done();
-});
-bob.greet('bob');
-```
+---
 
+## TypeScript
 
-<a name="called-times" />
+Full type support with generics:
 
-### Count the number of invocations of a method
-```javascript
-var bob = new Person('bob');
-bob = deride.wrap(bob);
-bob.greet('alice');
-bob.expect.greet.called.times(1);
-```
+```typescript
+import deride, { Wrapped } from 'deride'
 
-<a name="called-once" />
-
-### Has convenience methods for invocation counts
-```javascript
-var bob = new Person('bob');
-bob = deride.wrap(bob);
-bob.greet('alice');
-bob.expect.greet.called.once();
-bob.greet('sally');
-bob.expect.greet.called.twice();
-```
-
-<a name="called-lte" />
-
-### Handy `lt`, `lte`, `gt` and `gte` methods
-```javascript
-var bob = new Person('bob');
-bob = deride.wrap(bob);
-bob.greet('alice');
-bob.greet('alice');
-bob.greet('alice');
-
-bob.expect.greet.called.lt(4);
-bob.expect.greet.called.lte(3);
-bob.expect.greet.called.gt(2);
-bob.expect.greet.called.gte(3);
-```
-
-<a name="called-never" />
-
-### Determine if a method has **never** been called
-```javascript
-var bob = new Person('bob');
-bob = deride.wrap(bob);
-bob.expect.greet.called.never();
-```
-
-<a name="called-reset" />
-
-### Resetting the called count on **all** methods
-```javascript
-var bob = new Person('bob');
-bob = deride.wrap(bob);
-bob.greet('alice');
-bob.echo('alice');
-bob.expect.greet.called.once();
-bob.expect.echo.called.once();
-
-bob.called.reset();
-
-bob.expect.greet.called.never();
-bob.expect.echo.called.never();
-```
-
-<a name="called-withargs" />
-
-### Determine if a method was called with a specific set of arguments
-```javascript
-var bob = new Person('bob');
-bob = deride.wrap(bob);
-bob.greet('alice');
-bob.greet('bob');
-bob.expect.greet.called.withArgs('bob');
-```
-
-<a name="called-matchexactly" />
-
-### Determine if a method was called with the exact set of arguments
-```javascript
-var bob = new Person('bob');
-bob = deride.wrap(bob);
-bob.greet('alice', ['james'], 987);
-bob.expect.greet.called.matchExactly('alice', ['james'], 987);
-```
-
-<a name="setup-todothis" />
-
-### Override the method body to change the invocation
-```javascript
-var bob = new Person('bob');
-bob = deride.wrap(bob);
-bob.setup.greet.toDoThis(function(otherPersonName) {
-    return util.format('yo %s', otherPersonName);
-});
-var result = bob.greet('alice');
-result.should.eql('yo alice');
-```
-
-<a name="setup-toreturn" />
-
-### Override the return value for a function
-```javascript
-var bob = new Person('bob');
-bob = deride.wrap(bob);
-bob.setup.greet.toReturn('foobar');
-var result = bob.greet('alice');
-result.should.eql('foobar');
-```
-
-### Overriding the promise resolver for a function
-<a name="setup-promise-resolve" />
-
-#### To resolve with a value
-```javascript
-var bob = new Person('bob');
-bob = deride.wrap(bob);
-bob.setup.greet.toResolveWith('foobar');
-bob.greet('alice').then(function(result) {
-    result.should.eql('foobar');
-});
-```
-
-<a name="setup-promise-reject" />
-
-#### To reject with a value
-```javascript
-var bob = new Person('bob');
-bob = deride.wrap(bob);
-bob.setup.greet.toRejectWith('foobar');
-bob.greet('alice').catch(function(result) {
-    result.should.eql('foobar');
-});
-```
-
-<a name="setup-tothrow" />
-
-### Force a method invocation to throw a specific error
-```javascript
-var bob = new Person('bob');
-bob = deride.wrap(bob);
-bob.setup.greet.toThrow('BANG');
-should(function() {
-    bob.greet('alice');
-}).
-throw(/BANG/);
-```
-
-<a name="setup-tocallback" />
-
-## Override the invocation of a callback
-
-### when there is only one function passed as args
-```javascript
-var bob = new Person('bob');
-bob = deride.wrap(bob);
-bob.setup.chuckle.toCallbackWith(0, 'boom');
-bob.chuckle(function(err, message) {
-    assert.equal(err, 0);
-    assert.equal(message, 'boom');
-});
-```
-
-### when the callback is the last arg which is a `function`
-```javascript
-var bob = new Person('bob');
-bob = deride.wrap(bob);
-bob.setup.chuckle.toCallbackWith(0, 'boom');
-bob.chuckle('bob', function() {
-    done('this was not the callback');
-}, function(err, message) {
-    assert.equal(err, 0);
-    assert.equal(message, 'boom');
-    done();
-});
-```
-
-<a name="setup-totimewarp" />
-
-### Accelerating the timeout used internally by a function
-```javascript
-var Person = function(name) {
-    return Object.freeze({
-        foobar: function(timeout, callback) {
-            setTimeout(function() {
-                callback('result');
-            }, timeout);
-        }
-    });
-};
-var timeout = 10000;
-var bob = new Person('bob');
-bob = deride.wrap(bob);
-bob.setup.foobar.toTimeWarp(timeout);
-bob.foobar(timeout, function(message) {
-    assert.equal(message, 'result');
-});
-```
-
-<a name="setup-tointercept" />
-
-## Setup an intercept
-
-Currently this will allow you to inspect the arguments that are passed to a method, but it will not pass any modifications to the real method.
-
-```javascript
-var bob = new Person('bob');
-bob = deride.wrap(bob);
-bob.setup.greet.toIntercept(function () {
-    console.log(arguments); // { '0': 'sally', '1': { message: 'hello %s'} }
-});
-
-bob.greet('sally', {message: 'hello %s'});
-```
-
-
-## Setup for specific arguments
-
-<a name="setup-toreturn-when" />
-
-### Setting the return value of a function when specific arguments are used
-```javascript
-var bob = new Person('bob');
-bob = deride.wrap(bob);
-bob.setup.greet.when('alice').toReturn('foobar');
-bob.setup.greet.toReturn('barfoo');
-var result1 = bob.greet('alice');
-var result2 = bob.greet('bob');
-result1.should.eql('foobar');
-result2.should.eql('barfoo');
-```
-
-<a name="setup-todothis-when" />
-
-### Overriding a method's body when specific arguments are provided
-``` javascript
-var bob = new Person('bob');
-bob = deride.wrap(bob);
-bob.setup.greet.when('alice').toDoThis(function(otherPersonName) {
-    return util.format('yo yo %s', otherPersonName);
-});
-bob.setup.greet.toDoThis(function(otherPersonName) {
-    return util.format('yo %s', otherPersonName);
-});
-var result1 = bob.greet('alice');
-var result2 = bob.greet('bob');
-result1.should.eql('yo yo alice');
-result2.should.eql('yo bob');
-```
-
-<a name="setup-tothrow-when" />
-
-### Throwing an error for a method invocation when specific arguments are provided
-```javascript
-var bob = new Person('bob');
-bob = deride.wrap(bob);
-bob.setup.greet.when('alice').toThrow('BANG');
-should(function() {
-    bob.greet('alice');
-}).
-throw (/BANG/);
-should(function() {
-    bob.greet('bob');
-}).not.
-throw (/BANG/);
-```
-
-<a name="setup-tocallback-when" />
-
-### Override the invocation of a callback when specific arguments are provided
-```javascript
-var bob = new Person('bob');
-bob = deride.wrap(bob);
-bob.setup.chuckle.toCallbackWith([0, 'boom']);
-bob.setup.chuckle.when('alice').toCallbackWith([0, 'bam']);
-bob.chuckle(function(err, message) {
-    assert.equal(err, 0);
-    assert.equal(message, 'boom');
-    bob.chuckle('alice', function(err, message) {
-        assert.equal(err, 0);
-        assert.equal(message, 'bam');
-    });
-});
-```
-
-<a name="setup-totimewarp-when" />
-
-### Accelerating the timeout used internally by a function when specific arguments are provided
-```javascript
-var Person = function(name) {
-    return Object.freeze({
-        foobar: function(timeout, callback) {
-            setTimeout(function() {
-                callback('result');
-            }, timeout);
-        }
-    });
-};
-var timeout1 = 10000;
-var timeout2 = 20000;
-var bob = new Person('bob');
-bob = deride.wrap(bob);
-bob.setup.foobar.toTimeWarp(timeout1);
-bob.setup.foobar.when(timeout2).toTimeWarp(timeout2);
-bob.foobar(timeout1, function(message) {
-    assert.equal(message, 'result');
-    bob.foobar(timeout2, function(message) {
-        assert.equal(message, 'result');
-        done();
-    });
-});
-
-```
-
-### Use a function as a predicate
-
-If a function is passed to the `when`, then this will be invoked with the arguments passed. The function that has been setup will be called if this predicate returns truthy.
-
-```javascript
-function resourceMatchingPredicate(msg) {
-	var content = JSON.parse(msg.content.toString());
-	return content.resource === 'talula';
+interface MyService {
+  fetch(url: string): Promise<string>
+  process(data: string): void
 }
-bob.setup.chuckle.toReturn('chuckling');
-bob.setup.chuckle.when(resourceMatchingPredicate).toReturn('chuckle talula');
 
-var matchingMsg = {
-	//...
-	//other properties that we do not know until runtime
-	//...
-	content: new Buffer(JSON.stringify({
-		resource: 'talula'
-	}))
-};
-bob.chuckle(matchingMsg).should.eql('chuckle talula');
+const service: Wrapped<MyService> = deride.stub<MyService>(['fetch', 'process'])
+service.setup.fetch.toResolveWith('response data')
+service.process('hello')
+service.expect.process.called.withArg('hello')
 ```
 
+<a name="type-safe-setup"></a>
 
-### Setting multiple functions as a predicates
+### Type-safe setup
 
-```javascript
-function tatulaMatchingPredicate(msg) {
-	var content = JSON.parse(msg.content.toString());
-	return content.resource === 'talula';
-}
-function babulaMatchingPredicate(msg) {
-	var content = JSON.parse(msg.content.toString());
-	return content.resource === 'babula';
-}
-bob.setup.chuckle.toReturn('chuckling');
-bob.setup.chuckle.when(tatulaMatchingPredicate).toReturn('chuckle talula');
-bob.setup.chuckle.when(babulaMatchingPredicate).toReturn('chuckle babula');
+Setup methods are constrained to the method's return type:
 
-var matchingMsg = {
-	//...
-	//other properties that we do not know until runtime
-	//...
-	content: new Buffer(JSON.stringify({
-		resource: 'talula'
-	}))
-};
-bob.chuckle(matchingMsg).should.eql('chuckle talula');
-matchingMsg.content.resource = 'babula';
-bob.chuckle(matchingMsg).should.eql('chuckle babula');
+```typescript
+service.setup.fetch.toResolveWith('valid string')  // OK
+service.setup.fetch.toResolveWith(123)             // Type error!
 ```
 
-<a name="setup-multiple-invocations" />
-### Setup for multiple invocations
+To intentionally return an invalid type (e.g. testing error paths), cast with `as any`:
 
-#### Using a stub X times
-```javascript
-bob.setup.greet
-    .toReturn('alice')
-    .twice()
-    .and.then
-    .toReturn('sally');
-bob.greet().should.eql('alice');
-bob.greet().should.eql('alice');
-bob.greet().should.eql('sally');
-bob.greet().should.eql('sally');
-```
-
-#### Using a stub when
-
-```javascript
-var normalResult = bob.greet('talula');
-var normalSimon = bob.greet('simon');
-bob.setup.greet
-    .when('simon')
-    .toReturn('alice')
-    .twice();
-// default Person behaviour
-should(bob.greet('talula')).eql(normalResult);
-// overridden behaviour
-bob.greet('simon').should.eql('alice');
-bob.greet('simon').should.eql('alice');
-// default Person behaviour
-should(bob.greet('simon')).eql(normalSimon);
-```
-
-#### Specify to fallback
-
-```javascript
-var normalResult = bob.greet('alice');
-debug('normalResult', normalResult);
-bob.setup.greet
-    .toReturn('alice')
-    .twice()
-    .and.then
-    .fallback();
-bob.greet('alice').should.eql('alice');
-bob.greet('alice').should.eql('alice');
-should(bob.greet('alice')).eql(normalResult);
-```
-### Provide access to individual calls to a method
-
-```javascript
-var bob = deride.wrap(bob);
-bob.greet('jack', 'alice');
-bob.greet('bob');
-bob.expect.greet.invocation(0).withArg('alice');
-bob.expect.greet.invocation(1).withArg('bob');
-```
-
-## Enable the assertion on a single arg being used in any invocation
-
-<a name="called-witharg" />
-
-### when the arg is a primitive object
-```javascript
-var bob = deride.wrap(bob);
-bob.greet('alice', {
-    name: 'bob',
-    a: 1
-}, 'sam');
-bob.expect.greet.called.withArg('sam');
-```
-
-### when the arg is not a primitive object
-```javascript
-var bob = deride.wrap(bob);
-bob.greet('alice', {
-    name: 'bob',
-    a: 1
-});
-bob.expect.greet.called.withArg({
-    name: 'bob'
-});
-```
-
-<a name="called-withmatch" />
-## Use a RexExp match for the assertion on any args being used in any invocation
-
-### when the arg is a primitive object
-```javascript
-var bob = deride.stub(['greet']);
-bob.greet('The inspiration for this was that my colleague was having a');
-bob.greet({a: 123, b: 'talula'}, 123, 'something');
-
-bob.expect.greet.called.withMatch(/^The inspiration for this was/);
-```
-
-### when the arg is not a primitive object
-
-
-```javascript
-var bob = deride.stub(['greet']);
-bob.greet('The inspiration for this was that my colleague was having a');
-bob.greet({a: 123, b: { a: {'talula'}}, 123, 'something');
-
-bob.expect.greet.called.withMatch(/^talula/gi);
+```typescript
+service.setup.fetch.toResolveWith(null as any)  // Bypasses type checking
 ```
 
 ---
 
 ## Contributing
-Please ensure that you run ```grunt```, have no style warnings and that all the tests are passing.
+
+```bash
+pnpm lint         # eslint (src + tests)
+pnpm typecheck    # tsc --noEmit
+pnpm test         # vitest (watch mode)
+pnpm build        # tsup (cjs + esm + types)
+```
 
 ## License
-Copyright (c) 2014 Andrew Rea  
+
+Copyright (c) 2014 Andrew Rea
 Copyright (c) 2014 James Allen
 
 Licensed under the MIT license.
