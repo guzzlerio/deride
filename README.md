@@ -63,6 +63,15 @@ import { stub, wrap, func } from 'deride'
 
 ## Creating mocks
 
+The examples below use this interface:
+
+```typescript
+interface Person {
+  greet(name: string): string
+  echo(value: string): string
+}
+```
+
 <a name="stub-methods"></a>
 
 ### Creating a stub from method names
