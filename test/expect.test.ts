@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict'
 import { describe, it, expect, beforeEach } from 'vitest'
 import deride from '../src/index'
 import { IPerson } from './wrap.test'
@@ -7,21 +6,20 @@ import { Wrapped } from '../src/types'
 describe('deride', () => {
   describe('Expectations', () => {
     let bob: Wrapped<IPerson>
-    beforeEach(function () {
-      // bob = deride.wrap(new Person('bob'))
+    beforeEach(() => {
       bob = deride.stub<IPerson>(['greet', 'greetAsync', 'chuckle'])
       bob.setup.greet.toReturn('talula')
       bob.setup.greetAsync.toResolveWith('talula')
     })
 
-    it('does not invoke original method when override method body', function () {
+    it('does not invoke original method when override method body', () => {
       bob.setup.greet.toDoThis(() => 'hello')
       const result = bob.greet('')
-      assert.equal(result, 'hello')
+      expect(result).toBe('hello')
     })
 
     describe('withArgs', () => {
-      it('ignores the order of an object properties when comparing equality', function () {
+      it('ignores the order of an object properties when comparing equality', () => {
         bob.greet({
           c: 3,
           b: 2,
@@ -67,16 +65,16 @@ describe('deride', () => {
         },
       ])('withArg called with an array', ({ name, input, expectPass }) => {
         if (expectPass) {
-          it('object called with ' + name + ' should pass', function () {
+          it('object called with ' + name + ' should pass', () => {
             bob.greet(input)
             bob.expect.greet.called.withArg(['a', 'b'])
           })
         } else {
-          it('object called with ' + name + ' should fail', function () {
+          it('object called with ' + name + ' should fail', () => {
             bob.greet(input)
-            assert.throws(function () {
+            expect(() => {
               bob.expect.greet.called.withArg(['a', 'b'])
-            }, Error)
+            }).toThrow()
           })
         }
       })
@@ -92,7 +90,7 @@ describe('deride', () => {
           {
             a: 1,
           },
-          function () {}
+          () => {}
         )
         bob.expect.greet.called.withArgs({
           a: 1,
@@ -117,8 +115,8 @@ describe('deride', () => {
         bob.expect.greet.called.withMatch(/^The inspiration for this was/)
       })
 
-      it('fails when no match is found with regex', function () {
-        expect(() => bob.expect.greet.called.withMatch(/^other/)).throws(
+      it('fails when no match is found with regex', () => {
+        expect(() => bob.expect.greet.called.withMatch(/^other/)).toThrow(
           'Expected greet to be called matching: /^other/'
         )
       })
@@ -127,7 +125,7 @@ describe('deride', () => {
         bob.expect.greet.called.withMatch(/^talula/gi)
       })
 
-      it('allows matching call args with regex in deep objects', function () {
+      it('allows matching call args with regex in deep objects', () => {
         bob.greet(
           {
             a: 123,
@@ -155,7 +153,7 @@ describe('deride', () => {
         bob.greet('test')
         bob.expect.greet.called.withArgs('test')
         bob.expect.greet.called.reset()
-        expect(() => bob.expect.greet.called.withArgs('test')).throws(
+        expect(() => bob.expect.greet.called.withArgs('test')).toThrow(
           'Expected greet to be called with: test'
         )
       })
@@ -176,7 +174,7 @@ describe('deride', () => {
       describe('matchExactly causes failures', () => {
         it('with mixed strings, arrays and numbers', () => {
           bob.greet('alice', ['carol'], 123)
-          expect(() => bob.expect.greet.called.matchExactly('not-alice', ['or-carol'], 987)).throws(
+          expect(() => bob.expect.greet.called.matchExactly('not-alice', ['or-carol'], 987)).toThrow(
             `Expected greet to be called matchExactly args[ 'not-alice', [ 'or-carol' ], 987 ]`
           )
         })
@@ -203,23 +201,23 @@ describe('deride', () => {
               },
               'not-sam'
             )
-          ).throws(
+          ).toThrow(
             `Expected greet to be called matchExactly args[ 'alice', [ 'carol' ], 123, { name: 'not-bob', a: 1 }, 'not-sam' ]`
           )
         })
       })
 
-      describe('should not allow mutation after expectation is defined', function () {
-        let objectToMutate
+      describe('should not allow mutation after expectation is defined', () => {
+        let objectToMutate: { test: string }
 
-        beforeEach(function () {
+        beforeEach(() => {
           objectToMutate = {
             test: 'abc',
           }
         })
 
-        describe('with promises', function () {
-          beforeEach(function () {
+        describe('with promises', () => {
+          beforeEach(() => {
             bob.setup.greet.toResolve()
           })
 
@@ -228,7 +226,7 @@ describe('deride', () => {
             objectToMutate.test = '123'
           })
 
-          it('should expect original and not mutated object', function () {
+          it('should expect original and not mutated object', () => {
             bob.expect.greetAsync.called.matchExactly({
               test: 'abc',
             })

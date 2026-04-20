@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import deride from '../src/index'
 
@@ -19,13 +18,13 @@ describe('MethodMock', () => {
     it('returns undefined by default', () => {
       const fn = deride.func()
       const result = fn('hello')
-      assert.equal(result, undefined)
+      expect(result).toBe(undefined)
     })
 
     it('delegates to original function when provided', () => {
       const fn = deride.func((x: number) => x * 2)
       const result = fn(5)
-      assert.equal(result, 10)
+      expect(result).toBe(10)
       fn.expect.called.once()
     })
 
@@ -33,7 +32,7 @@ describe('MethodMock', () => {
       const fn = deride.func((x: number) => x * 2)
       fn.setup.toReturn(99)
       const result = fn(5)
-      assert.equal(result, 99)
+      expect(result).toBe(99)
     })
 
     it('tracks multiple calls', () => {
@@ -55,25 +54,25 @@ describe('MethodMock', () => {
     it('returns different values based on first argument', () => {
       bob.setup.greet.when('alice').toReturn('hi alice')
       bob.setup.greet.when('bob').toReturn('hi bob')
-      assert.equal(bob.greet('alice'), 'hi alice')
-      assert.equal(bob.greet('bob'), 'hi bob')
+      expect(bob.greet('alice')).toBe('hi alice')
+      expect(bob.greet('bob')).toBe('hi bob')
     })
 
     it('returns undefined when no when matches', () => {
       bob.setup.greet.when('alice').toReturn('hi alice')
-      assert.equal(bob.greet('unknown'), undefined)
+      expect(bob.greet('unknown')).toBe(undefined)
     })
 
     it('supports predicate functions', () => {
       bob.setup.greet.when((args: any[]) => args[0].startsWith('Dr')).toReturn('hello doctor')
-      assert.equal(bob.greet('Dr Smith'), 'hello doctor')
-      assert.equal(bob.greet('Mr Jones'), undefined)
+      expect(bob.greet('Dr Smith')).toBe('hello doctor')
+      expect(bob.greet('Mr Jones')).toBe(undefined)
     })
 
     it('later when registrations take priority', () => {
       bob.setup.greet.when('alice').toReturn('first')
       bob.setup.greet.when('alice').toReturn('second')
-      assert.equal(bob.greet('alice'), 'second')
+      expect(bob.greet('alice')).toBe('second')
     })
   })
 
@@ -87,62 +86,62 @@ describe('MethodMock', () => {
     it('once() limits behavior to single invocation', () => {
       bob.setup.greet.toReturn('default')
       bob.setup.greet.once().toReturn('first')
-      assert.equal(bob.greet(), 'first')
-      assert.equal(bob.greet(), 'default')
+      expect(bob.greet()).toBe('first')
+      expect(bob.greet()).toBe('default')
     })
 
     it('twice() limits behavior to two invocations', () => {
       bob.setup.greet.toReturn('fallback')
       bob.setup.greet.twice().toReturn('limited')
-      assert.equal(bob.greet(), 'limited')
-      assert.equal(bob.greet(), 'limited')
-      assert.equal(bob.greet(), 'fallback')
+      expect(bob.greet()).toBe('limited')
+      expect(bob.greet()).toBe('limited')
+      expect(bob.greet()).toBe('fallback')
     })
 
     it('times(n) limits behavior to n invocations', () => {
       bob.setup.greet.toReturn('fallback')
       bob.setup.greet.times(3).toReturn('limited')
-      assert.equal(bob.greet(), 'limited')
-      assert.equal(bob.greet(), 'limited')
-      assert.equal(bob.greet(), 'limited')
-      assert.equal(bob.greet(), 'fallback')
+      expect(bob.greet()).toBe('limited')
+      expect(bob.greet()).toBe('limited')
+      expect(bob.greet()).toBe('limited')
+      expect(bob.greet()).toBe('fallback')
     })
 
     it('falls back to undefined when no default behavior', () => {
       bob.setup.greet.once().toReturn('first')
-      assert.equal(bob.greet(), 'first')
-      assert.equal(bob.greet(), undefined)
+      expect(bob.greet()).toBe('first')
+      expect(bob.greet()).toBe(undefined)
     })
 
     it('supports .and.then chaining for sequential behaviors', () => {
       bob.setup.greet.toReturn('first').twice().and.then.toReturn('second')
-      assert.equal(bob.greet(), 'first')
-      assert.equal(bob.greet(), 'first')
-      assert.equal(bob.greet(), 'second')
+      expect(bob.greet()).toBe('first')
+      expect(bob.greet()).toBe('first')
+      expect(bob.greet()).toBe('second')
     })
 
     it('supports multiple .and.then chains', () => {
       bob.setup.greet.toReturn('a').once().and.then.toReturn('b').once().and.then.toReturn('c')
-      assert.equal(bob.greet(), 'a')
-      assert.equal(bob.greet(), 'b')
-      assert.equal(bob.greet(), 'c')
-      assert.equal(bob.greet(), 'c')
+      expect(bob.greet()).toBe('a')
+      expect(bob.greet()).toBe('b')
+      expect(bob.greet()).toBe('c')
+      expect(bob.greet()).toBe('c')
     })
 
     it('when().twice() limits conditional behavior to two invocations', () => {
       bob.setup.greet.toReturn('default')
       bob.setup.greet.when('alice').twice().toReturn('special')
-      assert.equal(bob.greet('alice'), 'special')
-      assert.equal(bob.greet('alice'), 'special')
-      assert.equal(bob.greet('alice'), 'default')
-      assert.equal(bob.greet('bob'), 'default')
+      expect(bob.greet('alice')).toBe('special')
+      expect(bob.greet('alice')).toBe('special')
+      expect(bob.greet('alice')).toBe('default')
+      expect(bob.greet('bob')).toBe('default')
     })
 
     it('when().times(n) limits conditional behavior to n invocations', () => {
       bob.setup.greet.toReturn('default')
       bob.setup.greet.when('alice').times(1).toReturn('once-only')
-      assert.equal(bob.greet('alice'), 'once-only')
-      assert.equal(bob.greet('alice'), 'default')
+      expect(bob.greet('alice')).toBe('once-only')
+      expect(bob.greet('alice')).toBe('default')
     })
   })
 
@@ -165,7 +164,7 @@ describe('MethodMock', () => {
       const bob = deride.stub(['fetch'])
       bob.setup.fetch.toResolveWith('data')
       const result = await bob.fetch()
-      assert.equal(result, 'data')
+      expect(result).toBe('data')
     })
   })
 
@@ -175,9 +174,9 @@ describe('MethodMock', () => {
       bob.setup.load.toCallbackWith(null, 'data')
       const results: any[] = []
       bob.load('file.txt', (err: any, data: any) => results.push({ err, data }))
-      assert.equal(results.length, 1)
-      assert.equal(results[0].err, null)
-      assert.equal(results[0].data, 'data')
+      expect(results.length).toBe(1)
+      expect(results[0].err).toBe(null)
+      expect(results[0].data).toBe('data')
     })
 
     it('invokes the last function when multiple functions are passed', () => {
@@ -189,8 +188,8 @@ describe('MethodMock', () => {
         () => results.push('wrong'),
         (err: any, message: any) => results.push({ err, message })
       )
-      assert.equal(results.length, 1)
-      assert.deepEqual(results[0], { err: 0, message: 'boom' })
+      expect(results.length).toBe(1)
+      expect(results[0]).toEqual({ err: 0, message: 'boom' })
     })
 
     it('throws when no callback is found', () => {
@@ -206,9 +205,9 @@ describe('MethodMock', () => {
       const intercepted: any[][] = []
       fn.setup.toIntercept((...args: any[]) => intercepted.push(args))
       const result = fn(5)
-      assert.equal(result, 10)
-      assert.equal(intercepted.length, 1)
-      assert.deepEqual(intercepted[0], [5])
+      expect(result).toBe(10)
+      expect(intercepted.length).toBe(1)
+      expect(intercepted[0]).toEqual([5])
     })
 
     it('calls interceptor and returns undefined when no original', () => {
@@ -216,9 +215,9 @@ describe('MethodMock', () => {
       const intercepted: any[][] = []
       fn.setup.toIntercept((...args: any[]) => intercepted.push(args))
       const result = fn('test')
-      assert.equal(result, undefined)
-      assert.equal(intercepted.length, 1)
-      assert.deepEqual(intercepted[0], ['test'])
+      expect(result).toBe(undefined)
+      expect(intercepted.length).toBe(1)
+      expect(intercepted[0]).toEqual(['test'])
     })
   })
 
@@ -230,10 +229,10 @@ describe('MethodMock', () => {
         bob.setup.doWork.toTimeWarp(0)
         const results: string[] = []
         bob.doWork(1000, (_result: any) => results.push('done'))
-        assert.equal(results.length, 0)
+        expect(results.length).toBe(0)
         vi.runAllTimers()
-        assert.equal(results.length, 1)
-        assert.equal(results[0], 'done')
+        expect(results.length).toBe(1)
+        expect(results[0]).toBe('done')
       } finally {
         vi.useRealTimers()
       }
@@ -246,11 +245,11 @@ describe('MethodMock', () => {
         bob.setup.doWork.toTimeWarp(100)
         const results: string[] = []
         bob.doWork(() => results.push('done'))
-        assert.equal(results.length, 0)
+        expect(results.length).toBe(0)
         vi.advanceTimersByTime(50)
-        assert.equal(results.length, 0)
+        expect(results.length).toBe(0)
         vi.advanceTimersByTime(50)
-        assert.equal(results.length, 1)
+        expect(results.length).toBe(1)
       } finally {
         vi.useRealTimers()
       }
@@ -261,9 +260,9 @@ describe('MethodMock', () => {
     it('clears all behaviors', () => {
       const bob = deride.stub(['greet'])
       bob.setup.greet.toReturn('mocked')
-      assert.equal(bob.greet(), 'mocked')
+      expect(bob.greet()).toBe('mocked')
       bob.setup.greet.fallback()
-      assert.equal(bob.greet(), undefined)
+      expect(bob.greet()).toBe(undefined)
     })
 
     it('allows new behaviors to be added after fallback', () => {
@@ -271,7 +270,7 @@ describe('MethodMock', () => {
       bob.setup.greet.toReturn('first')
       bob.setup.greet.fallback()
       bob.setup.greet.toReturn('second')
-      assert.equal(bob.greet(), 'second')
+      expect(bob.greet()).toBe('second')
     })
   })
 
@@ -287,7 +286,7 @@ describe('MethodMock', () => {
     it('replaces behavior with custom function', () => {
       const bob = deride.stub(['greet'])
       bob.setup.greet.toDoThis((name: string) => `hello ${name}`)
-      assert.equal(bob.greet('alice'), 'hello alice')
+      expect(bob.greet('alice')).toBe('hello alice')
     })
   })
 
@@ -533,13 +532,13 @@ describe('MethodMock', () => {
     it('supports toReturn on func', () => {
       const fn = deride.func()
       fn.setup.toReturn(42)
-      assert.equal(fn(), 42)
+      expect(fn()).toBe(42)
     })
 
     it('supports toDoThis on func', () => {
       const fn = deride.func()
       fn.setup.toDoThis((x: number) => x + 1)
-      assert.equal(fn(10), 11)
+      expect(fn(10)).toBe(11)
     })
 
     it('supports toThrow on func', () => {
@@ -552,7 +551,7 @@ describe('MethodMock', () => {
       const fn = deride.func()
       fn.setup.toResolveWith('resolved')
       const result = await fn()
-      assert.equal(result, 'resolved')
+      expect(result).toBe('resolved')
     })
   })
 
@@ -571,7 +570,7 @@ describe('MethodMock', () => {
     it('returns a callable mock that delegates to the original', () => {
       function greet(name: string) { return `hello ${name}` }
       const wrapped = deride.wrap(greet)
-      assert.equal(wrapped('world'), 'hello world')
+      expect(wrapped('world')).toBe('hello world')
     })
 
     it('tracks calls on the wrapped function', () => {
@@ -586,7 +585,7 @@ describe('MethodMock', () => {
       function greet(name: string) { return `hello ${name}` }
       const wrapped = deride.wrap(greet)
       wrapped.setup.toReturn('overridden')
-      assert.equal(wrapped('x'), 'overridden')
+      expect(wrapped('x')).toBe('overridden')
     })
   })
 })

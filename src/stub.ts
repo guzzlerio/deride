@@ -19,7 +19,7 @@ export function stub<T extends object>(
 
   const stubObj: Record<string, any> = {}
   for (const method of methods) {
-    stubObj[method] = function () {}
+    stubObj[method] = () => {}
   }
 
   const wrapped = wrap(stubObj, options) as any

@@ -13,8 +13,8 @@ interface IProps {
   height: string
 }
 
-const fooBarFunction = function (timeout: number, callback: (arg0: string) => void) {
-  setTimeout(function () {
+const fooBarFunction = (timeout: number, callback: (arg0: string) => void) => {
+  setTimeout(() => {
     callback('result')
   }, timeout)
 }
@@ -47,11 +47,10 @@ const PersonObj: IPerson = {
 }
 
 describe('deride', () => {
-  //TODO move to separate test file
   describe('stub', () => {
-    describe('Properties', function () {
+    describe('Properties', () => {
       let bob: Wrapped<IPerson & IProps>
-      beforeEach(function () {
+      beforeEach(() => {
         bob = deride.stub<IPerson & IProps>(
           ['greet'],
           [
@@ -74,12 +73,12 @@ describe('deride', () => {
         bob.setup.greet.toReturn('hello')
       })
 
-      it('enables properties if specified in construction', function () {
+      it('enables properties if specified in construction', () => {
         expect(bob.age).to.eql(25)
         expect(bob.height).to.eql('180cm')
       })
 
-      it('still allows function overriding', function () {
+      it('still allows function overriding', () => {
         expect(bob.greet('sally')).to.eql('hello')
       })
     })
@@ -87,7 +86,7 @@ describe('deride', () => {
   describe.each([
     {
       name: 'Creating a stub object',
-      setup: function () {
+      setup: () => {
         const stub = deride.stub<IPerson>(['greet', 'chuckle', 'foobar'], undefined, {
           debug: {
             prefix: 'deride:test',
@@ -101,7 +100,7 @@ describe('deride', () => {
     },
     {
       name: 'Creating a stub object from an object with Object style methods',
-      setup: function () {
+      setup: () => {
         const stub = deride.stub(PersonObj, undefined, {
           debug: {
             prefix: 'deride:test',
@@ -114,7 +113,7 @@ describe('deride', () => {
     },
     {
       name: 'Wrapping existing objects with Object style methods',
-      setup: function () {
+      setup: () => {
         return deride.wrap(PersonObj, {
           debug: {
             prefix: 'deride:test',
@@ -125,20 +124,19 @@ describe('deride', () => {
     },
     {
       name: 'Wrapping existing object using Object Freeze with expectations',
-      setup: function () {
-        function Person(name: string): IPerson {
-          return Object.freeze({
-            greet: function (otherPersonName: string) {
+      setup: () => {
+        const createPerson = (name: string): IPerson =>
+          Object.freeze({
+            greet: (otherPersonName: string) => {
               return `${name} says hello to ${otherPersonName}`
             },
-            greetAsync: function (otherPersonName: string) {
-              return Promise.resolve(this.greet(otherPersonName))
+            greetAsync: (otherPersonName: string) => {
+              return Promise.resolve(`${name} says hello to ${otherPersonName}`)
             },
-            chuckle: function () {},
+            chuckle: () => {},
             foobar: fooBarFunction,
           })
-        }
-        return deride.wrap(Person('bob'), {
+        return deride.wrap(createPerson('bob'), {
           debug: {
             prefix: 'deride:test',
             suffix: 'wrap:object:freeze',
@@ -148,7 +146,7 @@ describe('deride', () => {
     },
     {
       name: 'wrapping existing objects using prototype style with expectations',
-      setup: function () {
+      setup: () => {
         Person.prototype.foobar = fooBarFunction
 
         return deride.wrap(new Person('bob proto'), {
@@ -170,7 +168,7 @@ describe('deride', () => {
         })
       },
     },
-  ])('$name', ({ _name, setup }) => {
+  ])('$name', ({ setup }) => {
     let bob: Wrapped<IPerson>
     beforeEach(() => {
       bob = setup()
