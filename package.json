@@ -51,7 +51,7 @@
   "files": [
     "dist"
   ],
-  "packageManager": "yarn@4.9.2",
+  "packageManager": "pnpm@10.12.1",
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -78,5 +78,8 @@
   },
   "dependencies": {
     "debug": "^4.4.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
   }
 }

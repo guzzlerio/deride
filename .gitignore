@@ -1,6 +1,4 @@
 node_modules
-.yarn/install-state.gz
-.npmrc
 .idea
 *.iml
 
