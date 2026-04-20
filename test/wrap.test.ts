@@ -49,7 +49,7 @@ const PersonObj: IPerson = {
 describe('deride', () => {
   //TODO move to separate test file
   describe('stub', () => {
-    describe.only('Properties', function () {
+    describe('Properties', function () {
       let bob: Wrapped<IPerson & IProps>
       beforeEach(function () {
         bob = deride.stub<IPerson & IProps>(

@@ -1,54 +1,63 @@
 import Debug from 'debug'
 import { EventEmitter } from 'node:events'
-import { getAllKeys, PREFIX, proxyFunctions } from './utils.js'
-import { Expectations } from './expect.js'
-import { Setup } from './setup.js'
+import { getAllKeys, isFunction, PREFIX, proxyFunctions } from './utils.js'
+import { MethodMock, MockSetup, MockExpect } from './method-mock.js'
+import { func } from './func.js'
 import { Options, Wrapped } from './types.js'
 
 export function wrap<T extends object>(
   obj: T,
   options: Options = { debug: { prefix: PREFIX, suffix: 'wrap' } }
 ): Wrapped<T> {
+  // If obj is a function, delegate to func() for standalone function mocking
+  if (typeof obj === 'function') {
+    return func(obj as any) as any
+  }
+
   const debug = Debug(`${options.debug.prefix}:${options.debug.suffix}`)
-  const objMethods = getAllKeys(obj)
-  const expectMethods = {} as Record<keyof T, Expectations<T>>
-  const setupMethods = {} as Record<keyof T, Setup<T>>
-  const self = {} as any //as Record<keyof Wrapped<T>, any>
+  const objMethods = getAllKeys(obj).filter((m) => isFunction((obj as any)[m]))
+  const mocks = {} as Record<string, MethodMock>
+  const setupMethods = {} as Record<string, MockSetup>
+  const expectMethods = {} as Record<string, MockExpect>
+  const self = {} as any
 
   const eventEmitter = new EventEmitter()
   proxyFunctions(self, eventEmitter, ['on', 'once', 'emit'])
 
   for (const m of objMethods) {
-    debug('mapping', m)
-    let method: keyof T = m as unknown as keyof T
-    expectMethods[method] = Expectations(obj, method)
-    setupMethods[method] = Setup(obj, method, eventEmitter)
-    self[method] = setupForMethod(method)
+    const method = String(m)
+    debug('mapping', method)
+
+    const original = (obj as any)[method]
+    const mock = new MethodMock(
+      typeof original === 'function' ? original.bind(obj) : undefined,
+      { name: method, emitter: eventEmitter }
+    )
+
+    mocks[method] = mock
+    setupMethods[method] = mock.setup
+    expectMethods[method] = mock.expect
+
+    self[method] = (...args: any[]) => mock.invoke(args)
   }
 
-  function setupForMethod(method: keyof typeof obj) {
-    debug(`setupForMethod: ${String(method)}`)
-    return function () {
-      expectMethods[method].call.apply(obj, arguments as any)
-      return setupMethods[method].call.apply(obj, arguments as any)
-    }
-  }
-
-  self.expect = expectMethods
   self.setup = setupMethods
+  self.expect = expectMethods
 
   self.called = {
     reset: () => {
-      for (const method in expectMethods) {
-        if (Object.prototype.hasOwnProperty.call(expectMethods, method)) {
-          expectMethods[method].called.reset()
-        }
+      for (const method in mocks) {
+        mocks[method].reset()
       }
     },
   }
 
-  return {
-    ...obj,
-    ...self,
+  // Copy non-function properties from original object
+  for (const key of getAllKeys(obj)) {
+    if (!(String(key) in self) && !isFunction((obj as any)[key])) {
+      self[String(key)] = (obj as any)[key]
+    }
   }
+
+  return self as Wrapped<T>
 }

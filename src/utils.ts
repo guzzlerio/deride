@@ -2,9 +2,9 @@ export const PREFIX = 'deride'
 
 export function proxyFunctions<S>(source: S, target: Partial<S>, functions: (keyof S)[]) {
   function createFunction(functionName: keyof S) {
-    return function () {
-      const func = target[functionName] as Function
-      return func.apply(target, arguments)
+    return function (...args: any[]) {
+      const func = target[functionName] as (...a: any[]) => any
+      return func.apply(target, args)
     }
   }
   functions.forEach((functionName) => {
@@ -68,7 +68,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return (typeof value === 'object' && value !== null) || typeof value === 'function'
 }
 
-function truthy<T>(value: T, key?: string | number) {
+function truthy<T>(value: T, _key?: string | number) {
   if (value) return true
   return false
 }

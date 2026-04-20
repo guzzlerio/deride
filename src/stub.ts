@@ -1,35 +1,34 @@
+import Debug from 'debug'
 import { Options, Wrapped } from './types.js'
-import { _, getAllKeys, PREFIX, proxyFunctions } from './utils.js'
+import { getAllKeys, isFunction, PREFIX } from './utils.js'
 import { wrap } from './wrap.js'
 
 export function stub<T extends object>(
-  target: T | keyof T[] | string[],
+  target: T | (keyof T)[] | string[],
   properties?: { name: PropertyKey; options: PropertyDescriptor & ThisType<any> }[],
-  options: Options = { debug: { prefix: PREFIX, suffix: 'wrap' } }
+  options: Options = { debug: { prefix: PREFIX, suffix: 'stub' } }
 ) {
-  const debug = require('debug')(`${options.debug.prefix}:${options.debug.suffix}`)
-  debug(target, properties)
-  let methods = []
-  if (_.isArray(target)) {
-    methods = target
+  const debug = Debug(`${options.debug.prefix}:${options.debug.suffix}`)
+
+  let methods: string[]
+  if (Array.isArray(target)) {
+    methods = target as string[]
   } else {
-    methods = getAllKeys(target as T) as string[]
+    methods = getAllKeys(target as T).filter((m) => isFunction((target as any)[m])) as string[]
   }
 
-  let stubObj: Record<string, any> = {}
-  const emptyMethod = function () {
-    return function () {}
+  const stubObj: Record<string, any> = {}
+  for (const method of methods) {
+    stubObj[method] = function () {}
   }
-  for (let i = 0; i < methods.length; i++) {
-    stubObj[String(methods[i])] = emptyMethod()
-  }
-  debug('********************', properties)
-  properties?.forEach(
-    (prop: { name: PropertyKey; options: PropertyDescriptor & ThisType<any> }) => {
-      debug('mapping property', prop)
-      stubObj = Object.defineProperty(stubObj, prop.name, prop.options)
-    }
-  )
-  debug('&&&&&&&&&&', Object.getOwnPropertyNames(stubObj), stubObj)
-  return wrap(stubObj, options) as Wrapped<T>
+
+  const wrapped = wrap(stubObj, options) as any
+
+  // Apply property descriptors after wrapping so they sit directly on the wrapped object
+  properties?.forEach((prop) => {
+    debug('mapping property', prop)
+    Object.defineProperty(wrapped, prop.name, prop.options)
+  })
+
+  return wrapped as Wrapped<T>
 }

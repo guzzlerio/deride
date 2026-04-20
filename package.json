@@ -33,10 +33,21 @@
     "expectations",
     "setup"
   ],
-  "main": "dist/index.cjs.js",
-  "module": "dist/index.esm.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "files": [
     "dist"
   ],
@@ -48,22 +59,23 @@
     "format": "prettier --write .",
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
-    "coverage:open": "open reports/index.html"
+    "coverage:open": "open reports/index.html",
+    "prepublishOnly": "npm run lint && npm run test:coverage && npm run build"
   },
   "devDependencies": {
-    "@types/debug": "^4.1.12",
-    "@types/node": "^24.0.3",
-    "@typescript-eslint/eslint-plugin": "^6.x",
-    "@typescript-eslint/parser": "^6.x",
+    "@types/debug": "^4.1.13",
+    "@types/node": "^25.6.0",
     "@vitest/coverage-istanbul": "3.2.4",
     "@vitest/coverage-v8": "^3.2.4",
-    "eslint": "^8.x",
+    "eslint": "^9",
+    "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.x",
     "tsup": "^6.x",
     "typescript": "^5.x",
+    "typescript-eslint": "^8.58.2",
     "vitest": "^3.x"
   },
   "dependencies": {
-    "debug": "^4.4.1"
+    "debug": "^4.4.3"
   }
 }
