@@ -1,8 +1,26 @@
 # deride
 
-Mocking library based on composition
+A TypeScript-first mocking library that works with frozen objects, sealed classes, and any coding style — no monkey-patching required.
 
-The inspiration for this was that my colleague was having a look at other mocking frameworks and mentioned to me that they do not work when using `Object.freeze` in the objects to enforce encapsulation. This library builds on composition to create a mocking library that can work with objects which are frozen.
+**Why deride?**
+
+- Works with `Object.freeze`, ES6 classes, and prototype-based objects
+- Composition-based — wraps objects rather than mutating them
+- Framework-agnostic — works with vitest, jest, node:test, or anything that catches thrown errors
+- Type-safe — setup methods are constrained to your method signatures
+- Zero config — no decorators, no DI container, no babel plugins
+- Tiny — under 15KB packed
+
+```typescript
+import { stub, wrap } from 'deride'
+
+const mockDb = stub<Database>(['query', 'findById'])
+mockDb.setup.query.toResolveWith([{ id: 1, name: 'alice' }])
+
+const result = await mockDb.query('SELECT * FROM users')
+mockDb.expect.query.called.once()
+mockDb.expect.query.called.withArg('SELECT * FROM users')
+```
 
 ## Getting Started
 
