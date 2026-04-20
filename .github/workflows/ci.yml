@@ -30,3 +30,12 @@ jobs:
         run: pnpm build
       - name: Test
         run: pnpm vitest run --coverage
+      - name: Check package size
+        run: |
+          SIZE=$(pnpm pack --pack-gzip-level 9 2>/dev/null | xargs wc -c | awk '{print $1}')
+          echo "Package size: ${SIZE} bytes"
+          if [ "$SIZE" -gt 30000 ]; then
+            echo "::error::Package size ${SIZE} bytes exceeds 30KB limit"
+            exit 1
+          fi
+          rm -f *.tgz
