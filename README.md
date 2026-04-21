@@ -821,6 +821,24 @@ mock.spy.greet.lastCall       // CallRecord | undefined
 
 Each `CallRecord` contains `args`, `returned`, `threw`, `thisArg`, `timestamp`, and `sequence`.
 
+### When to use `spy` vs `expect`
+
+**`expect` asserts. `spy` reads.** They overlap for simple "was this called with X?" questions — both `mock.expect.greet.called.withArg('x')` and `mock.spy.greet.calledWith('x')` inspect the same call history — but their contracts differ and so do their use cases.
+
+| Task | Reach for |
+|------|-----------|
+| Assert a call happened in a test | `expect` — throws on mismatch, test fails |
+| Branch on whether a call happened | `spy` — returns a boolean you can `if` on |
+| Feed a return value into the next setup | `spy.lastCall.returned` — `expect` can only assert, not hand back the value |
+| Inspect `this` or a non-`Error` thrown value | `spy.lastCall.thisArg` / `.threw` — the data, not just a pass/fail |
+| Await a captured Promise (e.g. from `toResolveWith`) | `await mock.spy.fetch.lastCall.returned` |
+| Snapshot the call log | `expect(mock.spy.greet.serialize()).toMatchSnapshot()` |
+| Print the call log while debugging a flaky test | `console.log(mock.spy.greet.printHistory())` |
+| Write a custom assertion helper | `spy.calls.some(...)` is clean; wrapping throwing `expect`s is not |
+| Build a framework integration | `deride/vitest` / `deride/jest` are built on `spy` — they need structured data to hand to the host matcher |
+
+Rule of thumb: if you're writing `try { mock.expect.X.called... } catch { ... }` you want `spy` instead. If you're writing `assert(mock.spy.X.calledWith(...))` you want `expect` instead.
+
 <a name="spy-calledwith"></a>
 
 ### `spy.method.calledWith(...)` — non-throwing boolean
