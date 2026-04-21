@@ -1,3 +1,5 @@
+import { isMatcher } from './matchers.js'
+
 export const PREFIX = 'deride'
 
 export function proxyFunctions<S>(source: S, target: Partial<S>, functions: (keyof S)[]) {
@@ -81,12 +83,26 @@ export function cloneDeep<T>(obj: T): T {
 }
 
 /**
- * Returns true when `values` contains at least one element whose
- * properties exactly match the key–value pairs in `expected`.
+ * Returns true when `values` contains at least one element whose properties
+ * match the key–value pairs in `expected`. Matcher-aware: if `expected` is a
+ * matcher, it is tested against each value; if `expected` is an object with
+ * matchers inside, those are tested against the corresponding properties.
  */
-export function hasMatch<T extends object>(values: readonly T[], expected: Partial<T> | unknown): boolean {
-  const predicate = (item: T): boolean =>
-    (Object.entries(expected as Partial<T>) as [keyof T, unknown][]).every(([k, v]) => item?.[k] === v)
+export function hasMatch(values: readonly unknown[], expected: unknown): boolean {
+  if (isMatcher(expected)) {
+    return values.some((v) => expected.test(v))
+  }
+
+  const predicate = (item: unknown): boolean => {
+    if (expected === null || typeof expected !== 'object') {
+      return item === expected
+    }
+    return (Object.entries(expected as Record<string, unknown>) as [string, unknown][]).every(([k, v]) => {
+      const actual = (item as Record<string, unknown> | null | undefined)?.[k]
+      if (isMatcher(v)) return v.test(actual)
+      return actual === v
+    })
+  }
 
   return values.some(predicate)
 }

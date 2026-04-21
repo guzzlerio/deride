@@ -13,6 +13,7 @@ export default tseslint.config(
       parserOptions: {
         projectService: {
           allowDefaultProject: ['test/*.test.ts'],
+          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 50,
         },
       },
     },
