@@ -111,7 +111,9 @@ jobs:
         run: |
           SIZE=$(pnpm pack --pack-gzip-level 9 2>/dev/null | xargs wc -c | awk '{print $1}')
           echo "Package tarball size: ${SIZE} bytes"
-          LIMIT=60000
+          # Core + three sub-paths + .d.ts for each. Reviewed and set to 45KB
+          # (previously 30KB in v2.0 before the v2.1 feature set).
+          LIMIT=45000
           if [ "$SIZE" -gt "$LIMIT" ]; then
             echo "::error::Package tarball ${SIZE} bytes exceeds ${LIMIT} limit"
             exit 1
@@ -146,7 +148,18 @@ jobs:
             import('./dist/index.js').then(m => { if (!m.stub || !m.match || !m.sandbox || !m.inOrder) throw new Error('index missing exports'); console.log('index OK'); });
           "
           node --input-type=module -e "
-            import('./dist/clock.js').then(m => { if (!m.useFakeTimers) throw new Error('clock missing exports'); console.log('clock OK'); });
+            import('./dist/clock.js').then(m => { if (!m.useFakeTimers || !m.isFakeTimersActive) throw new Error('clock missing exports'); console.log('clock OK'); });
+          "
+          # vitest and jest sub-paths register matchers as a side effect —
+          # loading them requires the peer test runner to be present, so we
+          # just verify the files exist and parse as ESM modules.
+          node --input-type=module -e "
+            import('node:fs').then(({ readFileSync }) => {
+              for (const p of ['./dist/vitest.js', './dist/jest.js']) {
+                if (!readFileSync(p, 'utf8').length) throw new Error(p + ' is empty')
+                console.log(p + ' OK')
+              }
+            })
           "
 
   # ─── Dry-run release on PRs to show the predicted bump ───────────────

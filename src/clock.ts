@@ -5,8 +5,9 @@
  * The goal is a minimal, dependency-free clock you can drop into a test when
  * you need synchronous control over `Date.now`, `setTimeout`, `setInterval`,
  * and `queueMicrotask`. It is intentionally much smaller than sinon's fake
- * timers — if you need deeper control (queueMicrotask ordering, setImmediate,
- * performance.now), reach for `vi.useFakeTimers()` directly.
+ * timers — if you need deeper control (microtask ordering, setImmediate,
+ * performance.now), reach for `vi.useFakeTimers()` or
+ * `@sinonjs/fake-timers` directly.
  */
 
 type TimerKind = 'timeout' | 'interval'
@@ -17,28 +18,41 @@ interface Timer {
   callback: (...args: unknown[]) => void
   args: unknown[]
   dueAt: number
-  /** For intervals, the repeat delay. */
   repeat?: number
 }
 
-type NativeTimeoutReturn = ReturnType<typeof setTimeout>
-
+/**
+ * Handle returned by {@link useFakeTimers}. Advance time, drain queues, or
+ * restore the native globals.
+ */
 export interface FakeClock {
   /** Advance the clock by `ms` milliseconds, firing any timers that come due. */
   tick(ms: number): void
   /** Drain all pending timers, advancing the clock to each as needed. */
   runAll(): void
-  /** Drain any microtasks queued via queueMicrotask. */
+  /** Drain any microtasks queued via `queueMicrotask`. */
   flushMicrotasks(): void
   /** Current frozen time. */
   now(): number
   /** Restore native Date / setTimeout / setInterval / queueMicrotask. */
   restore(): void
+  /**
+   * Errors thrown from scheduled callbacks or microtasks are captured here
+   * instead of propagating out of `tick` / `runAll` / `flushMicrotasks`.
+   * Read this array in a test to assert on unexpected errors; clears on `restore()`.
+   */
+  readonly errors: readonly unknown[]
 }
 
 let active: FakeClock | undefined
 
-/** Install fake timers. Returns a handle for advancing and restoring time. */
+/**
+ * Install fake timers. Returns a {@link FakeClock} handle for advancing and
+ * restoring time. Throws if fake timers are already installed — call
+ * `.restore()` on the previous handle first.
+ *
+ * @param startEpoch Initial value for `Date.now()` in milliseconds since epoch. Defaults to `0`.
+ */
 export function useFakeTimers(startEpoch: number = 0): FakeClock {
   if (active) {
     throw new Error('deride/clock: fake timers are already installed; call restore() first')
@@ -55,8 +69,15 @@ export function useFakeTimers(startEpoch: number = 0): FakeClock {
   let nextId = 1
   const timers: Timer[] = []
   const microtasks: Array<() => void> = []
+  const errors: unknown[] = []
 
-  function schedule(kind: TimerKind, cb: (...args: unknown[]) => void, ms: number, args: unknown[], repeat?: number): number {
+  function schedule(
+    kind: TimerKind,
+    cb: (...args: unknown[]) => void,
+    ms: number,
+    args: unknown[],
+    repeat?: number
+  ): number {
     const id = nextId++
     timers.push({ id, kind, callback: cb, args, dueAt: current + Math.max(0, ms), repeat })
     timers.sort((a, b) => a.dueAt - b.dueAt || a.id - b.id)
@@ -73,8 +94,8 @@ export function useFakeTimers(startEpoch: number = 0): FakeClock {
       const fn = microtasks.shift()!
       try {
         fn()
-      } catch {
-        /* swallowed in tests — uncaught microtask */
+      } catch (err) {
+        errors.push(err)
       }
     }
   }
@@ -87,17 +108,17 @@ export function useFakeTimers(startEpoch: number = 0): FakeClock {
         timers.shift()
         try {
           t.callback(...t.args)
-        } catch {
-          /* swallowed */
+        } catch (err) {
+          errors.push(err)
         }
       } else {
-        // interval — re-schedule first, then fire
+        // Interval — re-schedule first, then fire.
         t.dueAt = current + (t.repeat ?? 0)
         timers.sort((a, b) => a.dueAt - b.dueAt || a.id - b.id)
         try {
           t.callback(...t.args)
-        } catch {
-          /* swallowed */
+        } catch (err) {
+          errors.push(err)
         }
       }
       drainMicrotasks()
@@ -105,10 +126,8 @@ export function useFakeTimers(startEpoch: number = 0): FakeClock {
     if (until > current) current = until
   }
 
-  // Install patches (cast via unknown because Node's typings are stricter than
-  // the lightweight fake we provide here)
-  Date.now = () => current
   const g = globalThis as unknown as Record<string, unknown>
+  Date.now = () => current
   g.setTimeout = (cb: (...a: unknown[]) => void, ms = 0, ...rest: unknown[]) =>
     schedule('timeout', cb, ms, rest)
   g.clearTimeout = (id: number) => cancel(id)
@@ -140,19 +159,40 @@ export function useFakeTimers(startEpoch: number = 0): FakeClock {
     },
     restore() {
       Date.now = nativeDateNow
-      const gg = globalThis as unknown as Record<string, unknown>
-      gg.setTimeout = nativeSetTimeout
-      gg.clearTimeout = nativeClearTimeout
-      gg.setInterval = nativeSetInterval
-      gg.clearInterval = nativeClearInterval
-      gg.queueMicrotask = nativeQueueMicrotask
+      g.setTimeout = nativeSetTimeout
+      g.clearTimeout = nativeClearTimeout
+      g.setInterval = nativeSetInterval
+      g.clearInterval = nativeClearInterval
+      g.queueMicrotask = nativeQueueMicrotask
+      errors.length = 0
       active = undefined
+    },
+    get errors() {
+      return errors
     },
   }
 
-  // Internal helper: cast ID to Node's Timeout type when returning
-  void (nativeSetTimeout as unknown as (cb: () => void) => NativeTimeoutReturn)
-
   active = clock
   return clock
+}
+
+/**
+ * `true` iff fake timers are currently installed in this process.
+ * Useful for test harnesses that want an `afterEach` safety net:
+ *
+ * ```ts
+ * afterEach(() => { if (isFakeTimersActive()) restoreActiveClock() })
+ * ```
+ */
+export function isFakeTimersActive(): boolean {
+  return active !== undefined
+}
+
+/**
+ * Restore any currently-active fake clock, if one is installed. No-op if
+ * timers are already native. Intended for `afterEach` guards so a test that
+ * throws before its own `restore()` doesn't poison subsequent tests.
+ */
+export function restoreActiveClock(): void {
+  active?.restore()
 }
