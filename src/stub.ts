@@ -16,10 +16,19 @@ type StubOptions = Options & {
   static?: boolean
 }
 
+/**
+ * A constructor-mocked class. Callable via `new`, each instantiation records
+ * the constructor args and yields a fresh {@link Wrapped} instance whose
+ * methods are auto-stubbed from the original class prototype.
+ */
 export interface MockedClass<C extends AnyCtor> {
+  /** Construct a fresh mocked instance, recording constructor args. */
   new (...args: ConstructorParameters<C>): Wrapped<InstanceType<C>>
+  /** Assertion surface for the constructor itself (`expect.constructor.called.*`). */
   readonly expect: { constructor: MockExpect }
+  /** Read-only inspection of constructor calls. */
   readonly spy: { constructor: MethodSpy }
+  /** All constructed instances, in order. */
   readonly instances: readonly Wrapped<InstanceType<C>>[]
   /** Apply a setup callback to every instance created from now on (and past instances). */
   setupAll: (fn: (instance: Wrapped<InstanceType<C>>) => void) => void
@@ -67,6 +76,19 @@ function isMethodNameArray(target: unknown): target is (string | PropertyKey)[] 
   return Array.isArray(target) && target.every((v) => typeof v === 'string' || typeof v === 'symbol' || typeof v === 'number')
 }
 
+/**
+ * Build a test double.
+ *
+ * Overloads:
+ *  - `stub(MyClass)` — auto-discovers methods from the class prototype chain.
+ *  - `stub(existingObject)` — auto-discovers methods from an instance.
+ *  - `stub<T>(['method1', 'method2'])` — explicit list of method names.
+ *  - `stub<T>(methodNames, properties, options)` — with property descriptors and
+ *    additional options (e.g. `{ static: true }` to mock a class's static side).
+ *
+ * Pass `{ static: true }` alongside a class target to stub the static methods
+ * instead of the prototype methods.
+ */
 export function stub<I extends object>(cls: new (...args: never[]) => I): Wrapped<I>
 export function stub<T extends object>(obj: T): Wrapped<T>
 export function stub<T extends object>(methodNames: (keyof T)[]): Wrapped<T>
@@ -106,6 +128,14 @@ export function stub<T extends object>(
   return wrapped
 }
 
+/**
+ * Create a {@link MockedClass} — a `new`-able replacement for `C` that tracks
+ * constructor calls and produces auto-stubbed instances.
+ *
+ * @param ctor Optional concrete class used to discover method names.
+ * @param opts `methods` overrides the discovered list; otherwise the prototype
+ *             chain of `ctor` is walked (static methods are not included).
+ */
 stub.class = function stubClass<C extends AnyCtor>(
   ctor?: C,
   opts: { methods?: string[]; static?: boolean } = {}

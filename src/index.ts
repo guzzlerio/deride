@@ -22,5 +22,10 @@ export type { Matcher } from './matchers.js'
 export type { Sandbox } from './sandbox.js'
 export type { MockedClass } from './stub.js'
 
+/**
+ * Convenience namespace bundling every public function. Using `deride.stub()`
+ * reads the same as the named export `stub()` — pick whichever import style
+ * fits the codebase.
+ */
 export const deride = { func, inOrder, match, sandbox, stub, wrap }
 export default deride

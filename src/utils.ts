@@ -1,7 +1,13 @@
 import { isMatcher } from './matchers.js'
 
+/** Namespace prefix for all `debug(...)` loggers and default option values. */
 export const PREFIX = 'deride'
 
+/**
+ * Copy each named function from `target` onto `source`, wrapping it so the
+ * `this` binding stays pointing at `target`. Used by `wrap()` to bolt the
+ * EventEmitter API onto a wrapped object without breaking its internal state.
+ */
 export function proxyFunctions<S>(source: S, target: Partial<S>, functions: (keyof S)[]) {
   function createFunction(functionName: keyof S) {
     return function (...args: any[]) {
@@ -14,6 +20,11 @@ export function proxyFunctions<S>(source: S, target: Partial<S>, functions: (key
   })
 }
 
+/**
+ * Walk `obj`'s own-property chain and return every property name found on it
+ * or any of its prototypes (stopping before `Object.prototype`). Used to
+ * auto-discover the methods to stub from a class instance or object.
+ */
 export function getAllKeys<T extends object>(obj: T) {
   const keys = new Set<keyof T>()
 
@@ -28,10 +39,16 @@ export function getAllKeys<T extends object>(obj: T) {
   return Array.from<keyof T>(keys)
 }
 
+/** Type-narrowing check — is `value` callable? */
 export function isFunction(value: unknown): value is (...args: any[]) => any {
   return typeof value === 'function'
 }
 
+/**
+ * Recursively search `obj` for any string property value that matches `regex`.
+ * Circular-reference-safe (relies on `for (key in obj)` + `Object.hasOwn`).
+ * Used by `expect.withMatch()`.
+ */
 export function deepMatch<T extends object>(obj: T, regex: RegExp) {
   for (const key in obj) {
     if (!Object.hasOwn(obj, key)) continue
@@ -52,6 +69,12 @@ export function deepMatch<T extends object>(obj: T, regex: RegExp) {
   return false
 }
 
+/**
+ * Structural deep clone with cycle protection, preserving symbol keys and
+ * passing functions through by reference (rather than cloning their bodies).
+ * Used to snapshot argument arrays at invocation time so later mutations by
+ * the caller can't corrupt recorded calls.
+ */
 export function cloneDeep<T>(obj: T): T {
   const seen = new WeakMap()
 
@@ -107,6 +130,7 @@ export function hasMatch(values: readonly unknown[], expected: unknown): boolean
   return values.some(predicate)
 }
 
+/** Format an integer as `"once"` / `"twice"` / `"N times"` for readable assertion messages. */
 export function humanise(number: number) {
   switch (number) {
     case 1:

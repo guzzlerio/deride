@@ -5,6 +5,15 @@ import { MethodMock, MethodSpy, MockExpect, MockSetup } from './method-mock.js'
 import { func } from './func.js'
 import { Options, Wrapped } from './types.js'
 
+/**
+ * Wrap an existing object (or function) with deride facades. Works with
+ * frozen objects, ES6 class instances, and prototype-based objects because
+ * it composes rather than monkey-patches.
+ *
+ * Non-function properties on `obj` are copied across so the wrapped object
+ * reads like the original. If `obj` is itself a function, delegates to
+ * {@link func} for standalone-function mocking.
+ */
 export function wrap<T extends object>(
   obj: T,
   options: Options = { debug: { prefix: PREFIX, suffix: 'wrap' } }

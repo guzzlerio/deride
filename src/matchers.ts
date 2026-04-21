@@ -1,13 +1,24 @@
 import { inspect, isDeepStrictEqual } from 'node:util'
 
+/** Global symbol branding any object as a deride matcher. */
 export const MATCHER_BRAND: unique symbol = Symbol.for('deride.matcher')
 
+/**
+ * A brand-tagged predicate. Used anywhere a value can appear in deride —
+ * `setup.when()`, `expect.*.withArg()`, `withArgs()`, `matchExactly()`,
+ * `invocation(i).withArg()`, `withReturn()`, `threw()`, and inside nested
+ * objects/arrays at any depth.
+ */
 export interface Matcher<T = unknown> {
+  /** Brand marker — always `true` on a real matcher. */
   readonly [MATCHER_BRAND]: true
+  /** Short human-readable description used in failure messages. */
   readonly description: string
+  /** Run the matcher against a candidate value. */
   test(value: T): boolean
 }
 
+/** Type guard — does `value` carry the `deride.matcher` brand? */
 export function isMatcher(value: unknown): value is Matcher {
   return (
     typeof value === 'object' &&
@@ -52,6 +63,13 @@ export function matchValue(actual: unknown, expected: unknown): boolean {
   return isDeepStrictEqual(actual, expected)
 }
 
+/**
+ * Namespace of composable argument matchers. See the README for the full
+ * catalogue (`match.any`, `match.string`, `match.instanceOf(Ctor)`,
+ * `match.objectContaining(partial)`, `match.gt(n)`, etc.). Every matcher
+ * returned from here carries the `MATCHER_BRAND` so both the setup side
+ * (`when`) and expectation side (`withArg`, `matchExactly`, ...) recognise it.
+ */
 export const match = {
   any: make<unknown>('any', () => true),
   defined: make<unknown>('defined', (v) => v !== undefined),
@@ -156,4 +174,5 @@ export const match = {
   },
 }
 
+/** Type alias for the full `match` namespace — handy for plugin authors. */
 export type MatchNamespace = typeof match
