@@ -69,6 +69,13 @@ describe('MethodMock', () => {
       expect(bob.greet('Mr Jones')).toBe(undefined)
     })
 
+    it('matches multiple arguments positionally', () => {
+      const fn = deride.func<(a: string, b: number) => string>()
+      fn.setup.when('alice', 42).toReturn('matched')
+      expect(fn('alice', 42)).toBe('matched')
+      expect(fn('alice', 99)).toBe(undefined)
+    })
+
     it('later when registrations take priority', () => {
       bob.setup.greet.when('alice').toReturn('first')
       bob.setup.greet.when('alice').toReturn('second')

@@ -82,8 +82,8 @@ export interface TypedMockSetup<A extends any[] = any[], R = any> {
   toIntercept(fn: (...args: A) => void): TypedMockSetup<A, R>
   /** Schedule the callback with an accelerated timeout. */
   toTimeWarp(ms: number): TypedMockSetup<A, R>
-  /** Apply the next behavior only when args match the predicate, value, or matcher. */
-  when(predicateOrValue: A[0] | ((args: A) => boolean) | Matcher): TypedMockSetup<A, R>
+  /** Apply the next behavior only when args match. Accepts a predicate, or one or more values/matchers matched positionally. */
+  when(...expected: unknown[]): TypedMockSetup<A, R>
   /** Apply the next behavior only for the first `n` invocations. */
   times(n: number): TypedMockSetup<A, R>
   /** Apply the next behavior only for the first invocation. */
@@ -152,12 +152,11 @@ export function createSetup(host: SetupHost): MockSetup {
       typeof last === 'object' &&
       last !== null &&
       !Array.isArray(last) &&
-      Array.isArray(values[0]) &&
-      values.length === 2 &&
       ('then' in (last as object) || 'cycle' in (last as object))
     ) {
-      list = values[0] as any[]
       options = last as { then?: unknown; cycle?: boolean }
+      const rest = values.slice(0, -1)
+      list = rest.length === 1 && Array.isArray(rest[0]) ? rest[0] : rest
     }
     if (list.length === 0) {
       throw new Error('sequenced return requires at least one value')
@@ -284,15 +283,15 @@ export function createSetup(host: SetupHost): MockSetup {
         return host.original ? host.original(...args) : undefined
       })
     },
-    when(predicateOrValue: any) {
-      if (isMatcher(predicateOrValue)) {
-        currentBehavior.predicate = (args: any[]) =>
-          args.length > 0 && predicateOrValue.test(args[0])
-      } else if (typeof predicateOrValue === 'function') {
-        currentBehavior.predicate = predicateOrValue
+    when(...expected: any[]) {
+      if (expected.length === 1 && typeof expected[0] === 'function' && !isMatcher(expected[0])) {
+        currentBehavior.predicate = expected[0]
       } else {
         currentBehavior.predicate = (args: any[]) =>
-          args.length > 0 && isDeepStrictEqual(args[0], predicateOrValue)
+          expected.length <= args.length &&
+          expected.every((e, i) =>
+            isMatcher(e) ? e.test(args[i]) : isDeepStrictEqual(args[i], e)
+          )
       }
       return setup
     },

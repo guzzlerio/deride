@@ -41,6 +41,21 @@ describe('toReturnInOrder', () => {
     expect(mock.greet()).toBe('a')
     expect(mock.greet()).toBe('b')
   })
+
+  it('{ cycle: true } works without wrapping values in an array', () => {
+    mock.setup.greet.toReturnInOrder('a', 'b', { cycle: true } as never)
+    expect(mock.greet()).toBe('a')
+    expect(mock.greet()).toBe('b')
+    expect(mock.greet()).toBe('a')
+    expect(mock.greet()).toBe('b')
+  })
+
+  it('{ then } works without wrapping values in an array', () => {
+    mock.setup.greet.toReturnInOrder('a', 'b', { then: 'default' } as never)
+    expect(mock.greet()).toBe('a')
+    expect(mock.greet()).toBe('b')
+    expect(mock.greet()).toBe('default')
+  })
 })
 
 describe('toResolveInOrder / toRejectInOrder', () => {
