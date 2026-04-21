@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events'
 import { isDeepStrictEqual } from 'node:util'
-import { isMatcher, Matcher } from './matchers.js'
+import { isMatcher } from './matchers.js'
 
 type AnyFunc = (...args: any[]) => any
 
