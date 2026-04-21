@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./brand/logo-wordmark.svg" alt="deride" height="56"/>
+  <img src="./brand/logo.png" alt="deride" width="320"/>
 </p>
 
 <p align="center">

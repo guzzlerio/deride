@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./brand/logo.png" alt="deride" width="200"/>
+</p>
+
 # Contributing
 
 ## Development
