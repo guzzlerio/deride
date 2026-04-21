@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"
+     fill="none" stroke="currentColor" stroke-width="3.5"
+     stroke-linecap="round" stroke-linejoin="round"
+     role="img" aria-label="deride">
+  <title>deride</title>
+  <!--
+    Concept: ⟨d⟩ with a composition dot.
+    The outer ring is the wrapper, the filled dot is the original inside it.
+    Two separate shapes with a visible gap = "composition, not monkey-patching".
+  -->
+
+  <!-- Left angle bracket -->
+  <polyline points="15,10 5,32 15,54"/>
+  <!-- Right angle bracket -->
+  <polyline points="49,10 59,32 49,54"/>
+
+  <!-- Lowercase "d" — bowl, inner composition dot, and stem -->
+  <circle cx="26" cy="38" r="10"/>
+  <circle cx="26" cy="38" r="3.5" fill="currentColor" stroke="none"/>
+  <line x1="36" y1="8" x2="36" y2="48"/>
+</svg>

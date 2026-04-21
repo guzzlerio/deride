@@ -1,3 +1,13 @@
+<p align="center">
+  <img src="./brand/logo-wordmark.svg" alt="deride" height="56"/>
+</p>
+
+<p align="center">
+  A TypeScript-first mocking library that wraps rather than monkey-patches.
+</p>
+
+---
+
 # deride
 
 A TypeScript-first mocking library that works with frozen objects, sealed classes, and any coding style — no monkey-patching required.

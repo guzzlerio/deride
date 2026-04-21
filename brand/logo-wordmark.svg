@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 64" width="280" height="64"
+     fill="none" role="img" aria-label="deride">
+  <title>deride</title>
+
+  <!-- Icon (same construction as logo.svg) -->
+  <g stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="15,10 5,32 15,54"/>
+    <polyline points="49,10 59,32 49,54"/>
+    <circle cx="26" cy="38" r="10"/>
+    <circle cx="26" cy="38" r="3.5" fill="currentColor" stroke="none"/>
+    <line x1="36" y1="8" x2="36" y2="48"/>
+  </g>
+
+  <!-- Wordmark. Uses a system sans stack so GitHub renders it without a webfont. -->
+  <text x="78" y="44" fill="currentColor"
+        font-family="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, sans-serif"
+        font-size="36" font-weight="700" letter-spacing="-0.03em">deride</text>
+</svg>
