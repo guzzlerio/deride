@@ -59,6 +59,12 @@ describe('deride/vitest matchers', () => {
     expect(mock.spy.greet).not.toHaveBeenCalledTimes(2)
   })
 
+  it('.not message describes what should not have happened', () => {
+    const fn = func<(x: number) => number>()
+    fn(1)
+    expect(() => expect(fn).not.toHaveBeenCalled()).toThrow(/not.*called/)
+  })
+
   it('works on MockedFunction directly (not just spy)', () => {
     const fn = func<(x: number) => number>()
     fn(5)

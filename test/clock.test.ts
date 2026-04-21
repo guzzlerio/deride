@@ -157,6 +157,13 @@ describe('useFakeTimers', () => {
     expect(count).toBe(1)
   })
 
+  it('runAll throws when interval timers would loop forever', () => {
+    const clock = useFakeTimers(0)
+    currentClock = clock
+    setInterval(() => {}, 50)
+    expect(() => clock.runAll()).toThrow(/runAll/)
+  })
+
   it('throwing microtask does not break flush', () => {
     currentClock = useFakeTimers(0)
     let fired = false

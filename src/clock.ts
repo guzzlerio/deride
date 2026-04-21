@@ -149,6 +149,11 @@ export function useFakeTimers(startEpoch: number = 0): FakeClock {
         const next = timers[0]
         runDueTimers(next.dueAt)
       }
+      if (guard <= 0 && timers.length) {
+        throw new Error(
+          'deride/clock: runAll() exceeded 10 000 iterations — you may have an active setInterval. Use tick(ms) instead.'
+        )
+      }
       drainMicrotasks()
     },
     flushMicrotasks() {

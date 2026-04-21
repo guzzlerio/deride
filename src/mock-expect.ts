@@ -196,7 +196,7 @@ function buildAssertions(
     },
     withReturn(expected: unknown) {
       assertCalled()
-      const matched = agg(calls(), (c) => c.returned !== undefined && matchValue(c.returned, expected))
+      const matched = agg(calls(), (c) => 'returned' in c && matchValue(c.returned, expected))
       assert(
         matched,
         `Expected ${label}${host.name} to have returned: ${inspect(expected)}${historySuffix(host)}`

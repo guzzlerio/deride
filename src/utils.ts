@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util'
 import { isMatcher } from './matchers.js'
 
 /** Namespace prefix for all `debug(...)` loggers and default option values. */
@@ -123,7 +124,7 @@ export function hasMatch(values: readonly unknown[], expected: unknown): boolean
     return (Object.entries(expected as Record<string, unknown>) as [string, unknown][]).every(([k, v]) => {
       const actual = (item as Record<string, unknown> | null | undefined)?.[k]
       if (isMatcher(v)) return v.test(actual)
-      return actual === v
+      return isDeepStrictEqual(actual, v)
     })
   }
 

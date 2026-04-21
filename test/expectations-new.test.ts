@@ -41,6 +41,11 @@ describe('withReturn', () => {
     ;(mock as unknown as { expect: { build: { called: { withReturn: (v: unknown) => void } } } }).expect.build.called.withReturn({ ok: true })
   })
 
+  it('passes when a call returned undefined', () => {
+    mock.greet('alice')
+    mock.expect.greet.called.withReturn(undefined)
+  })
+
   it('negation works', () => {
     mock.setup.greet.toReturn('hi')
     mock.greet('alice')
@@ -181,5 +186,13 @@ describe('everyCall', () => {
     mock.greet('b')
     mock.expect.greet.everyCall.twice()
     mock.expect.greet.everyCall.times(2)
+  })
+})
+
+describe('withArg deep equality', () => {
+  it('deeply compares nested object values', () => {
+    const fn = func<(opts: { nested: { a: number } }) => void>()
+    fn({ nested: { a: 1 } })
+    fn.expect.called.withArg({ nested: { a: 1 } })
   })
 })
