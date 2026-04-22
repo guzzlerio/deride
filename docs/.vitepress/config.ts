@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import { emitLlmAssets } from './emit-llm-assets'
 
 export default defineConfig({
   title: 'deride',
@@ -35,6 +36,7 @@ export default defineConfig({
       { text: 'Integrations', link: '/integrations/vitest', activeMatch: '^/integrations/' },
       { text: 'API', link: '/api/', activeMatch: '^/api/' },
       { text: 'Recipes', link: '/recipes/module-mocking', activeMatch: '^/recipes/' },
+      { text: 'For Agents', link: '/ai/', activeMatch: '^/ai/' },
       {
         text: 'Links',
         items: [
@@ -118,6 +120,18 @@ export default defineConfig({
           ],
         },
       ],
+      '/ai/': [
+        {
+          text: 'For Agents',
+          items: [
+            { text: 'Overview', link: '/ai/' },
+            { text: 'Decision tree', link: '/ai/decision-tree' },
+            { text: 'Canonical examples', link: '/ai/canonical-examples' },
+            { text: 'Common mistakes', link: '/ai/common-mistakes' },
+            { text: 'Agent-ready feeds', link: '/ai/feeds' },
+          ],
+        },
+      ],
     },
 
     socialLinks: [
@@ -156,5 +170,12 @@ export default defineConfig({
   markdown: {
     theme: { light: 'github-light', dark: 'github-dark' },
     lineNumbers: false,
+  },
+
+  // After the static HTML is built, emit:
+  //   - a .md copy of every page next to the .html
+  //   - /llms.txt and /llms-full.txt per llmstxt.org
+  async buildEnd(siteConfig) {
+    await emitLlmAssets(siteConfig)
   },
 })
