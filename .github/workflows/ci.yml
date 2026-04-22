@@ -2,40 +2,203 @@ name: CI
 
 on:
   push:
-    branches: [develop, v2.0-rewrite]
+    branches: [develop, master]
   pull_request:
-    branches: [develop]
+    branches: [develop, master]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
+  # ─── Static checks (fast, run in parallel) ───────────────────────────
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [20, 22]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+
+  # ─── Conventional-commit validation for PRs ──────────────────────────
+  commitlint:
+    name: Commitlint
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Lint PR commits
+        run: |
+          pnpm commitlint --from=${{ github.event.pull_request.base.sha }} --to=${{ github.event.pull_request.head.sha }} --verbose
+
+  # ─── Test matrix (Node LTS × OS) ─────────────────────────────────────
+  test:
+    name: Test (Node ${{ matrix.node-version }} / ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 22]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: pnpm
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Typecheck
-        run: pnpm typecheck
-      - name: Lint
-        run: pnpm lint
-      - name: Build
-        run: pnpm build
-      - name: Test
-        run: pnpm vitest run --coverage
-      - name: Check package size
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:coverage
+      - name: Upload coverage
+        if: matrix.os == 'ubuntu-latest' && matrix.node-version == 22
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: reports/
+          retention-days: 7
+
+  # ─── Build & bundle-size gate ────────────────────────────────────────
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Report sub-path sizes
+        run: |
+          echo "### Bundle sizes" >> $GITHUB_STEP_SUMMARY
+          echo '| File | Size |' >> $GITHUB_STEP_SUMMARY
+          echo '|------|------|' >> $GITHUB_STEP_SUMMARY
+          for f in dist/*.js dist/*.cjs; do
+            [ -f "$f" ] || continue
+            SIZE=$(wc -c < "$f")
+            printf '| %s | %d bytes |\n' "$f" "$SIZE" >> $GITHUB_STEP_SUMMARY
+          done
+      - name: Enforce package tarball size
         run: |
           SIZE=$(pnpm pack --pack-gzip-level 9 2>/dev/null | xargs wc -c | awk '{print $1}')
-          echo "Package size: ${SIZE} bytes"
-          if [ "$SIZE" -gt 30000 ]; then
-            echo "::error::Package size ${SIZE} bytes exceeds 30KB limit"
+          echo "Package tarball size: ${SIZE} bytes"
+          # Core + three sub-paths + .d.ts for each. Reviewed and set to 45KB
+          # (previously 30KB in v2.0 before the v2.1 feature set).
+          LIMIT=45000
+          if [ "$SIZE" -gt "$LIMIT" ]; then
+            echo "::error::Package tarball ${SIZE} bytes exceeds ${LIMIT} limit"
             exit 1
           fi
           rm -f *.tgz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  # ─── Integration smoke test — import the built artifact ──────────────
+  smoke:
+    name: Smoke (built artifact)
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Import each sub-path from the built bundle
+        run: |
+          node --input-type=module -e "
+            import('./dist/index.js').then(m => { if (!m.stub || !m.match || !m.sandbox || !m.inOrder) throw new Error('index missing exports'); console.log('index OK'); });
+          "
+          node --input-type=module -e "
+            import('./dist/clock.js').then(m => { if (!m.useFakeTimers || !m.isFakeTimersActive) throw new Error('clock missing exports'); console.log('clock OK'); });
+          "
+          # vitest and jest sub-paths register matchers as a side effect —
+          # loading them requires the peer test runner to be present, so we
+          # just verify the files exist and parse as ESM modules.
+          node --input-type=module -e "
+            import('node:fs').then(({ readFileSync }) => {
+              for (const p of ['./dist/vitest.js', './dist/jest.js']) {
+                if (!readFileSync(p, 'utf8').length) throw new Error(p + ' is empty')
+                console.log(p + ' OK')
+              }
+            })
+          "
+
+  # ─── Dry-run release on PRs to show the predicted bump ───────────────
+  release-dry-run:
+    name: Release (dry-run)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test, build]
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run semantic-release in dry-run mode
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm exec semantic-release --dry-run --no-ci --branches ${{ github.base_ref }}
+
+  # ─── Aggregate gate — single required check for branch protection ────
+  ci-pass:
+    name: CI Pass
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test, build, smoke]
+    steps:
+      - name: Require all jobs succeeded
+        run: |
+          for r in "${{ needs.lint.result }}" "${{ needs.typecheck.result }}" "${{ needs.test.result }}" "${{ needs.build.result }}" "${{ needs.smoke.result }}"; do
+            if [ "$r" != "success" ]; then
+              echo "::error::A required job failed or was skipped: $r"
+              exit 1
+            fi
+          done
+          echo "All required jobs succeeded."

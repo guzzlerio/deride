@@ -1,5 +1,6 @@
 import tseslint from 'typescript-eslint'
 import eslintConfigPrettier from 'eslint-config-prettier'
+import jsdoc from 'eslint-plugin-jsdoc'
 
 export default tseslint.config(
   {
@@ -13,6 +14,7 @@ export default tseslint.config(
       parserOptions: {
         projectService: {
           allowDefaultProject: ['test/*.test.ts'],
+          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 50,
         },
       },
     },
@@ -24,6 +26,43 @@ export default tseslint.config(
       '@typescript-eslint/no-this-alias': 'off',
       // Allow _ prefix for intentionally unused vars
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    },
+  },
+  // Require TSDoc on every publicly-exported declaration in src/.
+  // Tests are excluded — they don't form the public API.
+  {
+    files: ['src/**/*.ts'],
+    plugins: {
+      jsdoc,
+    },
+    settings: {
+      jsdoc: {
+        mode: 'typescript',
+      },
+    },
+    rules: {
+      'jsdoc/require-jsdoc': [
+        'error',
+        {
+          publicOnly: true,
+          enableFixer: false,
+          require: {
+            ClassDeclaration: true,
+            FunctionDeclaration: true,
+            MethodDefinition: true,
+            ArrowFunctionExpression: false,
+            FunctionExpression: false,
+          },
+          contexts: [
+            'ExportNamedDeclaration > TSInterfaceDeclaration',
+            'ExportNamedDeclaration > TSTypeAliasDeclaration',
+            'ExportNamedDeclaration > VariableDeclaration',
+            'TSInterfaceDeclaration:not(:has(ExportNamedDeclaration)) > TSPropertySignature',
+            'TSInterfaceDeclaration > TSMethodSignature',
+          ],
+          exemptEmptyConstructors: true,
+        },
+      ],
     },
   }
 )
