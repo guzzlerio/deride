@@ -6,6 +6,10 @@
   A TypeScript-first mocking library that wraps rather than monkey-patches.
 </p>
 
+<p align="center">
+  <strong><a href="https://guzzlerio.github.io/deride/">📖 Full documentation →</a></strong>
+</p>
+
 ---
 
 # deride

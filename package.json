@@ -77,6 +77,9 @@
     "test:coverage": "vitest run --coverage",
     "coverage:open": "open reports/index.html",
     "commitlint": "commitlint",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
     "release": "semantic-release",
     "release:dry-run": "semantic-release --dry-run --no-ci",
     "prepublishOnly": "npm run lint && npm run test:coverage && npm run build"
@@ -103,6 +106,7 @@
     "tsup": "^8.5.1",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.58.2",
+    "vitepress": "2.0.0-alpha.17",
     "vitest": "^4.1.4"
   },
   "dependencies": {
