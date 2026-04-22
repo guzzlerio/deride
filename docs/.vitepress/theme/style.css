@@ -1,0 +1,189 @@
+/**
+ * Deride docs theme — "Obsidian"
+ *
+ * True-black dark palette with a single accent (ember amber) derived from the
+ * brand mark's solid-fill weight. Light mode kept clean/neutral for daylight
+ * reading; dark mode is the primary experience.
+ */
+
+/* ─── Brand palette ──────────────────────────────────────────────── */
+:root {
+  --deride-ink:    #0a0a0a;        /* near-black, matches logo ink */
+  --deride-carbon: #141414;
+  --deride-graph:  #1d1d1d;
+  --deride-edge:   #262626;
+  --deride-rule:   #333333;
+  --deride-muted:  #808080;
+  --deride-text:   #e8e8e8;
+  --deride-heading:#ffffff;
+  --deride-accent: #f59e0b;        /* ember */
+  --deride-accent-soft: #fbbf24;
+  --deride-success: #22c55e;
+  --deride-warning: #f97316;
+  --deride-danger:  #ef4444;
+}
+
+/* ─── Dark mode (primary experience) ─────────────────────────────── */
+.dark {
+  --vp-c-bg:           var(--deride-ink);
+  --vp-c-bg-alt:       var(--deride-carbon);
+  --vp-c-bg-elv:       var(--deride-graph);
+  --vp-c-bg-soft:      var(--deride-graph);
+
+  --vp-c-divider:      var(--deride-edge);
+  --vp-c-gutter:       var(--deride-edge);
+  --vp-c-border:       var(--deride-edge);
+
+  --vp-c-text-1:       var(--deride-text);
+  --vp-c-text-2:       #b8b8b8;
+  --vp-c-text-3:       #808080;
+
+  /* Accent brand */
+  --vp-c-brand-1:      var(--deride-accent);
+  --vp-c-brand-2:      var(--deride-accent-soft);
+  --vp-c-brand-3:      var(--deride-accent);
+  --vp-c-brand-soft:   rgba(245, 158, 11, 0.15);
+  --vp-c-brand-1-dark: var(--deride-accent);
+
+  /* Semantic colour blocks */
+  --vp-c-tip-1:     var(--deride-accent);
+  --vp-c-tip-2:     var(--deride-accent-soft);
+  --vp-c-tip-3:     var(--deride-accent);
+  --vp-c-tip-soft:  rgba(245, 158, 11, 0.1);
+
+  --vp-c-warning-1:    var(--deride-warning);
+  --vp-c-warning-2:    #fb923c;
+  --vp-c-warning-3:    var(--deride-warning);
+  --vp-c-warning-soft: rgba(249, 115, 22, 0.14);
+
+  --vp-c-danger-1:    var(--deride-danger);
+  --vp-c-danger-2:    #f87171;
+  --vp-c-danger-3:    var(--deride-danger);
+  --vp-c-danger-soft: rgba(239, 68, 68, 0.14);
+
+  /* Code surfaces */
+  --vp-code-color:           #e8e8e8;
+  --vp-code-bg:              rgba(245, 158, 11, 0.08);
+  --vp-code-block-bg:        #0d0d0d;
+  --vp-code-block-divider-color: var(--deride-edge);
+  --vp-code-lang-color:      var(--deride-muted);
+  --vp-code-line-highlight-color: rgba(245, 158, 11, 0.08);
+
+  /* Navbar + sidebar */
+  --vp-nav-bg-color:         rgba(10, 10, 10, 0.85);
+  --vp-sidebar-bg-color:     var(--deride-ink);
+
+  --vp-button-brand-bg:       var(--deride-accent);
+  --vp-button-brand-hover-bg: var(--deride-accent-soft);
+  --vp-button-brand-active-bg:var(--deride-accent);
+  --vp-button-brand-text:     var(--deride-ink);
+
+  --vp-button-alt-bg:         var(--deride-graph);
+  --vp-button-alt-hover-bg:   var(--deride-edge);
+  --vp-button-alt-text:       var(--deride-text);
+
+  /* Headings get stronger weight on true-black ground */
+  --vp-c-default-1: var(--deride-heading);
+}
+
+/* ─── Light mode (supporting) ────────────────────────────────────── */
+:root {
+  --vp-c-brand-1: #b45309;
+  --vp-c-brand-2: #d97706;
+  --vp-c-brand-3: #b45309;
+  --vp-c-brand-soft: rgba(180, 83, 9, 0.1);
+}
+
+/* ─── Hero tuning on the home page ───────────────────────────────── */
+:root {
+  --vp-home-hero-name-color: var(--vp-c-brand-1);
+  --vp-home-hero-image-background-image: radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.25), transparent 70%);
+  --vp-home-hero-image-filter: blur(60px);
+}
+.dark {
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(135deg, #f59e0b 20%, #fbbf24 60%);
+}
+
+/* ─── Typography polish ──────────────────────────────────────────── */
+.vp-doc h1,
+.vp-doc h2,
+.vp-doc h3 {
+  letter-spacing: -0.02em;
+}
+.dark .vp-doc h1,
+.dark .vp-doc h2,
+.dark .vp-doc h3 {
+  color: var(--deride-heading);
+}
+
+.vp-doc a {
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+.vp-doc code {
+  font-feature-settings: 'zero' 1, 'cv11' 1;
+}
+
+/* Stronger visual separation on code blocks in dark mode */
+.dark .vp-doc div[class*='language-'] {
+  border: 1px solid var(--deride-edge);
+}
+
+/* Tighten tables */
+.vp-doc table {
+  display: table;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.dark .vp-doc table th {
+  background: var(--deride-carbon);
+  color: var(--deride-heading);
+}
+.dark .vp-doc table tr {
+  background: transparent;
+}
+.dark .vp-doc table tr:nth-child(2n) {
+  background: rgba(245, 158, 11, 0.03);
+}
+
+/* Custom callouts get a slight glow on the border */
+.dark .vp-doc .custom-block.tip {
+  border-color: var(--deride-accent);
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.15);
+}
+
+/* Sidebar active item gets a vertical accent bar */
+.dark .VPSidebarItem.level-1 > .item > .link.has-active,
+.dark .VPSidebarItem.level-2 > .item > .link.has-active {
+  position: relative;
+}
+.dark .VPSidebarItem.level-1 > .item > .link.has-active::before,
+.dark .VPSidebarItem.level-2 > .item > .link.has-active::before {
+  content: '';
+  position: absolute;
+  left: -16px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--deride-accent);
+}
+
+/* Logo in navbar */
+.VPNavBarTitle .logo {
+  border-radius: 6px;
+}
+.dark .VPNavBarTitle .logo {
+  filter: invert(1);
+}
+
+/* Footer */
+.VPFooter {
+  border-top: 1px solid var(--deride-edge);
+}
+.dark .VPFooter {
+  background: var(--deride-ink);
+  color: var(--deride-muted);
+}
