@@ -12,7 +12,7 @@ export default defineConfig({
   lastUpdated: true,
 
   head: [
-    ['link', { rel: 'icon', type: 'image/png', href: '/deride/logo.png' }],
+    ['link', { rel: 'icon', type: 'image/png', href: '/deride/logo-icon.png' }],
     ['meta', { name: 'theme-color', content: '#0a0a0a' }],
     ['meta', { property: 'og:title', content: 'deride' }],
     ['meta', { property: 'og:description', content: 'TypeScript-first mocking that wraps rather than monkey-patches.' }],
@@ -22,7 +22,12 @@ export default defineConfig({
   ],
 
   themeConfig: {
-    logo: { src: '/logo-transparent.png', alt: 'deride', width: 32, height: 32 },
+    // Per-theme logos — real assets, no CSS invert hack.
+    logo: {
+      light: '/logo-icon.png',
+      dark: '/logo-icon-white.png',
+      alt: 'deride',
+    },
     siteTitle: 'deride',
 
     nav: [

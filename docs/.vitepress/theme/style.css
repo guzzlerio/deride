@@ -171,12 +171,12 @@
   background: var(--deride-accent);
 }
 
-/* Logo in navbar */
+/* Logo in navbar — light/dark variants are served as distinct assets via
+   themeConfig.logo.{light,dark}, so no CSS filter trickery is needed. */
 .VPNavBarTitle .logo {
-  border-radius: 6px;
-}
-.dark .VPNavBarTitle .logo {
-  filter: invert(1);
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
 }
 
 /* Footer */
