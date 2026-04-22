@@ -1,12 +1,16 @@
 # Changelog
 
+All notable changes to this project are documented in the **[GitHub releases page](https://github.com/guzzlerio/deride/releases)**, generated automatically by [semantic-release](https://github.com/semantic-release/semantic-release) from [Conventional Commits](https://www.conventionalcommits.org/).
+
+This file preserves the historical v2.0.0 notes only; check the releases page for everything from v2.1 onwards.
+
 ## 2.0.0
 
 Complete rewrite from JavaScript to TypeScript.
 
 ### Breaking Changes
 
-- **Minimum Node.js version is now 18**
+- **Minimum Node.js version is now 18** (now 20+ on CI for vitest 4)
 - Package is now ESM-first (`"type": "module"`) with CJS fallback
 - Import style changed: `import deride from 'deride'` or `import { stub, wrap, func } from 'deride'`
 - `toCallbackWith` now invokes the **last** function argument (previously first)
@@ -39,5 +43,5 @@ Complete rewrite from JavaScript to TypeScript.
 - Build: tsup (CJS + ESM + .d.ts)
 - Test: vitest with 90% coverage thresholds
 - Lint: ESLint 9 flat config + typescript-eslint + prettier
-- CI: GitHub Actions (Node 18/20/22 matrix)
+- CI: GitHub Actions (Node 20/22 matrix)
 - Zero runtime dependencies beyond `debug`

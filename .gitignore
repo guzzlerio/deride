@@ -8,3 +8,12 @@ reports/
 *.log
 *.tsbuildinfo
 .tern-port
+
+# Playwright artefacts (used for local previewing, not part of the repo)
+.playwright-mcp/
+preview-*.png
+*.tgz
+
+# VitePress build output and cache
+docs/.vitepress/dist/
+docs/.vitepress/cache/

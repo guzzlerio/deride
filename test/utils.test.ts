@@ -55,6 +55,101 @@ describe('cloneDeep', () => {
     expect(copy[sym]).toBe(123)
     expect(copy).toEqual(obj)
   })
+
+  describe('built-in types preserve their prototype', () => {
+    it('clones a Date as a Date', () => {
+      const d = new Date('2024-01-15T10:30:00Z')
+      const copy = cloneDeep(d)
+      expect(copy).toBeInstanceOf(Date)
+      expect(copy).not.toBe(d)
+      expect(copy.getTime()).toBe(d.getTime())
+      d.setFullYear(1999)
+      expect(copy.getFullYear()).toBe(2024) // mutation isolation
+    })
+
+    it('clones a RegExp as a RegExp, preserving flags', () => {
+      const r = /foo.*bar/gi
+      const copy = cloneDeep(r)
+      expect(copy).toBeInstanceOf(RegExp)
+      expect(copy).not.toBe(r)
+      expect(copy.source).toBe('foo.*bar')
+      expect(copy.flags).toBe('gi')
+    })
+
+    it('clones a Map as a Map with deeply-cloned values', () => {
+      const inner = { x: 1 }
+      const m = new Map<string, { x: number }>([['k', inner]])
+      const copy = cloneDeep(m)
+      expect(copy).toBeInstanceOf(Map)
+      expect(copy).not.toBe(m)
+      expect(copy.get('k')).toEqual({ x: 1 })
+      expect(copy.get('k')).not.toBe(inner)
+      inner.x = 99
+      expect(copy.get('k')!.x).toBe(1)
+    })
+
+    it('clones a Set as a Set with deeply-cloned values', () => {
+      const inner = { x: 1 }
+      const s = new Set([inner])
+      const copy = cloneDeep(s)
+      expect(copy).toBeInstanceOf(Set)
+      expect(copy).not.toBe(s)
+      const [cloned] = copy
+      expect(cloned).toEqual({ x: 1 })
+      expect(cloned).not.toBe(inner)
+    })
+
+    it('clones a Map with cycles', () => {
+      const m: Map<string, unknown> = new Map()
+      m.set('self', m)
+      const copy = cloneDeep(m)
+      expect(copy.get('self')).toBe(copy)
+    })
+
+    it('clones a Uint8Array as a Uint8Array', () => {
+      const arr = new Uint8Array([1, 2, 3, 4])
+      const copy = cloneDeep(arr)
+      expect(copy).toBeInstanceOf(Uint8Array)
+      expect(copy).not.toBe(arr)
+      expect(Array.from(copy)).toEqual([1, 2, 3, 4])
+      arr[0] = 99
+      expect(copy[0]).toBe(1)
+    })
+
+    it('clones an ArrayBuffer', () => {
+      const buf = new Uint8Array([1, 2, 3]).buffer
+      const copy = cloneDeep(buf)
+      expect(copy).toBeInstanceOf(ArrayBuffer)
+      expect(copy).not.toBe(buf)
+      expect(Array.from(new Uint8Array(copy))).toEqual([1, 2, 3])
+    })
+
+    it('clones a DataView preserving its window', () => {
+      const buf = new Uint8Array([1, 2, 3, 4, 5, 6]).buffer
+      const view = new DataView(buf, 1, 3)
+      const copy = cloneDeep(view)
+      expect(copy).toBeInstanceOf(DataView)
+      expect(copy.byteLength).toBe(3)
+      expect(copy.getUint8(0)).toBe(2)
+    })
+
+    it('passes Promises through by reference (cannot meaningfully clone)', () => {
+      const p = Promise.resolve(42)
+      expect(cloneDeep(p)).toBe(p)
+    })
+
+    it('passes Errors through by reference (preserves stack and identity)', () => {
+      const e = new Error('boom')
+      expect(cloneDeep(e)).toBe(e)
+    })
+
+    it('passes WeakMap/WeakSet through by reference', () => {
+      const wm = new WeakMap()
+      const ws = new WeakSet()
+      expect(cloneDeep(wm)).toBe(wm)
+      expect(cloneDeep(ws)).toBe(ws)
+    })
+  })
 })
 
 describe('deepMatch', () => {
