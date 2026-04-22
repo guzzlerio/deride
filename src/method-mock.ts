@@ -1,428 +1,216 @@
-import assert from 'node:assert/strict'
 import Debug from 'debug'
 import { EventEmitter } from 'node:events'
-import { inspect, isDeepStrictEqual } from 'node:util'
-import { cloneDeep, deepMatch, hasMatch, humanise, PREFIX } from './utils.js'
+import { CallRecord, MockSnapshot, nextSeq } from './call-record.js'
+import { createExpect, MockExpect } from './mock-expect.js'
+import { createSetup, MockSetup, StubBehavior } from './mock-setup.js'
+import { createSpy, MethodSpy } from './mock-spy.js'
+import { cloneDeep, PREFIX } from './utils.js'
 
 type AnyFunc = (...args: any[]) => any
 
-type StubBehavior = {
-  predicate: (args: any[]) => boolean
-  action: AnyFunc
-  times?: number
-}
-
+/**
+ * The core mock engine. A `MethodMock` represents a single mocked method: it
+ * records every invocation as a {@link CallRecord}, dispatches to matching
+ * behaviours, and exposes three facades (`setup`, `expect`, `spy`) built
+ * from focused factory modules.
+ */
 export class MethodMock {
-  private callArgs: any[][] = []
-  private behaviors: StubBehavior[] = []
-  private currentBehavior: Partial<StubBehavior> = {}
-  private original?: AnyFunc
-  private emitter?: EventEmitter
-  private methodName: string
-  private debug: Debug.Debugger
+  private _calls: CallRecord[] = []
+  private _behaviors: StubBehavior[] = []
+  private _original?: AnyFunc
+  private _originalThis?: unknown
+  private _emitter?: EventEmitter
+  private _name: string
+  private _debug: Debug.Debugger
+  private _self?: unknown
 
+  /** Behaviour-configuration facade (`mock.setup.method`). */
   public readonly setup: MockSetup
+  /** Assertion facade (`mock.expect.method`). */
   public readonly expect: MockExpect
+  /** Read-only inspection facade (`mock.spy.method`). */
+  public readonly spy: MethodSpy
 
+  /**
+   * Create a new MethodMock.
+   *
+   * @param original Optional original implementation — used when no behaviour matches.
+   * @param options Optional name (used in diagnostic output) and shared emitter for `toEmit`.
+   */
   constructor(original?: AnyFunc, options?: { name?: string; emitter?: EventEmitter }) {
-    this.original = original
-    this.methodName = options?.name ?? 'anonymous'
-    this.emitter = options?.emitter
-    this.debug = Debug(`${PREFIX}:method-mock:${this.methodName}`)
+    this._original = original
+    this._name = options?.name ?? 'anonymous'
+    this._emitter = options?.emitter
+    this._debug = Debug(`${PREFIX}:method-mock:${this._name}`)
 
-    this.setup = this.createSetup()
-    this.expect = this.createExpect()
+    const setupHost = {
+      pushBehavior: (b: StubBehavior) => {
+        this._behaviors.push(b)
+        return this._behaviors.length - 1
+      },
+      setBehaviorTimes: (i: number, t: number | undefined) => {
+        this._behaviors[i].times = t
+      },
+      clearBehaviors: () => {
+        this._behaviors = []
+      },
+      get original() {
+        return self._original
+      },
+      get self() {
+        return self._self
+      },
+      get emitter() {
+        return self._emitter
+      },
+    }
+
+    const spyExpectHost = {
+      get name() {
+        return self._name
+      },
+      get calls() {
+        return self._calls
+      },
+      clearCalls: () => {
+        this._calls = []
+      },
+    }
+
+    const self = this
+
+    this.setup = createSetup(setupHost)
+    this.expect = createExpect(spyExpectHost)
+    this.spy = createSpy(spyExpectHost)
+  }
+
+  /** Attach the wrapped object — used by `toReturnSelf` and for `this` defaulting. */
+  public setSelf(self: unknown): void {
+    this._self = self
+  }
+
+  /** Human-friendly method name (from constructor options, or `'anonymous'`). */
+  public get name(): string {
+    return this._name
+  }
+
+  /** Total number of recorded calls. */
+  public get callCount(): number {
+    return this._calls.length
+  }
+
+  /** Live view of recorded args in the legacy `unknown[][]` shape — kept for back-compat with internals. */
+  public get callArgs(): readonly (readonly unknown[])[] {
+    return this._calls.map((c) => c.args)
+  }
+
+  /** Read-only handle onto the recorded calls array. */
+  public getCalls(): readonly CallRecord[] {
+    return this._calls
   }
 
   /**
-   * Creates a callable proxy that acts as both a function and exposes .setup/.expect
+   * Build a callable Proxy that is simultaneously a function (invoking it
+   * dispatches through `invoke`) and a holder of `setup` / `expect` / `spy`
+   * properties. Used by `func()` for standalone mocked functions.
    */
-  public createProxy(): AnyFunc & { setup: MockSetup; expect: MockExpect } {
+  public createProxy(): AnyFunc & { setup: MockSetup; expect: MockExpect; spy: MethodSpy } {
     const self = this
-    const fn: AnyFunc = (...args: any[]) => self.invoke(args)
+    const fn: AnyFunc = () => undefined
 
-    return new Proxy(fn, {
+    const proxy = new Proxy(fn, {
+      apply(_target, thisArg, args) {
+        return self.invoke(args, thisArg)
+      },
       get(target, prop: string | symbol) {
         if (prop === 'setup') return self.setup
         if (prop === 'expect') return self.expect
+        if (prop === 'spy') return self.spy
         return Reflect.get(target, prop)
       },
-    }) as any
+    }) as AnyFunc & { setup: MockSetup; expect: MockExpect; spy: MethodSpy }
+
+    this._self = proxy
+    return proxy
   }
 
-  /**
-   * Invoke this mock — records the call and dispatches to matching behavior
-   */
-  public invoke(args: any[]): any {
-    this.debug('invoke', args)
-    this.callArgs.push(cloneDeep(args))
+  /** Invoke the mock — records the call and dispatches to the matching behaviour. */
+  public invoke(args: any[], thisArg?: unknown): any {
+    this._debug('invoke', args)
 
-    // First: find time-limited behaviors in order (FIFO)
-    const timeLimited = this.behaviors.find(
-      (b: StubBehavior) => b.predicate(args) && b.times !== undefined && b.times > 0
+    const record: Mutable<CallRecord> = {
+      args: cloneDeep(args),
+      thisArg,
+      timestamp: Date.now(),
+      sequence: nextSeq(),
+    }
+    this._calls.push(record)
+
+    // First: find time-limited behaviors in registration order (FIFO)
+    const timeLimited = this._behaviors.find(
+      (b) => b.predicate(args) && b.times !== undefined && b.times > 0
     )
-    // Fallback: find the last unlimited behavior that matches
-    const behavior = timeLimited ?? [...this.behaviors].reverse().find(
-      (b: StubBehavior) => b.predicate(args) && b.times === undefined
-    )
+    // Fallback: find the LAST unlimited behaviour that matches
+    const behavior =
+      timeLimited ??
+      [...this._behaviors].reverse().find((b) => b.predicate(args) && b.times === undefined)
 
-    if (behavior) {
-      if (behavior.times !== undefined) behavior.times--
-      return behavior.action(...args)
-    }
-
-    return this.original ? this.original(...args) : undefined
-  }
-
-  /**
-   * Reset all call records
-   */
-  public reset(): void {
-    this.callArgs = []
-  }
-
-  private addBehavior(action: AnyFunc): MockSetup {
-    const predicate = this.currentBehavior.predicate ?? (() => true)
-    const times = this.currentBehavior.times
-    this.behaviors.push({ predicate, action, times })
-    this.currentBehavior = {}
-    const lastIdx = this.behaviors.length - 1
-    const self = this
-
-    // Return a post-add view of setup that allows retroactive times() on the just-added behavior
-    return Object.create(this.setup, {
-      times: {
-        value(n: number) {
-          self.behaviors[lastIdx].times = n
-          return this
-        },
-      },
-      once: {
-        value() {
-          return this.times(1)
-        },
-      },
-      twice: {
-        value() {
-          return this.times(2)
-        },
-      },
-    })
-  }
-
-  private createSetup(): MockSetup {
-    const self = this
-
-    const setup: MockSetup = {
-      toReturn(value: any) {
-        return self.addBehavior(() => value)
-      },
-      toDoThis(fn: AnyFunc) {
-        return self.addBehavior((...args) => fn(...args))
-      },
-      toThrow(message: string) {
-        return self.addBehavior(() => {
-          throw new Error(message)
-        })
-      },
-      toResolveWith(value: any) {
-        return self.addBehavior(() => Promise.resolve(value))
-      },
-      toResolve() {
-        return self.addBehavior(() => Promise.resolve())
-      },
-      toRejectWith(error: any) {
-        return self.addBehavior(() => Promise.reject(error))
-      },
-      toCallbackWith(...cbArgs: any[]) {
-        return self.addBehavior((...args) => {
-          const cb = [...args].reverse().find((arg) => typeof arg === 'function')
-          if (!cb) throw new Error('No callback function found in arguments')
-          cb(...cbArgs)
-        })
-      },
-      toEmit(eventName: string, ...params: any[]) {
-        return self.addBehavior((...args) => {
-          if (self.emitter) {
-            self.emitter.emit(eventName, ...params)
-          }
-          return self.original ? self.original(...args) : undefined
-        })
-      },
-      toIntercept(fn: AnyFunc) {
-        return self.addBehavior((...args) => {
-          fn(...args)
-          return self.original ? self.original(...args) : undefined
-        })
-      },
-      toTimeWarp(ms: number) {
-        return self.addBehavior((...args) => {
-          const cb = args.find((arg) => typeof arg === 'function')
-          if (cb) {
-            setTimeout(cb, ms)
-          }
-          return self.original ? self.original(...args) : undefined
-        })
-      },
-      when(predicateOrValue: any) {
-        if (typeof predicateOrValue === 'function') {
-          self.currentBehavior.predicate = predicateOrValue
-        } else {
-          self.currentBehavior.predicate = (args: any[]) =>
-            args.length > 0 && isDeepStrictEqual(args[0], predicateOrValue)
-        }
-        return setup
-      },
-      times(n: number) {
-        self.currentBehavior.times = n
-        return setup
-      },
-      once() {
-        self.currentBehavior.times = 1
-        return setup
-      },
-      twice() {
-        self.currentBehavior.times = 2
-        return setup
-      },
-      fallback() {
-        self.behaviors = []
-        return setup
-      },
-      get and() {
-        return setup
-      },
-      get then() {
-        return setup
-      },
-    }
-
-    return setup
-  }
-
-  private createExpect(): MockExpect {
-    const self = this
-
-    const called: CalledExpect = {
-      times(n: number, err?: string) {
-        if (!err) {
-          err = `Expected ${self.methodName} to be called ${humanise(n)} but was ${humanise(self.callArgs.length)}`
-        }
-        assert.equal(self.callArgs.length, n, err)
-      },
-      once() {
-        called.times(1)
-      },
-      twice() {
-        called.times(2)
-      },
-      never() {
-        called.times(
-          0,
-          `Expected ${self.methodName} to never be called but was ${humanise(self.callArgs.length)}`
-        )
-      },
-      lt(n: number) {
-        assert(
-          self.callArgs.length < n,
-          `Expected ${self.methodName} call count < ${n}, but got ${self.callArgs.length}`
-        )
-      },
-      lte(n: number) {
-        assert(
-          self.callArgs.length <= n,
-          `Expected ${self.methodName} call count <= ${n}, but got ${self.callArgs.length}`
-        )
-      },
-      gt(n: number) {
-        assert(
-          self.callArgs.length > n,
-          `Expected ${self.methodName} call count > ${n}, but got ${self.callArgs.length}`
-        )
-      },
-      gte(n: number) {
-        assert(
-          self.callArgs.length >= n,
-          `Expected ${self.methodName} call count >= ${n}, but got ${self.callArgs.length}`
-        )
-      },
-      withArg(arg: unknown) {
-        const result = self.callArgs.some((callArgs) => hasMatch(callArgs, arg))
-        assert(result, `Expected ${self.methodName} to be called with: ${inspect(arg)}`)
-      },
-      withArgs(...args: unknown[]) {
-        const result = self.callArgs.some((callArgs) =>
-          args.every((expected) => hasMatch(callArgs, expected))
-        )
-        assert(result, `Expected ${self.methodName} to be called with: ${args.join(', ')}`)
-      },
-      withMatch(pattern: RegExp) {
-        let matched = false
-        for (const callArgs of self.callArgs) {
-          if (matched) break
-          for (const arg of callArgs) {
-            if (matched) break
-            if (typeof arg === 'object' && arg !== null) {
-              matched = deepMatch(arg, pattern)
-            } else {
-              matched = pattern.test(String(arg))
-            }
-          }
-        }
-        assert(matched, `Expected ${self.methodName} to be called matching: ${pattern}`)
-      },
-      matchExactly(...expectedArgs: unknown[]) {
-        const matched = self.callArgs.some(
-          (callArgs) =>
-            callArgs.length === expectedArgs.length &&
-            callArgs.every((a, i) => isDeepStrictEqual(a, expectedArgs[i]))
-        )
-        assert(
-          matched,
-          `Expected ${self.methodName} to be called matchExactly args${inspect(expectedArgs, { depth: 10 })}`
-        )
-      },
-      reset() {
-        self.callArgs = []
-      },
-      not: {} as Omit<CalledExpect, 'reset' | 'not'>,
-    }
-
-    function negate(fn: (...args: any[]) => void) {
-      return (...args: any[]) => {
-        try {
-          fn(...args)
-        } catch {
-          return // original threw, so negation passes
-        }
-        assert.fail(`Expected negated assertion to fail but it passed`)
+    try {
+      if (behavior) {
+        if (behavior.times !== undefined) behavior.times--
+        const result = behavior.action.apply(this._self ?? thisArg, args)
+        record.returned = result
+        return result
       }
+      const result = this._original
+        ? this._original.apply(this._originalThis ?? thisArg, args)
+        : undefined
+      record.returned = result
+      return result
+    } catch (err) {
+      record.threw = err
+      throw err
     }
+  }
 
-    called.not = {
-      times: negate(called.times),
-      once: negate(called.once),
-      twice: negate(called.twice),
-      never: negate(called.never),
-      lt: negate(called.lt),
-      lte: negate(called.lte),
-      gt: negate(called.gt),
-      gte: negate(called.gte),
-      withArg: negate(called.withArg),
-      withArgs: negate(called.withArgs),
-      withMatch: negate(called.withMatch),
-      matchExactly: negate(called.matchExactly),
+  /** Clear recorded call history. Behaviours remain intact. */
+  public reset(): void {
+    this._calls = []
+  }
+
+  /** Capture the current state (behaviours + call history) as an opaque snapshot. */
+  public snapshot(): MockSnapshot {
+    return {
+      __brand: 'deride.snapshot',
+      behaviors: this._behaviors.map((b) => ({ ...b })),
+      calls: this._calls.map((c) => ({ ...c })),
     }
+  }
 
-    const expect: MockExpect = {
-      called,
-      invocation(index: number) {
-        if (index >= self.callArgs.length) {
-          throw new Error('invocation out of range')
-        }
-        const args = self.callArgs[index]
-        return {
-          withArg(arg: unknown) {
-            const result = hasMatch(args, arg)
-            assert(result, `Invocation #${index} did not include argument ${inspect(arg)}`)
-          },
-          withArgs(...expectedArgs: unknown[]) {
-            const result = expectedArgs.every((expected) => hasMatch(args, expected))
-            assert(result, `Invocation #${index} did not include arguments ${inspect(expectedArgs)}`)
-          },
-        }
-      },
+  /** Restore behaviours and call history to a previously captured snapshot. */
+  public restoreSnapshot(snap: MockSnapshot): void {
+    if (!snap || snap.__brand !== 'deride.snapshot') {
+      throw new Error('restoreSnapshot: not a deride snapshot')
     }
+    this._behaviors = (snap.behaviors as StubBehavior[]).map((b) => ({ ...b }))
+    this._calls = (snap.calls as CallRecord[]).map((c) => ({ ...c }))
+  }
 
-    return expect
+  /** Clear BOTH behaviours and recorded calls — the "cold start" reset. */
+  public fullRestore(): void {
+    this._behaviors = []
+    this._calls = []
   }
 }
 
-/** Configure the behavior of a mocked method. Constrained to the method's signature. Cast value `as any` to bypass type checking. */
-export interface TypedMockSetup<A extends any[] = any[], R = any> {
-  /** Return a fixed value when invoked. Cast `as any` to return an invalid type. */
-  toReturn(value: R): TypedMockSetup<A, R>
-  /** Replace the method body with a custom function. */
-  toDoThis(fn: (...args: A) => R): TypedMockSetup<A, R>
-  /** Throw an error with the given message when invoked. */
-  toThrow(message: string): TypedMockSetup<A, R>
-  /** Return a resolved promise with the given value. */
-  toResolveWith(value: R extends Promise<infer U> ? U : R): TypedMockSetup<A, R>
-  /** Return a resolved promise with no value. */
-  toResolve(): TypedMockSetup<A, R>
-  /** Return a rejected promise with the given error. */
-  toRejectWith(error: unknown): TypedMockSetup<A, R>
-  /** Invoke the last callback argument with the given args. */
-  toCallbackWith(...args: any[]): TypedMockSetup<A, R>
-  /** Emit an event on the wrapped object when invoked. */
-  toEmit(eventName: string, ...params: any[]): TypedMockSetup<A, R>
-  /** Call the interceptor with args, then call the original method. */
-  toIntercept(fn: (...args: A) => void): TypedMockSetup<A, R>
-  /** Schedule the callback with an accelerated timeout. */
-  toTimeWarp(ms: number): TypedMockSetup<A, R>
-  /** Apply the next behavior only when args match the predicate or value. */
-  when(predicateOrValue: A[0] | ((args: A) => boolean)): TypedMockSetup<A, R>
-  /** Apply the next behavior only for the first `n` invocations. */
-  times(n: number): TypedMockSetup<A, R>
-  /** Apply the next behavior only for the first invocation. */
-  once(): TypedMockSetup<A, R>
-  /** Apply the next behavior only for the first two invocations. */
-  twice(): TypedMockSetup<A, R>
-  /** Clear all configured behaviors, revert to original. */
-  fallback(): TypedMockSetup<A, R>
-  /** Chaining alias — returns the setup object for readability. */
-  readonly and: TypedMockSetup<A, R>
-  /** Chaining alias — returns the setup object for readability. */
-  readonly then: TypedMockSetup<A, R>
-}
+type Mutable<T> = { -readonly [K in keyof T]: T[K] }
 
-/** Untyped setup — accepts any value. Used internally and for untyped stubs. */
-export type MockSetup = TypedMockSetup<any[], any>
-
-/** Assert expectations about how a method was called. */
-export interface CalledExpect {
-  /** Assert called exactly `n` times. */
-  times(n: number, err?: string): void
-  /** Assert called exactly once. */
-  once(): void
-  /** Assert called exactly twice. */
-  twice(): void
-  /** Assert never called. */
-  never(): void
-  /** Assert call count is less than `n`. */
-  lt(n: number): void
-  /** Assert call count is less than or equal to `n`. */
-  lte(n: number): void
-  /** Assert call count is greater than `n`. */
-  gt(n: number): void
-  /** Assert call count is greater than or equal to `n`. */
-  gte(n: number): void
-  /** Assert called with an argument matching (partial deep equal). */
-  withArg(arg: unknown): void
-  /** Assert called with all specified arguments (partial deep equal). */
-  withArgs(...args: unknown[]): void
-  /** Assert called with an argument matching the regex pattern. */
-  withMatch(pattern: RegExp): void
-  /** Assert called with exactly these arguments (strict deep equal). */
-  matchExactly(...args: unknown[]): void
-  /** Reset call count and recorded arguments. */
-  reset(): void
-  /** Negated expectations — pass when the positive assertion would fail. */
-  not: Omit<CalledExpect, 'reset' | 'not'>
-}
-
-/** Assert expectations about a specific invocation by index. */
-export interface InvocationExpect {
-  /** Assert this invocation included the given argument. */
-  withArg(arg: unknown): void
-  /** Assert this invocation included all the given arguments. */
-  withArgs(...args: unknown[]): void
-}
-
-/** Expectation interface for a mocked method. */
-export interface MockExpect {
-  /** Call count and argument assertions. */
-  called: CalledExpect
-  /** Access a specific invocation by zero-based index. */
-  invocation(index: number): InvocationExpect
-}
+// Re-export the types the rest of the codebase (and the public API) consume.
+export type { CallRecord, MockSnapshot } from './call-record.js'
+export type {
+  CalledExpect,
+  InvocationExpect,
+  MockExpect,
+} from './mock-expect.js'
+export type { MockSetup, TypedMockSetup, StubBehavior } from './mock-setup.js'
+export type { MethodSpy } from './mock-spy.js'
