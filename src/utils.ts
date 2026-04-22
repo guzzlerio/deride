@@ -71,10 +71,17 @@ export function deepMatch<T extends object>(obj: T, regex: RegExp) {
 }
 
 /**
- * Structural deep clone with cycle protection, preserving symbol keys and
- * passing functions through by reference (rather than cloning their bodies).
+ * Structural deep clone with cycle protection.
+ *
  * Used to snapshot argument arrays at invocation time so later mutations by
  * the caller can't corrupt recorded calls.
+ *
+ * Built-in types are handled explicitly (Date, RegExp, Map, Set, ArrayBuffer,
+ * typed arrays, DataView) so the recorded value preserves its prototype and
+ * survives `instanceof` checks. Functions, Promises, Errors, WeakMaps and
+ * WeakSets are passed through by reference because their state cannot be
+ * meaningfully cloned. Plain objects and arrays recurse and preserve symbol
+ * keys.
  */
 export function cloneDeep<T>(obj: T): T {
   const seen = new WeakMap()
@@ -83,7 +90,49 @@ export function cloneDeep<T>(obj: T): T {
     if (value === null || typeof value !== 'object') return value
     if (typeof value === 'function') return value
 
+    // Pass through types we cannot safely clone — Promise/Error keep identity
+    // (Errors carry a stack trace; Promises own their internal state).
+    if (value instanceof Promise) return value
+    if (value instanceof Error) return value
+    if (value instanceof WeakMap || value instanceof WeakSet) return value
+
+    // Atomic-ish built-ins. Returned fresh so mutating the original doesn't
+    // affect the clone, but they don't need cycle tracking (can't self-refer).
+    if (value instanceof Date) return new Date(value.getTime())
+    if (value instanceof RegExp) return new RegExp(value.source, value.flags)
+
     if (seen.has(value)) return seen.get(value)
+
+    if (value instanceof Map) {
+      const result = new Map()
+      seen.set(value, result)
+      for (const [k, v] of value) {
+        result.set(deepClone(k), deepClone(v))
+      }
+      return result
+    }
+
+    if (value instanceof Set) {
+      const result = new Set()
+      seen.set(value, result)
+      for (const v of value) {
+        result.add(deepClone(v))
+      }
+      return result
+    }
+
+    if (value instanceof ArrayBuffer) {
+      return value.slice(0)
+    }
+
+    if (ArrayBuffer.isView(value)) {
+      // Typed arrays (Uint8Array, Float64Array, …) and DataView. We slice the
+      // underlying buffer to match the view's window, then re-wrap with the
+      // same constructor.
+      const buffer = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength)
+      const Ctor = value.constructor as new (buf: ArrayBufferLike) => unknown
+      return new Ctor(buffer)
+    }
 
     if (Array.isArray(value)) {
       const result: any[] = []

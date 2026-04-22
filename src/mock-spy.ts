@@ -30,8 +30,21 @@ export interface MethodSpy {
 
 /**
  * Produces a canonical, stable representation of `value` suitable for snapshot
- * testing: keys sorted, circular refs rendered as `[Circular]`, functions as
- * `[Function: name]`, bigints with an `n` suffix, symbols via `.toString()`.
+ * testing.
+ *
+ * Rendering rules:
+ *  - Plain objects: keys sorted alphabetically; recurse.
+ *  - Arrays: index order preserved; recurse.
+ *  - Circular refs: rendered as `[Circular]`.
+ *  - Functions: rendered as `[Function: name]`.
+ *  - Bigints: `123n` style suffix.
+ *  - Symbols: `Symbol(desc)` via `.toString()`.
+ *  - Date: ISO 8601 string.
+ *  - RegExp: `/pattern/flags` form.
+ *  - Error: `[Name: message]`.
+ *  - Map: `{ __type: 'Map', entries: [[k, v], …] }`.
+ *  - Set: `{ __type: 'Set', values: [v, …] }`.
+ *  - Typed arrays / DataView: `{ __type: 'Uint8Array' (etc.), values: [n, …] }`.
  */
 export function stableSerialise(value: unknown, seen = new WeakSet<object>()): unknown {
   if (value === null || value === undefined) return value
@@ -44,8 +57,46 @@ export function stableSerialise(value: unknown, seen = new WeakSet<object>()): u
     if (typeof value === 'symbol') return value.toString()
     return value
   }
+
+  // Built-in types — render to deterministic atomic strings/objects so they
+  // survive snapshot diffs and `instanceof` info isn't silently dropped.
+  if (value instanceof Date) return value.toISOString()
+  if (value instanceof RegExp) return value.toString()
+  if (value instanceof Error) {
+    return `[${(value as Error).constructor.name}: ${(value as Error).message}]`
+  }
+
   if (seen.has(value as object)) return '[Circular]'
   seen.add(value as object)
+
+  if (value instanceof Map) {
+    return {
+      __type: 'Map',
+      entries: Array.from(value as Map<unknown, unknown>, ([k, v]) => [
+        stableSerialise(k, seen),
+        stableSerialise(v, seen),
+      ]),
+    }
+  }
+  if (value instanceof Set) {
+    return {
+      __type: 'Set',
+      values: Array.from(value as Set<unknown>, (v) => stableSerialise(v, seen)),
+    }
+  }
+  if (ArrayBuffer.isView(value)) {
+    return {
+      __type: (value.constructor as { name: string }).name,
+      values: Array.from(value as unknown as ArrayLike<number>),
+    }
+  }
+  if (value instanceof ArrayBuffer) {
+    return {
+      __type: 'ArrayBuffer',
+      values: Array.from(new Uint8Array(value)),
+    }
+  }
+
   if (Array.isArray(value)) return value.map((v) => stableSerialise(v, seen))
   const keys = Reflect.ownKeys(value as object)
     .map((k) => k.toString())
