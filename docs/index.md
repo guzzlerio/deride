@@ -6,7 +6,8 @@ hero:
   text: Mocking that wraps, not patches.
   tagline: TypeScript-first test doubles for frozen objects, sealed classes, and any coding style — with matchers, spies, and first-class fake timers.
   image:
-    src: /logo-transparent.png
+    light: /logo-full.png
+    dark: /logo-full-white.png
     alt: deride
   actions:
     - theme: brand

@@ -4,18 +4,41 @@ Logo and brand assets for [deride](../README.md).
 
 ## Files
 
-| File | Purpose | Dimensions |
-|------|---------|-----------:|
-| [`logo.png`](./logo.png) | Primary logo — icon + "deride" wordmark on a solid background | 1254 × 1254 |
-| [`logo-transparent.png`](./logo-transparent.png) | Transparent-background brand sheet showing the full composition plus the standalone icon mark | 1024 × 1024 |
+### Primary (with "deride" wordmark)
 
-`logo.png` is the go-to for READMEs, docs, and anywhere you need a self-contained mark. `logo-transparent.png` is the source to pull individual elements from when placing the brand on a non-white surface.
+| File | Background | Ink | Use |
+|------|------------|-----|-----|
+| [`logo.png`](./logo.png) | solid white | dark | README on GitHub / npm, light backgrounds |
+| [`logo-white.png`](./logo-white.png) | transparent | white | overlay on dark surfaces |
+| [`logo-full.png`](./logo-full.png) | transparent | dark | hero / marketing on light backgrounds |
+| [`logo-full-white.png`](./logo-full-white.png) | transparent | white | hero / marketing on dark backgrounds |
 
-## Usage guidelines
+### Icon-only (just the "D" mark)
+
+| File | Background | Ink | Use |
+|------|------------|-----|-----|
+| [`logo-icon.png`](./logo-icon.png) | transparent | dark | favicons, small navbars on light |
+| [`logo-icon-white.png`](./logo-icon-white.png) | transparent | white | favicons, small navbars on dark |
+
+### Source / brand sheet
+
+| File | Contents |
+|------|----------|
+| [`logo-transparent.png`](./logo-transparent.png) | Original brand sheet (dark ink) — full composition + standalone icon, as supplied |
+| [`logo-transparent-white.png`](./logo-transparent-white.png) | Same sheet, white ink, for pulling variants onto dark backgrounds |
+
+## Usage
+
+- In the VitePress docs site, `themeConfig.logo` picks the dark-ink icon on light mode and the white-ink icon on dark mode — no CSS filter tricks. The same pattern is used for the home-page hero image.
+- In README.md at the top of the repo, `logo.png` (solid white BG) is used so it reads cleanly on both GitHub's light and dark themes.
+- For third-party integrations (blogs, conference slides), start from `logo-full.png` or `logo-full-white.png` — both are tightly trimmed and transparent-backed so they drop into any layout.
+
+## Guidelines
 
 - Maintain the built-in padding around the mark. Don't crop tight.
-- Don't recolour, distort, or add drop-shadows. The brand is deliberately flat and monochrome.
-- Prefer the transparent variant only when overlaying on a clean background with sufficient contrast (the ink is dark, so avoid placing it on dark surfaces without an inverted version).
+- Don't recolour with multiple fills — the mark is deliberately flat and monochrome. Use the supplied dark/white variants rather than applying filters.
+- Don't distort the aspect ratio.
+- Don't add drop shadows or effects.
 
 ## Licence
 
