@@ -2,7 +2,8 @@ name: Release
 
 on:
   push:
-    branches: [develop, main]
+    branches: [master]
+  workflow_dispatch:
 
 concurrency:
   group: release-${{ github.ref }}
@@ -10,14 +11,15 @@ concurrency:
 
 jobs:
   release:
-    # Skip when the commit was made by semantic-release itself (chore(release))
+    # Skip commits semantic-release would produce itself (belt-and-braces —
+    # we no longer commit back to master, but leave the guard in place).
     if: "!contains(github.event.head_commit.message, 'chore(release):')"
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      issues: write
+      contents: write        # creating git tags and GitHub releases
+      issues: write          # semantic-release opens issues on failure
       pull-requests: write
-      id-token: write
+      id-token: write        # npm provenance
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,8 +33,8 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
       - run: pnpm install --frozen-lockfile
 
-      # Re-run the full gate before publishing so we never ship a red build,
-      # even if somebody pushed directly past the branch protection.
+      # Re-run the gate before publishing so a red build never reaches npm,
+      # even if somebody merged past branch protection.
       - name: Lint
         run: pnpm lint
       - name: Typecheck

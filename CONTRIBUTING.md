@@ -55,15 +55,34 @@ echo "feat(matchers): add match.bigint" | pnpm commitlint
 
 ## Releases
 
-Releases are fully automated by [semantic-release](https://github.com/semantic-release/semantic-release):
+Releases are scoped to the `master` branch. This keeps work on `develop`
+accumulating without every merge triggering a publish.
 
-- CI runs on every push to `develop` / `main`.
-- If any of the commits since the last tag are release-worthy, semantic-release
-  computes the next version, updates `CHANGELOG.md` and `package.json`, tags the
-  commit, publishes to npm with provenance, and creates a GitHub release.
-- Nothing to do manually — just land conventional commits.
+**Branch roles:**
 
-To preview what a branch would release:
+| Branch | Role |
+|--------|------|
+| `develop` | Default integration branch. All PRs target it. |
+| `master` | Release branch. Merging `develop` → `master` cuts a release. |
+| `feature/*`, `fix/*` | Work branches, PR'd into `develop`. |
+
+**Cutting a release:**
+
+1. Land the relevant conventional-commit PRs on `develop`.
+2. Open a PR from `develop` → `master` (or fast-forward if preferred).
+3. Merge it. [semantic-release](https://github.com/semantic-release/semantic-release) runs automatically on `master`:
+   - computes the next version from the commits since the last tag,
+   - creates the git tag,
+   - publishes to npm with provenance,
+   - posts a GitHub release with auto-generated notes.
+4. Nothing to do manually.
+
+`package.json` and `CHANGELOG.md` in the repo are **not** auto-updated —
+branch protection would require us to push a commit back, which we
+deliberately don't do. Authoritative release history lives on the
+[GitHub Releases page](https://github.com/guzzlerio/deride/releases).
+
+To preview what a merge would release:
 
 ```bash
 pnpm release:dry-run
