@@ -980,6 +980,39 @@ clock.restore()
 
 For richer behaviour (ordering-sensitive microtasks, `performance.now`, `setImmediate`), use `vi.useFakeTimers()` or `@sinonjs/fake-timers` instead.
 
+### Always restore (even on throw)
+
+`useFakeTimers()` patches `Date.now`, `setTimeout`, `setInterval`, and `queueMicrotask` on `globalThis`. If a test installs the clock and **throws before calling `restore()`** — or if `runAll()` itself throws because an active `setInterval` would loop forever — the patches stay in place and the next test inherits a frozen `Date.now()` and fake timers. This causes confusing cascading failures.
+
+Always pair `useFakeTimers()` with an `afterEach` safety net:
+
+```typescript
+import { afterEach } from 'vitest'
+import { isFakeTimersActive, restoreActiveClock, useFakeTimers } from 'deride/clock'
+
+afterEach(() => {
+  if (isFakeTimersActive()) restoreActiveClock()
+})
+
+it('does work with fake time', () => {
+  const clock = useFakeTimers()
+  // ... test body — even if it throws, afterEach will restore
+})
+```
+
+Or wrap the call site in a try/finally:
+
+```typescript
+const clock = useFakeTimers()
+try {
+  clock.runAll()
+} finally {
+  clock.restore()
+}
+```
+
+The same pattern applies if you read `clock.errors` (errors caught from inside scheduled callbacks) — the array clears on `restore()`, so be sure to read it first if you need to assert on it.
+
 ---
 
 ## Usage patterns

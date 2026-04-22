@@ -28,7 +28,29 @@ interface Timer {
 export interface FakeClock {
   /** Advance the clock by `ms` milliseconds, firing any timers that come due. */
   tick(ms: number): void
-  /** Drain all pending timers, advancing the clock to each as needed. */
+  /**
+   * Drain all pending timers, advancing the clock to each as needed.
+   *
+   * Throws if the iteration guard (10 000 steps) is exhausted — typically
+   * because an active `setInterval` would loop forever. **The throw escapes
+   * before `restore()` runs**, so any test that calls `runAll()` should pair
+   * it with an `afterEach` safety net to avoid leaving fake timers installed
+   * across tests:
+   *
+   * ```ts
+   * import { useFakeTimers, isFakeTimersActive, restoreActiveClock } from 'deride/clock'
+   * afterEach(() => {
+   *   if (isFakeTimersActive()) restoreActiveClock()
+   * })
+   * ```
+   *
+   * Or use a try/finally around the call site:
+   *
+   * ```ts
+   * const clock = useFakeTimers()
+   * try { clock.runAll() } finally { clock.restore() }
+   * ```
+   */
   runAll(): void
   /** Drain any microtasks queued via `queueMicrotask`. */
   flushMicrotasks(): void
@@ -50,6 +72,20 @@ let active: FakeClock | undefined
  * Install fake timers. Returns a {@link FakeClock} handle for advancing and
  * restoring time. Throws if fake timers are already installed — call
  * `.restore()` on the previous handle first.
+ *
+ * Calling this patches `Date.now`, `setTimeout`, `clearTimeout`,
+ * `setInterval`, `clearInterval`, and `queueMicrotask` on `globalThis` until
+ * `.restore()` is invoked. **It is the caller's responsibility to ensure
+ * `.restore()` runs even if a test throws** — `runAll()` in particular can
+ * throw (see its docs), and `tick()` will surface uncaught errors via
+ * `clock.errors`. The recommended pattern is an `afterEach` safety net:
+ *
+ * ```ts
+ * import { isFakeTimersActive, restoreActiveClock, useFakeTimers } from 'deride/clock'
+ * afterEach(() => {
+ *   if (isFakeTimersActive()) restoreActiveClock()
+ * })
+ * ```
  *
  * @param startEpoch Initial value for `Date.now()` in milliseconds since epoch. Defaults to `0`.
  */
