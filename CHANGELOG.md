@@ -1,10 +1,8 @@
 # Changelog
 
-All notable changes to this project are documented in this file.
+All notable changes to this project are documented in the **[GitHub releases page](https://github.com/guzzlerio/deride/releases)**, generated automatically by [semantic-release](https://github.com/semantic-release/semantic-release) from [Conventional Commits](https://www.conventionalcommits.org/).
 
-From v2.1 onwards this file is maintained automatically by
-[semantic-release](https://github.com/semantic-release/semantic-release)
-based on [Conventional Commits](https://www.conventionalcommits.org/).
+This file preserves the historical v2.0.0 notes only; check the releases page for everything from v2.1 onwards.
 
 ## 2.0.0
 
