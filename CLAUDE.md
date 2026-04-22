@@ -116,6 +116,31 @@ Six variants in `brand/`:
 
 VitePress config uses `{ light, dark }` per-theme logo — no CSS filter hacks. If you need a new size/crop variant, regenerate from the originals with ImageMagick (see `brand/README.md`).
 
+## "For Agents" docs section (`docs/ai/`) — keep this current
+
+The docs site has a section written specifically for AI agents at `docs/ai/`. It exists because agent-generated code fails most often when the agent can't disambiguate between similar APIs (`stub` vs `wrap` vs `func`, `expect` vs `spy`, which setup for which task). The section captures those decisions explicitly so agents have an authoritative source.
+
+**Pages you must keep synced whenever the main guide changes:**
+
+| Guide change | Also update |
+|--------------|-------------|
+| New factory or new setup method | `docs/ai/decision-tree.md` (add row), `docs/ai/canonical-examples.md` if it's a common pattern |
+| New matcher | `docs/ai/decision-tree.md` → "which matcher" table |
+| New expectation method | `docs/ai/decision-tree.md` → "which expect" table |
+| Change to an existing idiomatic pattern | `docs/ai/canonical-examples.md` (update the blessed snippet) |
+| Discovered anti-pattern / common footgun | `docs/ai/common-mistakes.md` (add entry with wrong/right) |
+| New sub-path export | `docs/ai/decision-tree.md` + `docs/ai/feeds.md` if discoverability changes |
+
+**Feed infrastructure** — `docs/.vitepress/emit-llm-assets.ts` runs on every build and emits:
+
+- `dist/<page>.md` — a clean Markdown copy of every page
+- `dist/llms.txt` — [llmstxt.org](https://llmstxt.org) index (sorted, grouped)
+- `dist/llms-full.txt` — all pages concatenated
+
+Adding a new page under `docs/` picks up automatically. If you move or rename a page, verify the feeds still include it (check `pnpm docs:build` log output).
+
+**The deal:** AI-authored PRs that change an API but leave the `docs/ai/` pages stale should be held in review until they're synced. Human contributors are encouraged to do the same but there's no CI enforcement (we could add one — grep `docs/ai/*.md` for every public export; not done yet).
+
 ## Things to avoid
 
 - **Don't add runtime dependencies beyond `debug`.** The 15 KB footprint claim was deliberate; keep the package lean.
@@ -129,7 +154,15 @@ VitePress config uses `{ light, dark }` per-theme logo — no CSS filter hacks. 
 
 - [README.md](./README.md) — user-facing overview, API summary, examples
 - [CONTRIBUTING.md](./CONTRIBUTING.md) — commit rules, scripts, release steps
-- [docs/](./docs/) — VitePress site source (guide, API reference, recipes)
+- [docs/](./docs/) — VitePress site source (guide, API reference, recipes, for-agents)
+- [docs/ai/](./docs/ai/) — pages written for AI agent consumption — sync these with the guide
+- [docs/.vitepress/emit-llm-assets.ts](./docs/.vitepress/emit-llm-assets.ts) — build hook that emits llms.txt + .md variants
 - [brand/README.md](./brand/README.md) — brand asset usage
 - [.releaserc.json](./.releaserc.json) — release rules
 - [.github/workflows/](./.github/workflows/) — CI (`ci.yml`), release (`release.yml`), docs (`docs.yml`)
+
+## Published feeds (for pointing agents at)
+
+- <https://guzzlerio.github.io/deride/llms.txt> — llmstxt.org index
+- <https://guzzlerio.github.io/deride/llms-full.txt> — all docs concatenated
+- Any page `.md` variant, e.g. <https://guzzlerio.github.io/deride/guide/quick-start.md>
