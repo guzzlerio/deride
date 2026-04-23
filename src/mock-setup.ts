@@ -5,6 +5,28 @@ import { isMatcher } from './matchers.js'
 type AnyFunc = (...args: any[]) => any
 
 /**
+ * The expected resolved value for a Promise-returning method.
+ *
+ * Normally this is `U` from `Promise<U>`. The wrapper exists to handle
+ * the degenerate case where TypeScript resolves an overloaded method's
+ * return type to `void` (e.g. AWS SDK's `Client.send`, which has 100+
+ * command-specific overloads and falls back to `void` when no overload
+ * matches the inferred argument). In that case we widen to `unknown` so
+ * `toResolveWith(value)` accepts an arbitrary value, preserving the
+ * runtime semantics. Callers can also pin the type explicitly via
+ * `toResolveWith<MyResponse>(value)`.
+ *
+ * The `[R] extends [void]` shape is intentional — wrapping in a tuple
+ * disables conditional-type distribution so we only widen for an exact
+ * `void`, not for unions like `void | Foo`.
+ */
+export type ResolvedValue<R> = [R] extends [void]
+  ? unknown
+  : R extends Promise<infer U>
+    ? U
+    : R
+
+/**
  * A behaviour registered against a MethodMock — the dispatch loop iterates
  * these in registration order, picking the first time-limited behaviour that
  * matches or falling back to the last-registered unlimited behaviour.
@@ -50,22 +72,44 @@ export interface TypedMockSetup<A extends any[] = any[], R = any> {
   toDoThis(fn: (...args: A) => R): TypedMockSetup<A, R>
   /** Throw an error with the given message when invoked. */
   toThrow(message: string): TypedMockSetup<A, R>
-  /** Return a resolved promise with the given value. */
-  toResolveWith(value: R extends Promise<infer U> ? U : R): TypedMockSetup<A, R>
+  /**
+   * Return a resolved promise with the given value.
+   *
+   * Pass an explicit type parameter — `toResolveWith<MyResponse>(value)` —
+   * when the method's inferred return type collapses to `void` (typically
+   * caused by heavily overloaded signatures like AWS SDK clients). Without
+   * an explicit type, deride widens the value type to `unknown` in that
+   * specific case so any value is accepted.
+   */
+  toResolveWith<V extends ResolvedValue<R> = ResolvedValue<R>>(
+    value: V
+  ): TypedMockSetup<A, R>
   /** Return a resolved promise with no value. */
   toResolve(): TypedMockSetup<A, R>
   /** Return a rejected promise with the given error. */
   toRejectWith(error: unknown): TypedMockSetup<A, R>
-  /** Return a promise that resolves with the given value after `ms` milliseconds. */
-  toResolveAfter(ms: number, value?: R extends Promise<infer U> ? U : R): TypedMockSetup<A, R>
+  /**
+   * Return a promise that resolves with the given value after `ms` ms.
+   * Accepts an explicit type parameter for the same reason as
+   * {@link TypedMockSetup.toResolveWith}.
+   */
+  toResolveAfter<V extends ResolvedValue<R> = ResolvedValue<R>>(
+    ms: number,
+    value?: V
+  ): TypedMockSetup<A, R>
   /** Return a promise that rejects with the given error after `ms` milliseconds. */
   toRejectAfter(ms: number, error: unknown): TypedMockSetup<A, R>
   /** Return a promise that never resolves or rejects. */
   toHang(): TypedMockSetup<A, R>
   /** Return the supplied values one per call, sticky-last (or cycle/then via options). */
   toReturnInOrder(...values: (R | [R[], { then?: R; cycle?: boolean }])[]): TypedMockSetup<A, R>
-  /** Return resolved promises with each value in order. */
-  toResolveInOrder(...values: (R extends Promise<infer U> ? U : R)[]): TypedMockSetup<A, R>
+  /**
+   * Return resolved promises with each value in order. Accepts an explicit
+   * type parameter for the same reason as {@link TypedMockSetup.toResolveWith}.
+   */
+  toResolveInOrder<V extends ResolvedValue<R> = ResolvedValue<R>>(
+    ...values: V[]
+  ): TypedMockSetup<A, R>
   /** Return rejected promises with each error in order. */
   toRejectInOrder(...errors: unknown[]): TypedMockSetup<A, R>
   /** Return a fresh sync iterator yielding each value. */
