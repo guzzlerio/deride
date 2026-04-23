@@ -100,9 +100,9 @@ Every public declaration in `src/**.ts` must have a JSDoc comment — enforced b
 
 ## GitHub Pages / docs deployment
 
-`.github/workflows/docs.yml` builds the VitePress site on push to `develop` and deploys to GitHub Pages via the modern `actions/deploy-pages@v4` (artifact-based). **Pages source must be set to "GitHub Actions"** in Settings → Pages, not "Deploy from a branch". The legacy `gh-pages` branch is unused.
+`.github/workflows/docs.yml` builds the VitePress site on push to `develop` and deploys to `/next/` on the `gh-pages` branch via `peaceiris/actions-gh-pages@v4`. Release docs (`/latest/` and `/v{major}/`) are deployed by `.github/workflows/release.yml` after a successful npm publish. **Pages source must be set to "Deploy from a branch" (`gh-pages`)** in Settings → Pages.
 
-The site is served under `/deride/` on the live URL. For local preview: `DERIDE_BASE=/ pnpm docs:build` + `pnpm docs:preview`.
+The site is served under `/deride/` on the live URL with versioned subdirectories (`/deride/latest/`, `/deride/next/`, `/deride/v2/`). Doc pages live under `docs/next/` (develop) and `docs/v2/` (release snapshot). `docs/latest` is a symlink to `docs/v2`. For local preview: `DERIDE_BASE=/ pnpm docs:build` + `pnpm docs:preview`.
 
 ## Logo / brand assets
 
