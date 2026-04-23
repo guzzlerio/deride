@@ -44,7 +44,9 @@ Full index in [Types](./types).
 import type {
   Wrapped,                              // result of stub()/wrap()
   TypedMockSetup, MockSetup,            // setup surface
-  MockExpect, CalledExpect, InvocationExpect,  // expect surface
+  MockExpect, ExpectBranches, CalledExpect,     // expect surface
+  EveryCallExpect, CountAssertions,
+  ArgAssertions, InvocationExpect,
   MethodSpy, CallRecord,                // spy surface
   MockSnapshot, Sandbox,                // lifecycle
   MockedFunction, MockedClass,          // callable mocks / class mocks

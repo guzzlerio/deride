@@ -8,14 +8,18 @@ import { wrap } from './wrap.js'
 export { func, inOrder, match, sandbox, stub, wrap }
 export type { Wrapped, Options } from './types.js'
 export type {
-  TypedMockSetup,
-  MockSetup,
-  MockExpect,
+  ArgAssertions,
   CalledExpect,
+  CallRecord,
+  CountAssertions,
+  EveryCallExpect,
+  ExpectBranches,
   InvocationExpect,
   MethodSpy,
-  CallRecord,
+  MockExpect,
+  MockSetup,
   MockSnapshot,
+  TypedMockSetup,
 } from './method-mock.js'
 export type { MockedFunction } from './func.js'
 export type { Matcher } from './matchers.js'

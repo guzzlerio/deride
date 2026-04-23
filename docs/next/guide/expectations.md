@@ -169,21 +169,55 @@ mock.expect.greet.invocation(1).withArg('nope')
 // throws: invocation out of range
 ```
 
+## Fluent chaining
+
+Assertions can be chained fluently. Count assertions (`once`, `twice`, `times`, `lt`, `gt`, etc.) return an arg-assertion object, so you can follow a count check with argument or return checks:
+
+```typescript
+mock.greet('alice')
+mock.expect.greet.called.once().withArg('alice')
+mock.expect.greet.called.once().withReturn('hi')
+```
+
+Arg assertions chain with each other:
+
+```typescript
+mock.expect.greet.called.withArg('alice').withReturn('hi')
+```
+
+The type system prevents invalid chains — you cannot follow a count with another count:
+
+```typescript
+mock.expect.greet.called.once().twice()  // compile error
+```
+
+`never()` is terminal and returns `void` — nothing can follow it:
+
+```typescript
+mock.expect.greet.called.never()         // no chaining
+```
+
 ## Negation — `.not.*`
 
-Every positive `called.*` assertion has a `.not` counterpart. It passes when the positive would have thrown:
+Every positive `called.*` / `everyCall.*` assertion has a `.not` counterpart at the `expect.method.not` level. It passes when the positive would have thrown:
 
 ```typescript
 mock.greet('alice')
 
-mock.expect.greet.called.not.never()         // it WAS called
-mock.expect.greet.called.not.twice()         // it was called once, not twice
-mock.expect.greet.called.not.withArg('bob')  // 'bob' was never passed
-mock.expect.greet.called.not.withReturn('goodbye')
-mock.expect.greet.called.not.threw()
+mock.expect.greet.not.called.never()              // it WAS called
+mock.expect.greet.not.called.twice()              // it was called once, not twice
+mock.expect.greet.not.called.withArg('bob')       // 'bob' was never passed
+mock.expect.greet.not.called.withReturn('goodbye')
+mock.expect.greet.not.called.threw()
 ```
 
-`.not` is available on `called` only (not on `everyCall` or `invocation`).
+Negated assertions also support chaining:
+
+```typescript
+mock.expect.greet.not.called.once().withArg('nobody')
+```
+
+`.not` is available on both `called` and `everyCall` (not on `invocation`).
 
 ## Resetting
 

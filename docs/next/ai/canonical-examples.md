@@ -29,8 +29,7 @@ describe('UserService', () => {
     const users = await service.listActive()
 
     expect(users).toHaveLength(1)
-    mockDb.expect.query.called.once()
-    mockDb.expect.query.called.withArg(match.regex(/active/i))
+    mockDb.expect.query.called.once().withArg(match.regex(/active/i))
   })
 })
 ```

@@ -80,34 +80,41 @@ type MockSetup = TypedMockSetup<any[], any>
 ## Expect — `MockExpect`
 
 ```typescript
-interface MockExpect {
-  called: CalledExpect
-  everyCall: Omit<CalledExpect, 'reset' | 'not'>
-  invocation(index: number): InvocationExpect
+interface ArgAssertions {
+  withArg(arg: unknown): ArgAssertions
+  withArgs(...args: unknown[]): ArgAssertions
+  withMatch(pattern: RegExp): ArgAssertions
+  matchExactly(...args: unknown[]): ArgAssertions
+  withReturn(expected: unknown): ArgAssertions
+  calledOn(target: unknown): ArgAssertions
+  threw(expected?: unknown): ArgAssertions
 }
 
-interface CalledExpect {
-  times(n: number, err?: string): void
-  once(): void
-  twice(): void
+interface CountAssertions {
+  times(n: number, err?: string): ArgAssertions
+  once(): ArgAssertions
+  twice(): ArgAssertions
+  lt(n: number): ArgAssertions
+  lte(n: number): ArgAssertions
+  gt(n: number): ArgAssertions
+  gte(n: number): ArgAssertions
+}
+
+interface CalledExpect extends CountAssertions, ArgAssertions {
   never(): void
-
-  lt(n: number): void
-  lte(n: number): void
-  gt(n: number): void
-  gte(n: number): void
-
-  withArg(arg: unknown): void
-  withArgs(...args: unknown[]): void
-  withMatch(pattern: RegExp): void
-  matchExactly(...args: unknown[]): void
-
-  withReturn(expected: unknown): void
-  calledOn(target: unknown): void
-  threw(expected?: unknown): void
-
   reset(): void
-  not: Omit<CalledExpect, 'reset' | 'not'>
+}
+
+interface EveryCallExpect extends CountAssertions, ArgAssertions {}
+
+interface ExpectBranches {
+  called: CalledExpect
+  everyCall: EveryCallExpect
+}
+
+interface MockExpect extends ExpectBranches {
+  invocation(index: number): InvocationExpect
+  not: ExpectBranches
 }
 
 interface InvocationExpect {

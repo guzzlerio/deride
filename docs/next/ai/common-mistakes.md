@@ -294,3 +294,19 @@ it('does timing stuff', () => {
 ```
 
 **Why:** `useFakeTimers()` patches global `Date.now` / `setTimeout` / `setInterval` / `queueMicrotask`. `runAll()` *can* throw (bounded at 10,000 iterations to catch runaway intervals), and that throw escapes before `restore()` would run. The `afterEach` guard catches all of these cases.
+
+## 11. Using `called.not` instead of `not.called`
+
+**❌ Wrong**
+
+```typescript
+mock.expect.greet.called.not.withArg('bob')
+```
+
+**✅ Right**
+
+```typescript
+mock.expect.greet.not.called.withArg('bob')
+```
+
+**Why:** Negation lives at the `expect.method.not` level, not on `called`. The `.not` property is on `MockExpect`, providing negated `called` and `everyCall` branches. This also enables fluent chaining: `mock.expect.greet.not.called.once().withArg('nobody')`.

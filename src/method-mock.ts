@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events'
 import { CallRecord, MockSnapshot, nextSeq } from './call-record.js'
 import { createExpect, MockExpect } from './mock-expect.js'
 import { createSetup, MockSetup, StubBehavior } from './mock-setup.js'
-import { createSpy, MethodSpy } from './mock-spy.js'
+import { Spy, MethodSpy } from './mock-spy.js'
 import { cloneDeep, PREFIX } from './utils.js'
 
 type AnyFunc = (...args: any[]) => any
@@ -81,7 +81,7 @@ export class MethodMock {
 
     this.setup = createSetup(setupHost)
     this.expect = createExpect(spyExpectHost)
-    this.spy = createSpy(spyExpectHost)
+    this.spy = new Spy(spyExpectHost)
   }
 
   /** Attach the wrapped object — used by `toReturnSelf` and for `this` defaulting. */
@@ -208,7 +208,11 @@ type Mutable<T> = { -readonly [K in keyof T]: T[K] }
 // Re-export the types the rest of the codebase (and the public API) consume.
 export type { CallRecord, MockSnapshot } from './call-record.js'
 export type {
+  ArgAssertions,
   CalledExpect,
+  CountAssertions,
+  EveryCallExpect,
+  ExpectBranches,
   InvocationExpect,
   MockExpect,
 } from './mock-expect.js'
