@@ -797,6 +797,7 @@ bob.expect.greet.invocation(1).withArgs('second', 'extra')
 ```
 
 <a name="called-not"></a>
+<a name="not-called"></a>
 
 ### `not.called.*`
 

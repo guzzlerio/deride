@@ -199,7 +199,7 @@ mock.expect.greet.called.never()         // no chaining
 
 ## Negation — `.not.*`
 
-Every positive `called.*` / `everyCall.*` assertion has a `.not` counterpart at the `expect.method.not` level. It passes when the positive would have thrown:
+Every positive `called.*` assertion has a `.not` counterpart at the `expect.method.not` level. It passes when the positive would have thrown:
 
 ```typescript
 mock.greet('alice')
@@ -211,13 +211,26 @@ mock.expect.greet.not.called.withReturn('goodbye')
 mock.expect.greet.not.called.threw()
 ```
 
-Negated assertions also support chaining:
+Negated **arg** assertions chain with each other:
 
 ```typescript
-mock.expect.greet.not.called.once().withArg('nobody')
+mock.expect.greet.not.called.withArg('bob').withReturn('goodbye')
 ```
 
-`.not` is available on both `called` and `everyCall` (not on `invocation`).
+Negated **count** methods (`once()`, `twice()`, `times()`, `lt()`, `gt()`, etc.) are **terminal** — they return `void` and cannot be chained. This prevents confusing semantics where each link would be negated independently:
+
+```typescript
+// ✅ Two separate assertions — clear intent
+mock.expect.greet.not.called.once()          // was not called exactly once
+mock.expect.greet.called.withArg('alice')    // was called with alice
+
+// ❌ Compile error — negated count is terminal
+mock.expect.greet.not.called.once().withArg('alice')
+```
+
+::: warning Deprecated: `called.not`
+The older `mock.expect.greet.called.not.*` form still works at runtime but is deprecated (planned removal in v3). Prefer `mock.expect.greet.not.called.*`.
+:::
 
 ## Resetting
 

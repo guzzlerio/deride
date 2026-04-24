@@ -100,6 +100,8 @@ The 148 pre-existing v2.0 tests must continue to pass unchanged through any futu
 
 Every public declaration in `src/**.ts` must have a JSDoc comment — enforced by `jsdoc/require-jsdoc`. This covers exported functions, classes, interfaces, type aliases, `const`/`let`, and interface method signatures. Fix the doc, don't disable the rule.
 
+**When any public API signature or its JSDoc changes, always rebuild the docs** (`pnpm docs:build`) before considering the task done. This catches broken links and ensures the VitePress site and emitted feeds (`llms.txt`, `.md` variants) stay in sync.
+
 ## GitHub Pages / docs deployment
 
 `.github/workflows/docs.yml` builds the VitePress site on push to `develop` and deploys to `/next/` on the `gh-pages` branch via `peaceiris/actions-gh-pages@v4`. Release docs (`/latest/` and `/v{major}/`) are deployed by `.github/workflows/release.yml` after a successful npm publish. **Pages source must be set to "Deploy from a branch" (`gh-pages`)** in Settings → Pages.

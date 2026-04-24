@@ -295,7 +295,7 @@ it('does timing stuff', () => {
 
 **Why:** `useFakeTimers()` patches global `Date.now` / `setTimeout` / `setInterval` / `queueMicrotask`. `runAll()` *can* throw (bounded at 10,000 iterations to catch runaway intervals), and that throw escapes before `restore()` would run. The `afterEach` guard catches all of these cases.
 
-## 11. Using `called.not` instead of `not.called`
+## 13. Using `called.not` instead of `not.called`
 
 **❌ Wrong**
 
@@ -309,4 +309,22 @@ mock.expect.greet.called.not.withArg('bob')
 mock.expect.greet.not.called.withArg('bob')
 ```
 
-**Why:** Negation lives at the `expect.method.not` level, not on `called`. The `.not` property is on `MockExpect`, providing negated `called` and `everyCall` branches. This also enables fluent chaining: `mock.expect.greet.not.called.once().withArg('nobody')`.
+**Why:** `called.not` is deprecated (planned removal in v3). Negation lives at the `expect.method.not` level. The `.not` property is on `MockExpect`, providing the negated `called` branch.
+
+## 14. Chaining after a negated count method
+
+**❌ Wrong**
+
+```typescript
+mock.expect.greet.not.called.once().withArg('alice')
+// Compile error — negated count methods return void
+```
+
+**✅ Right**
+
+```typescript
+mock.expect.greet.not.called.once()          // count check alone
+mock.expect.greet.called.withArg('alice')    // separate arg check
+```
+
+**Why:** Negated count methods (`once()`, `twice()`, `times()`, `lt()`, `gt()`, etc.) are terminal — they return `void`. If chaining were allowed, each link would be negated independently (De Morgan), producing surprising results: `not.once()` passes but `not.withArg('alice')` fails even though the user intended "was not called exactly once with alice". Use two separate assertions instead.

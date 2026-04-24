@@ -100,9 +100,22 @@ interface CountAssertions {
   gte(n: number): ArgAssertions
 }
 
+// Count methods that return void (terminal) — used on the negated branch
+interface TerminalCountAssertions {
+  times(n: number, err?: string): void
+  once(): void
+  twice(): void
+  lt(n: number): void
+  lte(n: number): void
+  gt(n: number): void
+  gte(n: number): void
+}
+
 interface CalledExpect extends CountAssertions, ArgAssertions {
   never(): void
   reset(): void
+  /** @deprecated Use `expect.method.not.called.*` instead. Planned removal in v3. */
+  not: TerminalCountAssertions & ArgAssertions
 }
 
 interface EveryCallExpect extends CountAssertions, ArgAssertions {}
@@ -114,7 +127,9 @@ interface ExpectBranches {
 
 interface MockExpect extends ExpectBranches {
   invocation(index: number): InvocationExpect
-  not: ExpectBranches
+  not: {
+    called: TerminalCountAssertions & ArgAssertions
+  }
 }
 
 interface InvocationExpect {

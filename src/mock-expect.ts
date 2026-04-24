@@ -48,6 +48,23 @@ export interface CountAssertions {
   gte(n: number): ArgAssertions
 }
 
+interface TerminalCountAssertions {
+  /** Assert called exactly `n` times. */
+  times(n: number, err?: string): void
+  /** Assert called exactly once. */
+  once(): void
+  /** Assert called exactly twice. */
+  twice(): void
+  /** Assert call count is less than `n`. */
+  lt(n: number): void
+  /** Assert call count is less than or equal to `n`. */
+  lte(n: number): void
+  /** Assert call count is greater than `n`. */
+  gt(n: number): void
+  /** Assert call count is greater than or equal to `n`. */
+  gte(n: number): void
+}
+
 /**
  * Full assertion surface for the `.called` branch — count + arg assertions
  * plus terminal `never()` and `reset()`.
@@ -57,8 +74,8 @@ export interface CalledExpect extends CountAssertions, ArgAssertions {
   never(): void
   /** Reset call count and recorded arguments. Terminal — returns void. */
   reset(): void
-  /** @deprecated Use `expect.method.not.called.*` instead. */
-  not: CountAssertions & ArgAssertions & { never(): void }
+  /** @deprecated Use `expect.method.not.called.*` instead. Planned removal in v3 */
+  not: TerminalCountAssertions & ArgAssertions
 }
 
 /**
@@ -94,7 +111,9 @@ export interface MockExpect extends ExpectBranches {
   /** Assertions against a single invocation by zero-based index. */
   invocation(index: number): InvocationExpect
   /** Negated expectations — pass when the positive assertion would fail. */
-  not: ExpectBranches
+  not: {
+    called: TerminalCountAssertions & ArgAssertions
+  }
 }
 
 /** Narrow surface the expect factory needs from the owning MethodMock. */
@@ -142,9 +161,7 @@ class AssertionBuilder implements CountAssertions, ArgAssertions {
   }
 
   private aggregate(pred: (c: CallRecord) => boolean): boolean {
-    return this.isEvery
-      ? this.host.calls.every(pred)
-      : this.host.calls.some(pred)
+    return this.isEvery ? this.host.calls.every(pred) : this.host.calls.some(pred)
   }
 
   private assertCalled(): void {
@@ -223,9 +240,7 @@ class AssertionBuilder implements CountAssertions, ArgAssertions {
 
   withArgs(...args: unknown[]): this {
     this.assertCalled()
-    const result = this.aggregate((c) =>
-      args.every((expected) => hasMatch(c.args, expected))
-    )
+    const result = this.aggregate((c) => args.every((expected) => hasMatch(c.args, expected)))
     assert(
       result,
       `Expected ${this.label}${this.host.name} to be called with: ${args.join(', ')}${historySuffix(this.host)}`
@@ -236,10 +251,8 @@ class AssertionBuilder implements CountAssertions, ArgAssertions {
   withMatch(pattern: RegExp): this {
     this.assertCalled()
     const result = this.aggregate((c) =>
-      (c.args).some((arg) =>
-        typeof arg === 'object' && arg !== null
-          ? deepMatch(arg as object, pattern)
-          : pattern.test(String(arg))
+      c.args.some((arg) =>
+        typeof arg === 'object' && arg !== null ? deepMatch(arg as object, pattern) : pattern.test(String(arg))
       )
     )
     assert(result, `Expected ${this.label}${this.host.name} to be called matching: ${pattern}`)
@@ -248,9 +261,8 @@ class AssertionBuilder implements CountAssertions, ArgAssertions {
 
   matchExactly(...expectedArgs: unknown[]): this {
     this.assertCalled()
-    const matched = this.aggregate((c) =>
-      c.args.length === expectedArgs.length &&
-      (c.args).every((a, i) => matchValue(a, expectedArgs[i]))
+    const matched = this.aggregate(
+      (c) => c.args.length === expectedArgs.length && c.args.every((a, i) => matchValue(a, expectedArgs[i]))
     )
     assert(
       matched,
@@ -288,10 +300,15 @@ class AssertionBuilder implements CountAssertions, ArgAssertions {
   }
 }
 
+/** Method names that are terminal — negated calls return void, not the proxy. */
+const TERMINAL_METHODS: ReadonlySet<string | symbol> = new Set([
+  'never', 'times', 'once', 'twice', 'lt', 'lte', 'gt', 'gte',
+])
+
 /**
  * Wrap a builder in a Proxy that negates every method call — the method
- * passes iff the original would have thrown. Chaining returns the proxy
- * itself (except `never` which stays terminal).
+ * passes iff the original would have thrown. Count methods and `never`
+ * are terminal (return void); arg methods return the proxy for chaining.
  */
 function negateBranch(source: AssertionBuilder): AssertionBuilder {
   return new Proxy(source, {
@@ -302,7 +319,7 @@ function negateBranch(source: AssertionBuilder): AssertionBuilder {
         try {
           value.apply(target, args)
         } catch {
-          return prop === 'never' ? undefined : receiver
+          return TERMINAL_METHODS.has(prop) ? undefined : receiver
         }
         assert.fail(`Expected negated assertion to fail but it passed`)
       }
@@ -317,13 +334,17 @@ export function createExpect(host: ExpectHost): MockExpect {
 
   const negatedSome = negateBranch(someBuilder)
 
+  // Prototype chain: called → someBuilder → AssertionBuilder.prototype
+  // so called.once() dispatches through someBuilder to AssertionBuilder#once.
+  // Own properties (reset, not) shadow the prototype for those keys only.
   const called: CalledExpect = Object.create(someBuilder, {
     reset: { value: () => host.clearCalls() },
     not: { value: negatedSome },
   })
 
-  const notCalled: CalledExpect = Object.create(negatedSome, {
-    reset: { value: () => host.clearCalls() },
+  // Prototype chain: notCalled → negatedSome (Proxy) → AssertionBuilder.prototype
+  // Every method call is intercepted by the Proxy and negated.
+  const notCalled: TerminalCountAssertions & ArgAssertions = Object.create(negatedSome, {
     not: { value: someBuilder },
   })
 
@@ -332,7 +353,6 @@ export function createExpect(host: ExpectHost): MockExpect {
     everyCall: everyBuilder,
     not: {
       called: notCalled,
-      everyCall: negateBranch(everyBuilder),
     },
     invocation(index: number): InvocationExpect {
       if (index >= host.calls.length) {
@@ -341,10 +361,7 @@ export function createExpect(host: ExpectHost): MockExpect {
       const record = host.calls[index]
       return {
         withArg(arg: unknown) {
-          assert(
-            hasMatch(record.args, arg),
-            `Invocation #${index} did not include argument ${inspect(arg)}`
-          )
+          assert(hasMatch(record.args, arg), `Invocation #${index} did not include argument ${inspect(arg)}`)
         },
         withArgs(...expectedArgs: unknown[]) {
           assert(
