@@ -24,11 +24,11 @@ Which API to reach for, by task. Tables, not prose. If your question isn't answe
 
 | Behaviour | Setup |
 |-----------|-------|
-| Return a fixed value | `.toReturn(value)` |
+| Return a fixed value | `.toReturn(value)` (use `.toReturn<T>(value)` if the method's return type collapses to `void` — see [common mistake #12](./common-mistakes#_12-fighting-setup-methods-when-the-inferred-return-type-is-void)) |
 | Return the mock itself (fluent APIs) | `.toReturnSelf()` |
 | Run custom logic with access to args | `.toDoThis((a, b) => …)` |
 | Throw an Error(msg) | `.toThrow(message)` |
-| Return a resolved Promise with a value | `.toResolveWith(value)` (use `.toResolveWith<T>(value)` if the method's return type collapses to `void` — see [common mistake #12](./common-mistakes#_12-fighting-toresolvewith-when-the-inferred-return-type-is-void)) |
+| Return a resolved Promise with a value | `.toResolveWith(value)` (use `.toResolveWith<T>(value)` if the method's return type collapses to `void` — see [common mistake #12](./common-mistakes#_12-fighting-setup-methods-when-the-inferred-return-type-is-void)) |
 | Return a resolved Promise with no value | `.toResolve()` |
 | Return a rejected Promise | `.toRejectWith(error)` |
 | Resolve after N ms (use with fake timers) | `.toResolveAfter(ms, value)` |
