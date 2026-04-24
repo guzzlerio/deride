@@ -25,6 +25,59 @@ describe('Typed setup', () => {
       svc.setup.greet.toReturn(123 as any)
       expect(svc.greet('x')).toBe(123)
     })
+
+    it('rejects mismatched values when the method has a known return type', () => {
+      const svc = deride.stub<MyService>(['greet', 'fetchData', 'process'])
+      // @ts-expect-error greet returns string, not number
+      svc.setup.greet.toReturn(123)
+    })
+
+    it('accepts arbitrary values when the inferred return type collapses to void (issue #105)', () => {
+      interface OverloadedClient {
+        send(): void
+        send(command: { name: 'A' }): { a: number }
+      }
+      const client = deride.stub<OverloadedClient>(['send'])
+      client.setup.send.toReturn({ Parameter: { Value: 'true' } })
+    })
+
+    it('accepts an explicit type parameter when return collapses to void (issue #105)', () => {
+      interface ResponseShape {
+        Parameter: { Value: string }
+      }
+      interface OverloadedClient {
+        send(): void
+        send(command: { name: 'A' }): { a: number }
+      }
+      const client = deride.stub<OverloadedClient>(['send'])
+      client.setup.send.toReturn<ResponseShape>({ Parameter: { Value: 'true' } })
+      // @ts-expect-error explicit type pins the value type — wrong shape rejected
+      client.setup.send.toReturn<ResponseShape>({ wrong: true })
+    })
+  })
+
+  describe('toReturnInOrder', () => {
+    it('accepts the correct return type', () => {
+      const svc = deride.stub<MyService>(['greet', 'fetchData', 'process'])
+      svc.setup.greet.toReturnInOrder('first', 'second')
+      expect(svc.greet('x')).toBe('first')
+      expect(svc.greet('x')).toBe('second')
+    })
+
+    it('rejects mismatched values when the method has a known return type', () => {
+      const svc = deride.stub<MyService>(['greet', 'fetchData', 'process'])
+      // @ts-expect-error greet returns string, not number
+      svc.setup.greet.toReturnInOrder('a', 123)
+    })
+
+    it('accepts arbitrary values when the inferred return type collapses to void (issue #105)', () => {
+      interface OverloadedClient {
+        send(): void
+        send(command: { name: 'A' }): { a: number }
+      }
+      const client = deride.stub<OverloadedClient>(['send'])
+      client.setup.send.toReturnInOrder({ first: true }, { second: 'string' })
+    })
   })
 
   describe('toDoThis', () => {
@@ -54,6 +107,74 @@ describe('Typed setup', () => {
       svc.setup.fetchData.toResolveWith('not an object' as any)
       const result = await svc.fetchData('url')
       expect(result).toBe('not an object')
+    })
+
+    it('rejects mismatched values when the method has a known return type', () => {
+      const svc = deride.stub<MyService>(['greet', 'fetchData', 'process'])
+      // @ts-expect-error fetchData resolves to { id: number }, not string
+      svc.setup.fetchData.toResolveWith('wrong')
+    })
+
+    it('accepts arbitrary values when the inferred return type collapses to void (issue #105)', async () => {
+      // Simulates the AWS-SDK SSMClient.send shape: a heavily overloaded
+      // method whose return type resolves to void when no overload matches.
+      interface OverloadedClient {
+        send(): void
+        send(command: { name: 'A' }): Promise<{ a: number }>
+        send(command: { name: 'B' }): Promise<{ b: string }>
+      }
+      const client = deride.stub<OverloadedClient>(['send'])
+      client.setup.send.toResolveWith({ Parameter: { Value: 'true' } })
+      const result = await (client.send as unknown as () => Promise<{ Parameter: { Value: string } }>)()
+      expect(result).toEqual({ Parameter: { Value: 'true' } })
+    })
+
+    it('accepts an explicit type parameter to pin the resolved value type (issue #105)', async () => {
+      interface ResponseShape {
+        Parameter: { Value: string }
+      }
+      interface OverloadedClient {
+        send(): void
+        send(command: { name: 'A' }): Promise<{ a: number }>
+      }
+      const client = deride.stub<OverloadedClient>(['send'])
+      client.setup.send.toResolveWith<ResponseShape>({ Parameter: { Value: 'true' } })
+      // @ts-expect-error explicit type pins the value type — wrong shape rejected
+      client.setup.send.toResolveWith<ResponseShape>({ wrong: true })
+    })
+  })
+
+  describe('toResolveAfter', () => {
+    it('accepts the resolved type', async () => {
+      const svc = deride.stub<MyService>(['greet', 'fetchData', 'process'])
+      svc.setup.fetchData.toResolveAfter(0, { id: 9 })
+      const result = await svc.fetchData('url')
+      expect(result).toEqual({ id: 9 })
+    })
+
+    it('accepts arbitrary values when inferred return is void', () => {
+      interface OverloadedClient {
+        send(): void
+        send(command: { name: 'A' }): Promise<{ a: number }>
+      }
+      const client = deride.stub<OverloadedClient>(['send'])
+      client.setup.send.toResolveAfter(0, { anything: true })
+    })
+  })
+
+  describe('toResolveInOrder', () => {
+    it('accepts the resolved type', async () => {
+      const svc = deride.stub<MyService>(['greet', 'fetchData', 'process'])
+      svc.setup.fetchData.toResolveInOrder({ id: 1 }, { id: 2 })
+    })
+
+    it('accepts arbitrary values when inferred return is void', () => {
+      interface OverloadedClient {
+        send(): void
+        send(command: { name: 'A' }): Promise<{ a: number }>
+      }
+      const client = deride.stub<OverloadedClient>(['send'])
+      client.setup.send.toResolveInOrder({ first: true }, { second: true })
     })
   })
 
