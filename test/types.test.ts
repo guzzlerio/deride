@@ -25,6 +25,59 @@ describe('Typed setup', () => {
       svc.setup.greet.toReturn(123 as any)
       expect(svc.greet('x')).toBe(123)
     })
+
+    it('rejects mismatched values when the method has a known return type', () => {
+      const svc = deride.stub<MyService>(['greet', 'fetchData', 'process'])
+      // @ts-expect-error greet returns string, not number
+      svc.setup.greet.toReturn(123)
+    })
+
+    it('accepts arbitrary values when the inferred return type collapses to void (issue #105)', () => {
+      interface OverloadedClient {
+        send(): void
+        send(command: { name: 'A' }): { a: number }
+      }
+      const client = deride.stub<OverloadedClient>(['send'])
+      client.setup.send.toReturn({ Parameter: { Value: 'true' } })
+    })
+
+    it('accepts an explicit type parameter when return collapses to void (issue #105)', () => {
+      interface ResponseShape {
+        Parameter: { Value: string }
+      }
+      interface OverloadedClient {
+        send(): void
+        send(command: { name: 'A' }): { a: number }
+      }
+      const client = deride.stub<OverloadedClient>(['send'])
+      client.setup.send.toReturn<ResponseShape>({ Parameter: { Value: 'true' } })
+      // @ts-expect-error explicit type pins the value type — wrong shape rejected
+      client.setup.send.toReturn<ResponseShape>({ wrong: true })
+    })
+  })
+
+  describe('toReturnInOrder', () => {
+    it('accepts the correct return type', () => {
+      const svc = deride.stub<MyService>(['greet', 'fetchData', 'process'])
+      svc.setup.greet.toReturnInOrder('first', 'second')
+      expect(svc.greet('x')).toBe('first')
+      expect(svc.greet('x')).toBe('second')
+    })
+
+    it('rejects mismatched values when the method has a known return type', () => {
+      const svc = deride.stub<MyService>(['greet', 'fetchData', 'process'])
+      // @ts-expect-error greet returns string, not number
+      svc.setup.greet.toReturnInOrder('a', 123)
+    })
+
+    it('accepts arbitrary values when the inferred return type collapses to void (issue #105)', () => {
+      interface OverloadedClient {
+        send(): void
+        send(command: { name: 'A' }): { a: number }
+      }
+      const client = deride.stub<OverloadedClient>(['send'])
+      client.setup.send.toReturnInOrder({ first: true }, { second: 'string' })
+    })
   })
 
   describe('toDoThis', () => {

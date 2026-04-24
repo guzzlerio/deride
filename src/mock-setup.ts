@@ -5,20 +5,28 @@ import { isMatcher } from './matchers.js'
 type AnyFunc = (...args: any[]) => any
 
 /**
- * The expected resolved value for a Promise-returning method.
+ * The expected return value for a non-Promise setup method.
  *
- * Normally this is `U` from `Promise<U>`. The wrapper exists to handle
- * the degenerate case where TypeScript resolves an overloaded method's
+ * Normally this is `R` directly. The wrapper exists to handle the
+ * degenerate case where TypeScript resolves an overloaded method's
  * return type to `void` (e.g. AWS SDK's `Client.send`, which has 100+
  * command-specific overloads and falls back to `void` when no overload
- * matches the inferred argument). In that case we widen to `unknown` so
- * `toResolveWith(value)` accepts an arbitrary value, preserving the
+ * matches the inferred argument). In that case we widen to `unknown`
+ * so `toReturn(value)` accepts an arbitrary value, preserving the
  * runtime semantics. Callers can also pin the type explicitly via
- * `toResolveWith<MyResponse>(value)`.
+ * `toReturn<MyType>(value)`.
  *
  * The `[R] extends [void]` shape is intentional — wrapping in a tuple
  * disables conditional-type distribution so we only widen for an exact
  * `void`, not for unions like `void | Foo`.
+ */
+export type ReturnedValue<R> = [R] extends [void] ? unknown : R
+
+/**
+ * The expected resolved value for a Promise-returning method.
+ *
+ * Normally this is `U` from `Promise<U>`. Same `void`-widening rules
+ * as {@link ReturnedValue} apply for overload-collapsed return types.
  */
 export type ResolvedValue<R> = [R] extends [void]
   ? unknown
@@ -64,8 +72,15 @@ export interface SetupHost {
  * signature; cast `as any` to bypass type checking for error-path tests.
  */
 export interface TypedMockSetup<A extends any[] = any[], R = any> {
-  /** Return a fixed value when invoked. Cast `as any` to return an invalid type. */
-  toReturn(value: R): TypedMockSetup<A, R>
+  /**
+   * Return a fixed value when invoked. Cast `as any` to return an invalid type.
+   *
+   * Pass an explicit type parameter — `toReturn<MyType>(value)` — when the
+   * method's inferred return type collapses to `void` (typically caused by
+   * heavily overloaded signatures). Without an explicit type, deride widens
+   * the value type to `unknown` in that specific case so any value is accepted.
+   */
+  toReturn<V extends ReturnedValue<R> = ReturnedValue<R>>(value: V): TypedMockSetup<A, R>
   /** Return the wrapped object itself — useful for fluent/chainable APIs. */
   toReturnSelf(): TypedMockSetup<A, R>
   /** Replace the method body with a custom function. */
@@ -101,8 +116,14 @@ export interface TypedMockSetup<A extends any[] = any[], R = any> {
   toRejectAfter(ms: number, error: unknown): TypedMockSetup<A, R>
   /** Return a promise that never resolves or rejects. */
   toHang(): TypedMockSetup<A, R>
-  /** Return the supplied values one per call, sticky-last (or cycle/then via options). */
-  toReturnInOrder(...values: (R | [R[], { then?: R; cycle?: boolean }])[]): TypedMockSetup<A, R>
+  /**
+   * Return the supplied values one per call, sticky-last (or cycle/then via options).
+   * Accepts an explicit type parameter for the same reason as
+   * {@link TypedMockSetup.toReturn}.
+   */
+  toReturnInOrder<V extends ReturnedValue<R> = ReturnedValue<R>>(
+    ...values: (V | [V[], { then?: V; cycle?: boolean }])[]
+  ): TypedMockSetup<A, R>
   /**
    * Return resolved promises with each value in order. Accepts an explicit
    * type parameter for the same reason as {@link TypedMockSetup.toResolveWith}.
