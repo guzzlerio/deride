@@ -254,6 +254,6 @@ For `jest`: replace `'deride/vitest'` with `'deride/jest'`. Everything else is i
 - Don't `vi.spyOn(x, 'method')` and then try to use deride — pick one.
 - Don't mutate `mock.spy.calls[i].args` and expect the mock to "react" — those are records, not controls.
 - Don't `await mock.expect.x.called.withReturn(v)` — `expect` returns void, not a Promise.
-- Don't squash-merge a deride release PR — see the [CLAUDE.md](https://github.com/guzzlerio/deride/blob/develop/CLAUDE.md) at the repo root.
+- Don't squash-merge a deride release PR — see the [CLAUDE.md](https://github.com/guzzlerio/deride/blob/main/CLAUDE.md) at the repo root.
 
 Full list of anti-patterns and their fixes: [Common mistakes](./common-mistakes).

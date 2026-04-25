@@ -2,7 +2,7 @@ name: Release
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -12,7 +12,7 @@ concurrency:
 jobs:
   release:
     # Skip commits semantic-release would produce itself (belt-and-braces —
-    # we no longer commit back to master, but leave the guard in place).
+    # we no longer commit back to main, but leave the guard in place).
     if: "!contains(github.event.head_commit.message, 'chore(release):')"
     runs-on: ubuntu-latest
     permissions:

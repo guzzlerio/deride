@@ -55,26 +55,29 @@ echo "feat(matchers): add match.bigint" | pnpm commitlint
 
 ## Releases
 
-Releases are scoped to the `master` branch. This keeps work on `develop`
-accumulating without every merge triggering a publish.
+Trunk-based: `main` is the only long-lived branch. Every conventional-commit
+merge into `main` is potentially a release.
 
 **Branch roles:**
 
 | Branch | Role |
 |--------|------|
-| `develop` | Default integration branch. All PRs target it. |
-| `master` | Release branch. Merging `develop` → `master` cuts a release. |
-| `feature/*`, `fix/*` | Work branches, PR'd into `develop`. |
+| `main` | Trunk. Every push runs CI; every conventional-commit merge can publish a release. |
+| `feature/*`, `fix/*`, `chore/*` | Short-lived work branches, PR'd into `main`. Delete on merge. |
 
 **Cutting a release:**
 
-1. Land the relevant conventional-commit PRs on `develop`.
-2. Open a PR from `develop` → `master` (or fast-forward if preferred).
-3. Merge it. [semantic-release](https://github.com/semantic-release/semantic-release) runs automatically on `master`:
+1. Open a PR from a short-lived branch into `main` with a conventional-commit title.
+2. Squash-merge it — the squash commit message must keep the conventional prefix
+   (`feat:`, `fix:`, `perf:`, `refactor:`, `revert:`, or `docs(README):`) so
+   [semantic-release](https://github.com/semantic-release/semantic-release)
+   recognises it. Plain `chore:` / `merge:` / `ci:` titles will be skipped.
+3. semantic-release runs automatically on `main`:
    - computes the next version from the commits since the last tag,
    - creates the git tag,
-   - publishes to npm with provenance,
-   - posts a GitHub release with auto-generated notes.
+   - publishes to npm,
+   - posts a GitHub release with auto-generated notes,
+   - snapshots `docs/next` → `docs/v<major>` and deploys the docs site.
 4. Nothing to do manually.
 
 `package.json` and `CHANGELOG.md` in the repo are **not** auto-updated —
