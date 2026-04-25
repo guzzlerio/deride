@@ -89,7 +89,9 @@ import type {
   TypedMockSetup, MockSetup,
 
   // Expect surface
-  MockExpect, CalledExpect, InvocationExpect,
+  MockExpect, ExpectBranches, CalledExpect,
+  EveryCallExpect, CountAssertions,
+  ArgAssertions, InvocationExpect,
 
   // Spy surface
   MethodSpy, CallRecord,

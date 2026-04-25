@@ -110,7 +110,7 @@ Matchers compose and nest — use them inside `objectContaining`, `arrayContaini
 | Any call threw (optional: Error message / class / matcher) | `.called.threw(expected?)` |
 | The i-th call included this arg | `.invocation(i).withArg(arg)` |
 | EVERY call matched (each of the above) | `.everyCall.withArg(…)` etc. |
-| Negate any of the above | `.called.not.withArg(...)` |
+| Negate any of the above | `.not.called.withArg(...)` — negated count methods (`once`, `twice`, `times`, `lt`, `gt`, etc.) are **terminal** (return void, no chaining) |
 
 **Decision rule:** if you want a test to fail when the assertion fails, use `expect.called.*`. If you want a boolean / data / to branch, use `spy.*`.
 
