@@ -94,9 +94,13 @@ The runtime engine is a single `MethodMock` class in `src/method-mock.ts`, split
 
 The 148 pre-existing v2.0 tests must continue to pass unchanged through any future refactor. When the internal `callArgs: unknown[][]` was refactored to `calls: CallRecord[]` in v2.1, a back-compat getter was added so old assertion code still worked. Follow the same pattern if you change internals.
 
+**Before planning any work that touches public API:** if the task would remove, rename, or relocate any public API surface (methods, properties, types, exports), explicitly ask whether a breaking change is acceptable or whether backward compatibility must be preserved. Do this during planning, before implementation begins. Default assumption: backward compat is required.
+
 ## TSDoc on public exports
 
 Every public declaration in `src/**.ts` must have a JSDoc comment — enforced by `jsdoc/require-jsdoc`. This covers exported functions, classes, interfaces, type aliases, `const`/`let`, and interface method signatures. Fix the doc, don't disable the rule.
+
+**When any public API signature or its JSDoc changes, always rebuild the docs** (`pnpm docs:build`) before considering the task done. This catches broken links and ensures the VitePress site and emitted feeds (`llms.txt`, `.md` variants) stay in sync.
 
 ## GitHub Pages / docs deployment
 

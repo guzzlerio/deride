@@ -646,6 +646,188 @@ describe('expect.called.not.* - negated expectations', () => {
   })
 })
 
+describe('expect.not.called.* - negated expectations (preferred path)', () => {
+  let bob: any
+
+  beforeEach(() => {
+    bob = deride.stub(['greet'])
+  })
+
+  it('not.never() passes when function was called', () => {
+    bob.greet('alice')
+    bob.expect.greet.not.called.never()
+  })
+
+  it('not.never() fails when function was not called', () => {
+    expect(() => bob.expect.greet.not.called.never()).toThrow()
+  })
+
+  it('not.once() fails when called exactly once', () => {
+    bob.greet('alice')
+    expect(() => bob.expect.greet.not.called.once()).toThrow()
+  })
+
+  it('not.once() passes when not called once', () => {
+    bob.greet('a')
+    bob.greet('b')
+    bob.expect.greet.not.called.once()
+  })
+
+  it('not.twice() passes when called once', () => {
+    bob.greet('alice')
+    bob.expect.greet.not.called.twice()
+  })
+
+  it('not.twice() fails when called exactly twice', () => {
+    bob.greet('a')
+    bob.greet('b')
+    expect(() => bob.expect.greet.not.called.twice()).toThrow()
+  })
+
+  it('not.times() passes when call count differs', () => {
+    bob.greet('a')
+    bob.expect.greet.not.called.times(5)
+  })
+
+  it('not.times() fails when call count matches', () => {
+    bob.greet('a')
+    expect(() => bob.expect.greet.not.called.times(1)).toThrow()
+  })
+
+  it('not.withArg() passes when arg was not used', () => {
+    bob.greet('alice')
+    bob.expect.greet.not.called.withArg('bob')
+  })
+
+  it('not.withArg() fails when arg was used', () => {
+    bob.greet('alice')
+    expect(() => bob.expect.greet.not.called.withArg('alice')).toThrow()
+  })
+
+  it('not.withArgs() passes when args were not used', () => {
+    bob.greet('alice', 'carol')
+    bob.expect.greet.not.called.withArgs('bob', 'dave')
+  })
+
+  it('not.withArgs() fails when args were used', () => {
+    bob.greet('alice', 'carol')
+    expect(() => bob.expect.greet.not.called.withArgs('alice', 'carol')).toThrow()
+  })
+
+  it('not.withMatch() passes when pattern does not match', () => {
+    bob.greet('hello world')
+    bob.expect.greet.not.called.withMatch(/^goodbye/)
+  })
+
+  it('not.withMatch() fails when pattern matches', () => {
+    bob.greet('hello world')
+    expect(() => bob.expect.greet.not.called.withMatch(/^hello/)).toThrow()
+  })
+
+  it('not.matchExactly() passes when args do not match exactly', () => {
+    bob.greet('alice', 123)
+    bob.expect.greet.not.called.matchExactly('bob', 456)
+  })
+
+  it('not.matchExactly() fails when args match exactly', () => {
+    bob.greet('alice', 123)
+    expect(() => bob.expect.greet.not.called.matchExactly('alice', 123)).toThrow()
+  })
+
+  it('not.gt() passes when call count is not greater', () => {
+    bob.greet()
+    bob.expect.greet.not.called.gt(5)
+  })
+
+  it('not.gt() fails when call count is greater', () => {
+    bob.greet()
+    bob.greet()
+    bob.greet()
+    expect(() => bob.expect.greet.not.called.gt(2)).toThrow()
+  })
+
+  it('not.lt() passes when call count is not less', () => {
+    bob.greet()
+    bob.greet()
+    bob.greet()
+    bob.expect.greet.not.called.lt(2)
+  })
+
+  it('not.lt() fails when call count is less', () => {
+    bob.greet()
+    expect(() => bob.expect.greet.not.called.lt(5)).toThrow()
+  })
+
+  it('not.gte() passes when call count is not gte', () => {
+    bob.greet()
+    bob.expect.greet.not.called.gte(5)
+  })
+
+  it('not.lte() passes when call count is not lte', () => {
+    bob.greet()
+    bob.greet()
+    bob.greet()
+    bob.expect.greet.not.called.lte(2)
+  })
+})
+
+describe('fluent chaining', () => {
+  let bob: any
+
+  beforeEach(() => {
+    bob = deride.stub(['greet'])
+    bob.setup.greet.toReturn('hi')
+  })
+
+  it('count → arg: once().withArg()', () => {
+    bob.greet('alice')
+    bob.expect.greet.called.once().withArg('alice')
+  })
+
+  it('count → arg: twice().withArgs()', () => {
+    bob.greet('a', 'b')
+    bob.greet('a', 'b')
+    bob.expect.greet.called.twice().withArgs('a', 'b')
+  })
+
+  it('count → return: once().withReturn()', () => {
+    bob.greet('alice')
+    bob.expect.greet.called.once().withReturn('hi')
+  })
+
+  it('arg → arg: withArg().withReturn()', () => {
+    bob.greet('alice')
+    bob.expect.greet.called.withArg('alice').withReturn('hi')
+  })
+
+  it('range → arg: gte().withArg()', () => {
+    bob.greet('alice')
+    bob.greet('bob')
+    bob.expect.greet.called.gte(1).withArg('alice')
+  })
+
+  it('negation with not.called chaining', () => {
+    bob.greet('alice')
+    bob.expect.greet.not.called.withArg('nobody')
+  })
+
+  it('negated count → arg chain has correct semantics', () => {
+    // Called twice with 'alice'. Negated count methods are terminal
+    // (return void) to prevent misleading De Morgan chaining.
+    // Use two separate assertions instead.
+    bob.greet('alice')
+    bob.greet('alice')
+    bob.expect.greet.not.called.once()
+    bob.expect.greet.called.withArg('alice')
+  })
+
+  it('called.not back-compat: same behaviour as not.called', () => {
+    bob.greet('alice')
+    bob.expect.greet.called.not.withArg('nobody')
+    bob.expect.greet.called.not.twice()
+  })
+})
+
 describe('expect.invocation() - specific call verification', () => {
   let bob: any
 
