@@ -55,3 +55,50 @@ fn.setup.toReturn('oops')
 
 // VALID: opt-out
 fn.setup.toReturn('oops' as any)
+
+// ── Expect chaining ──────────────────────────────────────────────
+
+const expectSvc = deride.stub<MyService>(['greet', 'fetchData'])
+expectSvc.setup.greet.toReturn('hi')
+expectSvc.greet('x')
+
+// VALID: count → arg chain
+expectSvc.expect.greet.called.once().withArg('x')
+
+// VALID: arg → arg chain
+expectSvc.expect.greet.called.withArg('x').withReturn('hi')
+
+// VALID: negation at MockExpect level
+expectSvc.expect.greet.not.called.withArg('nobody')
+
+// INVALID: count → count chain
+// @ts-expect-error: ArgAssertions has no 'twice'
+expectSvc.expect.greet.called.once().twice()
+
+// INVALID: never → chain (void has no properties)
+// @ts-expect-error: void has no 'withArg'
+expectSvc.expect.greet.called.never().withArg('x')
+
+// ── Negated branch: count methods are terminal (issue #109 review §1) ──
+
+// VALID: negated count alone is fine
+expectSvc.expect.greet.not.called.once()
+expectSvc.expect.greet.not.called.twice()
+expectSvc.expect.greet.not.called.times(5)
+
+// INVALID: negated count → arg chain (must be type error)
+// @ts-expect-error: negated once() returns void — no chaining
+expectSvc.expect.greet.not.called.once().withArg('x')
+
+// @ts-expect-error: negated twice() returns void — no chaining
+expectSvc.expect.greet.not.called.twice().withArg('x')
+
+// @ts-expect-error: negated times() returns void — no chaining
+expectSvc.expect.greet.not.called.times(1).withArg('x')
+
+// VALID: negated arg assertions can still chain
+expectSvc.expect.greet.not.called.withArg('nobody').withReturn('nope')
+
+// VALID: deprecated called.not path still type-checks (issue #109 review §4)
+expectSvc.expect.greet.called.not.withArg('nobody')
+expectSvc.expect.greet.called.not.twice()

@@ -202,3 +202,32 @@ describe('deride', () => {
     })
   })
 })
+
+describe('wrap() with a standalone function', () => {
+  it('returns a callable mock that delegates to the original', () => {
+    function greet(name: string) {
+      return `hello ${name}`
+    }
+    const wrapped = deride.wrap(greet)
+    expect(wrapped('world')).toBe('hello world')
+  })
+
+  it('tracks calls on the wrapped function', () => {
+    function greet(name: string) {
+      return `hello ${name}`
+    }
+    const wrapped = deride.wrap(greet)
+    wrapped('alice')
+    wrapped.expect.called.once()
+    wrapped.expect.called.withArg('alice')
+  })
+
+  it('allows setup overrides on the wrapped function', () => {
+    function greet(name: string) {
+      return `hello ${name}`
+    }
+    const wrapped = deride.wrap(greet)
+    wrapped.setup.toReturn('overridden')
+    expect(wrapped('x')).toBe('overridden')
+  })
+})

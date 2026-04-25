@@ -50,8 +50,7 @@ export function stableSerialise(value: unknown, seen = new WeakSet<object>()): u
   if (value === null || value === undefined) return value
   if (typeof value !== 'object') {
     if (typeof value === 'function') {
-      const name = (value as { name?: string }).name
-      return `[Function${name ? ': ' + name : ''}]`
+      return `[Function${value.name ? ': ' + value.name : ''}]`
     }
     if (typeof value === 'bigint') return `${value.toString()}n`
     if (typeof value === 'symbol') return value.toString()
@@ -63,16 +62,16 @@ export function stableSerialise(value: unknown, seen = new WeakSet<object>()): u
   if (value instanceof Date) return value.toISOString()
   if (value instanceof RegExp) return value.toString()
   if (value instanceof Error) {
-    return `[${(value as Error).constructor.name}: ${(value as Error).message}]`
+    return `[${value.constructor.name}: ${value.message}]`
   }
 
-  if (seen.has(value as object)) return '[Circular]'
-  seen.add(value as object)
+  if (seen.has(value)) return '[Circular]'
+  seen.add(value)
 
   if (value instanceof Map) {
     return {
       __type: 'Map',
-      entries: Array.from(value as Map<unknown, unknown>, ([k, v]) => [
+      entries: Array.from(value, ([k, v]) => [
         stableSerialise(k, seen),
         stableSerialise(v, seen),
       ]),
@@ -81,12 +80,12 @@ export function stableSerialise(value: unknown, seen = new WeakSet<object>()): u
   if (value instanceof Set) {
     return {
       __type: 'Set',
-      values: Array.from(value as Set<unknown>, (v) => stableSerialise(v, seen)),
+      values: Array.from(value, (v) => stableSerialise(v, seen)),
     }
   }
   if (ArrayBuffer.isView(value)) {
     return {
-      __type: (value.constructor as { name: string }).name,
+      __type: value.constructor.name,
       values: Array.from(value as unknown as ArrayLike<number>),
     }
   }
@@ -98,7 +97,7 @@ export function stableSerialise(value: unknown, seen = new WeakSet<object>()): u
   }
 
   if (Array.isArray(value)) return value.map((v) => stableSerialise(v, seen))
-  const keys = Reflect.ownKeys(value as object)
+  const keys = Reflect.ownKeys(value)
     .map((k) => k.toString())
     .sort()
   const out: Record<string, unknown> = {}
@@ -116,51 +115,62 @@ export interface SpyHost {
   readonly calls: readonly CallRecord[]
 }
 
-/** Build the `MethodSpy` facade backed by the given host. */
-export function createSpy(host: SpyHost): MethodSpy {
-  return {
-    get name() {
-      return host.name
-    },
-    get callCount() {
-      return host.calls.length
-    },
-    get calls() {
-      return host.calls
-    },
-    get firstCall() {
-      return host.calls[0]
-    },
-    get lastCall() {
-      return host.calls[host.calls.length - 1]
-    },
-    calledWith(...args: unknown[]): boolean {
-      return host.calls.some((record) =>
-        args.every((expected) => hasMatch(record.args as readonly unknown[], expected))
-      )
-    },
-    printHistory(): string {
-      if (host.calls.length === 0) return `${host.name}: (no calls)`
-      const lines = host.calls.map((c, i) => {
-        const argStr = (c.args as unknown[]).map((a) => inspect(a, { depth: 4 })).join(', ')
-        let tail = ''
-        if (c.threw !== undefined) tail = ` -> threw ${inspect(c.threw)}`
-        else if (c.returned !== undefined) tail = ` -> ${inspect(c.returned, { depth: 4 })}`
-        return `  #${i} ${host.name}(${argStr})${tail}`
-      })
-      return [`${host.name}: ${host.calls.length} call(s)`, ...lines].join('\n')
-    },
-    serialize() {
-      return {
-        method: host.name,
-        calls: host.calls.map((c) => {
-          const entry: Record<string, unknown> = { args: c.args }
-          if (c.returned !== undefined) entry.returned = c.returned
-          if (c.threw !== undefined) entry.threw = inspect(c.threw)
-          return stableSerialise(entry)
-        }),
-      }
-    },
+/**
+ * Read-only spy backed by a {@link SpyHost}.
+ * Exposes call history and inspection methods without throwing.
+ */
+export class Spy implements MethodSpy {
+  /** Create a spy backed by the given host. */
+  constructor(private readonly host: SpyHost) {}
+
+  get name(): string {
+    return this.host.name
+  }
+
+  get callCount(): number {
+    return this.host.calls.length
+  }
+
+  get calls(): readonly CallRecord[] {
+    return this.host.calls
+  }
+
+  get firstCall(): CallRecord | undefined {
+    return this.host.calls[0]
+  }
+
+  get lastCall(): CallRecord | undefined {
+    return this.host.calls[this.host.calls.length - 1]
+  }
+
+  calledWith(...args: unknown[]): boolean {
+    return this.host.calls.some((record) =>
+      args.every((expected) => hasMatch(record.args, expected))
+    )
+  }
+
+  printHistory(): string {
+    if (this.host.calls.length === 0) return `${this.host.name}: (no calls)`
+    const lines = this.host.calls.map((c, i) => {
+      const argStr = c.args.map((a) => inspect(a, { depth: 4 })).join(', ')
+      let tail = ''
+      if (c.threw !== undefined) tail = ` -> threw ${inspect(c.threw)}`
+      else if (c.returned !== undefined) tail = ` -> ${inspect(c.returned, { depth: 4 })}`
+      return `  #${i} ${this.host.name}(${argStr})${tail}`
+    })
+    return [`${this.host.name}: ${this.host.calls.length} call(s)`, ...lines].join('\n')
+  }
+
+  serialize(): { method: string; calls: unknown[] } {
+    return {
+      method: this.host.name,
+      calls: this.host.calls.map((c) => {
+        const entry: Record<string, unknown> = { args: c.args }
+        if (c.returned !== undefined) entry.returned = c.returned
+        if (c.threw !== undefined) entry.threw = inspect(c.threw)
+        return stableSerialise(entry)
+      }),
+    }
   }
 }
 
@@ -169,7 +179,7 @@ export function historySuffix(host: SpyHost): string {
   const calls = host.calls
   if (calls.length === 0) return '\n  (no calls recorded)'
   const lines = calls.map((c, i) => {
-    const argStr = (c.args as unknown[]).map((a) => inspect(a, { depth: 3 })).join(', ')
+    const argStr = c.args.map((a) => inspect(a, { depth: 3 })).join(', ')
     return `  #${i} (${argStr})`
   })
   return '\n  actual calls:\n' + lines.join('\n')

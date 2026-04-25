@@ -403,13 +403,13 @@ describe('matchers', () => {
     it('not.withArg(match.*) passes when no arg matches', () => {
       const mock = stub<Svc>(['handle'])
       mock.handle(42)
-      mock.expect.handle.called.not.withArg(match.string)
+      mock.expect.handle.not.called.withArg(match.string)
     })
 
     it('not.withArg(match.*) fails when some arg matches', () => {
       const mock = stub<Svc>(['handle'])
       mock.handle('x')
-      expect(() => mock.expect.handle.called.not.withArg(match.string)).toThrow()
+      expect(() => mock.expect.handle.not.called.withArg(match.string)).toThrow()
     })
   })
 

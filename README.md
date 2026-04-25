@@ -127,7 +127,7 @@ Every-call / invocation / negation:
 
 - [`expect.method.everyCall.*`](#every-call)
 - [`expect.method.invocation(i).withArg(arg)`](#invocation)
-- [`expect.method.called.not.*`](#called-not) — negated versions
+- [`expect.method.not.called.*`](#called-not) — negated versions
 - [`expect.method.called.reset()`](#called-reset)
 - [`obj.called.reset()`](#called-reset-all) — reset all methods
 
@@ -796,18 +796,24 @@ bob.expect.greet.invocation(0).withArg('first')
 bob.expect.greet.invocation(1).withArgs('second', 'extra')
 ```
 
-<a name="called-not"></a>
+<a name="not-called"></a>
 
-### `called.not.*`
+### `not.called.*`
 
-Every positive assertion has a negated form:
+Every positive assertion has a negated form. Negation lives at the `expect.method.not` level:
 
 ```typescript
 bob.greet('alice')
-bob.expect.greet.called.not.never()
-bob.expect.greet.called.not.withArg('bob')
-bob.expect.greet.called.not.withReturn('goodbye')
-bob.expect.greet.called.not.threw()
+bob.expect.greet.not.called.never()
+bob.expect.greet.not.called.withArg('bob')
+bob.expect.greet.not.called.withReturn('goodbye')
+bob.expect.greet.not.called.threw()
+```
+
+Chaining works on negated assertions too:
+
+```typescript
+bob.expect.greet.not.called.once().withArg('nobody')
 ```
 
 <a name="called-reset"></a>
