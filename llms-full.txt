@@ -27,22 +27,7 @@ Redirecting to [latest docs](/latest/)...
 Source: https://guzzlerio.github.io/deride/deride/changelog.md
 ──────────────────────────────────────────────────────────────────────────────
 
-## [v2.1.0](https://github.com/guzzlerio/deride/releases/tag/v2.1.0) <Badge type="info" text="22 April 2026" />
-
-## [2.1.0](https://github.com/guzzlerio/deride/compare/v2.0.0...v2.1.0) (2026-04-22)
-
-### Features
-
-* v2.1 — matchers, spy API, ordering, lifecycle, and sub-paths ([#102](https://github.com/guzzlerio/deride/issues/102)) ([d23b953](https://github.com/guzzlerio/deride/commit/d23b953af31d048cfc82b3d238a2fe87e3f7770d)), closes [#101](https://github.com/guzzlerio/deride/issues/101) [#86](https://github.com/guzzlerio/deride/issues/86)
-
-## [v2.0.0](https://github.com/guzzlerio/deride/releases/tag/v2.0.0) <Badge type="info" text="20 April 2026" />
-
-## What's Changed
-* v2.0: TypeScript rewrite by @jamlen in https://github.com/guzzlerio/deride/pull/84
-* Release v2.0.0 by @jamlen in https://github.com/guzzlerio/deride/pull/85
-
-
-**Full Changelog**: https://github.com/guzzlerio/deride/compare/v1.3.0...v2.0.0
+See the [GitHub Releases page](https://github.com/guzzlerio/deride/releases) for the full changelog.
 
 
 ──────────────────────────────────────────────────────────────────────────────
@@ -6060,8 +6045,7 @@ describe('UserService', () => {
     const users = await service.listActive()
 
     expect(users).toHaveLength(1)
-    mockDb.expect.query.called.once()
-    mockDb.expect.query.called.withArg(match.regex(/active/i))
+    mockDb.expect.query.called.once().withArg(match.regex(/active/i))
   })
 })
 ```
@@ -6525,7 +6509,41 @@ export default defineConfig({
 
 **Why:** `deride/vitest` registers matchers via `expect.extend(...)` as a side effect at module load. The matchers live on whatever `expect` was in scope when the import ran. Loading it via `setupFiles` ensures they're available in every test.
 
-## 12. Forgetting `restoreActiveClock` in `afterEach`
+## 12. Fighting setup methods when the inferred return type is `void`
+
+**❌ Wrong**
+
+Heavily overloaded methods (most notably AWS SDK clients) sometimes resolve their return type to `void` instead of the response type. Any setup method whose value type is derived from `R` then rejects non-void values:
+
+```typescript
+import { SSMClient } from '@aws-sdk/client-ssm'
+const mockClient = stub<SSMClient>(['send'])
+
+// TS2345: ... is not assignable to parameter of type 'void'
+mockClient.setup.send.toResolveWith({ Parameter: { Value: 'x' } })
+mockClient.setup.send.toReturn(somePromise)
+mockClient.setup.send.toReturnInOrder(promiseA, promiseB)
+```
+
+Don't suppress with `@ts-expect-error` or rewrite to a `SimplifiedClient` interface that throws away type safety on the rest of the surface.
+
+**✅ Right**
+
+The five `R`-derived setup methods — `toReturn`, `toResolveWith`, `toResolveAfter`, `toReturnInOrder`, `toResolveInOrder` — widen their value type to `unknown` when the inferred return is exactly `void`, so the calls above type-check as-is. To pin the value type explicitly (recommended when you care about test-time intent), pass it as an explicit type parameter:
+
+```typescript
+import type { GetParameterCommandOutput } from '@aws-sdk/client-ssm'
+
+mockClient.setup.send.toResolveWith<GetParameterCommandOutput>({
+  Parameter: { Value: 'x' },
+})
+mockClient.setup.send.toReturn<Promise<GetParameterCommandOutput>>(somePromise)
+mockClient.setup.send.toResolveInOrder<GetParameterCommandOutput>(a, b)
+```
+
+**Why:** an overload set with no matching signature collapses to the fallback (`void`) at the type level even though the runtime call resolves to a real response. The widening only triggers on exact `void` — well-typed methods still strictly check against `R` (or `T` for `Promise<T>`).
+
+## 13. Forgetting `restoreActiveClock` in `afterEach`
 
 **❌ Wrong**
 
@@ -6557,6 +6575,40 @@ it('does timing stuff', () => {
 
 **Why:** `useFakeTimers()` patches global `Date.now` / `setTimeout` / `setInterval` / `queueMicrotask`. `runAll()` *can* throw (bounded at 10,000 iterations to catch runaway intervals), and that throw escapes before `restore()` would run. The `afterEach` guard catches all of these cases.
 
+## 13. Using `called.not` instead of `not.called`
+
+**❌ Wrong**
+
+```typescript
+mock.expect.greet.called.not.withArg('bob')
+```
+
+**✅ Right**
+
+```typescript
+mock.expect.greet.not.called.withArg('bob')
+```
+
+**Why:** `called.not` is deprecated (planned removal in v3). Negation lives at the `expect.method.not` level. The `.not` property is on `MockExpect`, providing the negated `called` branch.
+
+## 14. Chaining after a negated count method
+
+**❌ Wrong**
+
+```typescript
+mock.expect.greet.not.called.once().withArg('alice')
+// Compile error — negated count methods return void
+```
+
+**✅ Right**
+
+```typescript
+mock.expect.greet.not.called.once()          // count check alone
+mock.expect.greet.called.withArg('alice')    // separate arg check
+```
+
+**Why:** Negated count methods (`once()`, `twice()`, `times()`, `lt()`, `gt()`, etc.) are terminal — they return `void`. If chaining were allowed, each link would be negated independently (De Morgan), producing surprising results: `not.once()` passes but `not.withArg('alice')` fails even though the user intended "was not called exactly once with alice". Use two separate assertions instead.
+
 
 ──────────────────────────────────────────────────────────────────────────────
 # Decision tree
@@ -6587,11 +6639,11 @@ Which API to reach for, by task. Tables, not prose. If your question isn't answe
 
 | Behaviour | Setup |
 |-----------|-------|
-| Return a fixed value | `.toReturn(value)` |
+| Return a fixed value | `.toReturn(value)` (use `.toReturn<T>(value)` if the method's return type collapses to `void` — see [common mistake #12](./common-mistakes#_12-fighting-setup-methods-when-the-inferred-return-type-is-void)) |
 | Return the mock itself (fluent APIs) | `.toReturnSelf()` |
 | Run custom logic with access to args | `.toDoThis((a, b) => …)` |
 | Throw an Error(msg) | `.toThrow(message)` |
-| Return a resolved Promise with a value | `.toResolveWith(value)` |
+| Return a resolved Promise with a value | `.toResolveWith(value)` (use `.toResolveWith<T>(value)` if the method's return type collapses to `void` — see [common mistake #12](./common-mistakes#_12-fighting-setup-methods-when-the-inferred-return-type-is-void)) |
 | Return a resolved Promise with no value | `.toResolve()` |
 | Return a rejected Promise | `.toRejectWith(error)` |
 | Resolve after N ms (use with fake timers) | `.toResolveAfter(ms, value)` |
@@ -6673,7 +6725,7 @@ Matchers compose and nest — use them inside `objectContaining`, `arrayContaini
 | Any call threw (optional: Error message / class / matcher) | `.called.threw(expected?)` |
 | The i-th call included this arg | `.invocation(i).withArg(arg)` |
 | EVERY call matched (each of the above) | `.everyCall.withArg(…)` etc. |
-| Negate any of the above | `.called.not.withArg(...)` |
+| Negate any of the above | `.not.called.withArg(...)` — negated count methods (`once`, `twice`, `times`, `lt`, `gt`, etc.) are **terminal** (return void, no chaining) |
 
 **Decision rule:** if you want a test to fail when the assertion fails, use `expect.called.*`. If you want a boolean / data / to branch, use `spy.*`.
 
@@ -6904,7 +6956,9 @@ Full index in [Types](./types).
 import type {
   Wrapped,                              // result of stub()/wrap()
   TypedMockSetup, MockSetup,            // setup surface
-  MockExpect, CalledExpect, InvocationExpect,  // expect surface
+  MockExpect, ExpectBranches, CalledExpect,     // expect surface
+  EveryCallExpect, CountAssertions,
+  ArgAssertions, InvocationExpect,
   MethodSpy, CallRecord,                // spy surface
   MockSnapshot, Sandbox,                // lifecycle
   MockedFunction, MockedClass,          // callable mocks / class mocks
@@ -7666,34 +7720,56 @@ type MockSetup = TypedMockSetup<any[], any>
 ## Expect — `MockExpect`
 
 ```typescript
-interface MockExpect {
-  called: CalledExpect
-  everyCall: Omit<CalledExpect, 'reset' | 'not'>
-  invocation(index: number): InvocationExpect
+interface ArgAssertions {
+  withArg(arg: unknown): ArgAssertions
+  withArgs(...args: unknown[]): ArgAssertions
+  withMatch(pattern: RegExp): ArgAssertions
+  matchExactly(...args: unknown[]): ArgAssertions
+  withReturn(expected: unknown): ArgAssertions
+  calledOn(target: unknown): ArgAssertions
+  threw(expected?: unknown): ArgAssertions
 }
 
-interface CalledExpect {
+interface CountAssertions {
+  times(n: number, err?: string): ArgAssertions
+  once(): ArgAssertions
+  twice(): ArgAssertions
+  lt(n: number): ArgAssertions
+  lte(n: number): ArgAssertions
+  gt(n: number): ArgAssertions
+  gte(n: number): ArgAssertions
+}
+
+// Count methods that return void (terminal) — used on the negated branch
+interface TerminalCountAssertions {
   times(n: number, err?: string): void
   once(): void
   twice(): void
-  never(): void
-
   lt(n: number): void
   lte(n: number): void
   gt(n: number): void
   gte(n: number): void
+}
 
-  withArg(arg: unknown): void
-  withArgs(...args: unknown[]): void
-  withMatch(pattern: RegExp): void
-  matchExactly(...args: unknown[]): void
-
-  withReturn(expected: unknown): void
-  calledOn(target: unknown): void
-  threw(expected?: unknown): void
-
+interface CalledExpect extends CountAssertions, ArgAssertions {
+  never(): void
   reset(): void
-  not: Omit<CalledExpect, 'reset' | 'not'>
+  /** @deprecated Use `expect.method.not.called.*` instead. Planned removal in v3. */
+  not: TerminalCountAssertions & ArgAssertions
+}
+
+interface EveryCallExpect extends CountAssertions, ArgAssertions {}
+
+interface ExpectBranches {
+  called: CalledExpect
+  everyCall: EveryCallExpect
+}
+
+interface MockExpect extends ExpectBranches {
+  invocation(index: number): InvocationExpect
+  not: {
+    called: TerminalCountAssertions & ArgAssertions
+  }
 }
 
 interface InvocationExpect {
@@ -8711,21 +8787,68 @@ mock.expect.greet.invocation(1).withArg('nope')
 // throws: invocation out of range
 ```
 
+## Fluent chaining
+
+Assertions can be chained fluently. Count assertions (`once`, `twice`, `times`, `lt`, `gt`, etc.) return an arg-assertion object, so you can follow a count check with argument or return checks:
+
+```typescript
+mock.greet('alice')
+mock.expect.greet.called.once().withArg('alice')
+mock.expect.greet.called.once().withReturn('hi')
+```
+
+Arg assertions chain with each other:
+
+```typescript
+mock.expect.greet.called.withArg('alice').withReturn('hi')
+```
+
+The type system prevents invalid chains — you cannot follow a count with another count:
+
+```typescript
+mock.expect.greet.called.once().twice()  // compile error
+```
+
+`never()` is terminal and returns `void` — nothing can follow it:
+
+```typescript
+mock.expect.greet.called.never()         // no chaining
+```
+
 ## Negation — `.not.*`
 
-Every positive `called.*` assertion has a `.not` counterpart. It passes when the positive would have thrown:
+Every positive `called.*` assertion has a `.not` counterpart at the `expect.method.not` level. It passes when the positive would have thrown:
 
 ```typescript
 mock.greet('alice')
 
-mock.expect.greet.called.not.never()         // it WAS called
-mock.expect.greet.called.not.twice()         // it was called once, not twice
-mock.expect.greet.called.not.withArg('bob')  // 'bob' was never passed
-mock.expect.greet.called.not.withReturn('goodbye')
-mock.expect.greet.called.not.threw()
+mock.expect.greet.not.called.never()              // it WAS called
+mock.expect.greet.not.called.twice()              // it was called once, not twice
+mock.expect.greet.not.called.withArg('bob')       // 'bob' was never passed
+mock.expect.greet.not.called.withReturn('goodbye')
+mock.expect.greet.not.called.threw()
 ```
 
-`.not` is available on `called` only (not on `everyCall` or `invocation`).
+Negated **arg** assertions chain with each other:
+
+```typescript
+mock.expect.greet.not.called.withArg('bob').withReturn('goodbye')
+```
+
+Negated **count** methods (`once()`, `twice()`, `times()`, `lt()`, `gt()`, etc.) are **terminal** — they return `void` and cannot be chained. This prevents confusing semantics where each link would be negated independently:
+
+```typescript
+// ✅ Two separate assertions — clear intent
+mock.expect.greet.not.called.once()          // was not called exactly once
+mock.expect.greet.called.withArg('alice')    // was called with alice
+
+// ❌ Compile error — negated count is terminal
+mock.expect.greet.not.called.once().withArg('alice')
+```
+
+::: warning Deprecated: `called.not`
+The older `mock.expect.greet.called.not.*` form still works at runtime but is deprecated (planned removal in v3). Prefer `mock.expect.greet.not.called.*`.
+:::
 
 ## Resetting
 
@@ -10281,7 +10404,9 @@ import type {
   TypedMockSetup, MockSetup,
 
   // Expect surface
-  MockExpect, CalledExpect, InvocationExpect,
+  MockExpect, ExpectBranches, CalledExpect,
+  EveryCallExpect, CountAssertions,
+  ArgAssertions, InvocationExpect,
 
   // Spy surface
   MethodSpy, CallRecord,
@@ -11653,4 +11778,4820 @@ Pick one per test.
 - [`setup.toResolveAfter` / `toRejectAfter` / `toHang`](../guide/configuring-behaviour#time-shifted-async)
 - [`deride/clock`](../integrations/clock) — full API
 - [Async & Promises recipes](./async-mocking)
+
+
+══════════════════════════════════════════════════════════════════════════════
+# Guide
+══════════════════════════════════════════════════════════════════════════════
+
+──────────────────────────────────────────────────────────────────────────────
+# Configuring behaviour
+Source: https://guzzlerio.github.io/deride/deride/guide/configuring-behaviour.md
+──────────────────────────────────────────────────────────────────────────────
+
+Every mocked method has a `.setup` handle. Call a method on `.setup` to configure how the mock responds. Setup methods chain (return the setup object) so you can combine `.when(...)`, `.once()`/`.times(n)`, and `.and.then` fluently.
+
+## Return values
+
+### `toReturn(value)`
+
+Return a fixed value on every invocation:
+
+```typescript
+mock.setup.greet.toReturn('hello')
+mock.greet('alice')   // 'hello'
+mock.greet('bob')     // 'hello'
+```
+
+### `toReturnSelf()`
+
+Return the wrapped mock itself — for fluent/chainable APIs like query builders:
+
+```typescript
+const q = stub<{
+  where(v: unknown): unknown
+  orderBy(v: unknown): unknown
+  execute(): number[]
+}>(['where', 'orderBy', 'execute'])
+
+q.setup.where.toReturnSelf()
+q.setup.orderBy.toReturnSelf()
+q.setup.execute.toReturn([1, 2])
+
+q.where('a').orderBy('b').where('c').execute()   // [1, 2]
+```
+
+### `toReturnInOrder(...values)`
+
+Return each value once, then hold the last value ("sticky-last"):
+
+```typescript
+mock.setup.greet.toReturnInOrder('first', 'second', 'third')
+mock.greet()   // 'first'
+mock.greet()   // 'second'
+mock.greet()   // 'third'
+mock.greet()   // 'third'  (sticky)
+```
+
+Pass `{ then, cycle }` as a trailing argument for alternative fallback strategies:
+
+```typescript
+// Fallback to 'default' after exhausting the list
+mock.setup.greet.toReturnInOrder('a', 'b', { then: 'default' })
+// → 'a', 'b', 'default', 'default', …
+
+// Cycle indefinitely
+mock.setup.greet.toReturnInOrder('a', 'b', { cycle: true })
+// → 'a', 'b', 'a', 'b', …
+```
+
+::: warning Value vs options
+Since the options detector checks for `then` or `cycle` keys, if you genuinely want to **return** an object that happens to have those keys, wrap your values in an array:
+
+```typescript
+mock.setup.fn.toReturnInOrder([{ then: 'i-am-a-value' }])
+```
+:::
+
+## Custom implementations
+
+### `toDoThis(fn)`
+
+Run arbitrary logic. Gets the call args, returns anything (including `undefined`):
+
+```typescript
+mock.setup.greet.toDoThis((name: string) => `yo ${name}`)
+mock.greet('alice')   // 'yo alice'
+```
+
+### `toThrow(message)`
+
+Throw a fresh `Error` with the given message:
+
+```typescript
+mock.setup.parse.toThrow('malformed input')
+mock.parse('x')       // throws Error('malformed input')
+```
+
+## Promise behaviours
+
+### `toResolveWith(value)` / `toResolve()`
+
+```typescript
+mock.setup.fetch.toResolveWith({ data: 42 })
+await mock.fetch('/x')   // { data: 42 }
+
+mock.setup.save.toResolve()
+await mock.save(data)    // undefined
+```
+
+### `toRejectWith(error)`
+
+```typescript
+mock.setup.fetch.toRejectWith(new Error('network'))
+await mock.fetch('/x')   // rejects with Error('network')
+```
+
+### `toResolveInOrder / toRejectInOrder`
+
+Same sticky-last semantics as `toReturnInOrder`:
+
+```typescript
+mock.setup.fetch.toResolveInOrder('a', 'b', 'c')
+await mock.fetch()   // 'a'
+await mock.fetch()   // 'b'
+
+mock.setup.fetch.toRejectInOrder(err1, err2)
+```
+
+### `toResolveAfter(ms, value)` / `toRejectAfter(ms, error)`
+
+Delay resolution. Pairs well with fake timers:
+
+```typescript
+mock.setup.fetch.toResolveAfter(100, { data: 42 })
+const p = mock.fetch('/x')  // pending
+// ... advance time by 100ms ...
+await p                      // { data: 42 }
+```
+
+### `toHang()`
+
+Return a never-settling promise — useful for testing timeout/cancellation paths:
+
+```typescript
+mock.setup.fetch.toHang()
+const p = mock.fetch('/x')
+// p never resolves or rejects
+```
+
+## Iterators
+
+### `toYield(...values)`
+
+Return a fresh sync iterator on every call:
+
+```typescript
+mock.setup.stream.toYield(1, 2, 3)
+for (const v of mock.stream()) console.log(v)
+// 1
+// 2
+// 3
+```
+
+### `toAsyncYield(...values)`
+
+Same for async iterators:
+
+```typescript
+mock.setup.stream.toAsyncYield(1, 2, 3)
+for await (const v of mock.stream()) console.log(v)
+```
+
+### `toAsyncYieldThrow(error, ...valuesBefore)`
+
+Yield some values, then throw:
+
+```typescript
+mock.setup.stream.toAsyncYieldThrow(new Error('drained'), 1, 2)
+// yields 1, 2, then rejects with Error('drained')
+```
+
+## Callbacks and events
+
+### `toCallbackWith(...args)`
+
+Finds the last function argument and invokes it with the provided args — handy for Node-style callback APIs:
+
+```typescript
+mock.setup.load.toCallbackWith(null, 'data')
+mock.load('file.txt', (err, data) => {
+  // err === null, data === 'data'
+})
+```
+
+### `toEmit(eventName, ...params)`
+
+Emit an event on the wrapped object when the method is called:
+
+```typescript
+mock.setup.greet.toEmit('greeted', 'payload')
+mock.on('greeted', (data) => console.log(data))  // 'payload'
+mock.greet('alice')
+```
+
+### `toIntercept(fn)`
+
+Call your interceptor *and then* the original method (preserving the return value):
+
+```typescript
+const log: unknown[][] = []
+wrapped.setup.greet.toIntercept((...args) => log.push(args))
+wrapped.greet('alice')
+// log === [['alice']]
+// wrapped.greet still returned the original result
+```
+
+### `toTimeWarp(ms)`
+
+Accelerate a callback — schedules the found callback with the given delay instead of the original:
+
+```typescript
+mock.setup.load.toTimeWarp(0)
+mock.load(10_000, (result) => { /* called immediately, not after 10s */ })
+```
+
+## Gating behaviour by arguments
+
+### `.when(value | matcher | predicate)`
+
+Chain before any behaviour to gate it on the call's arguments:
+
+```typescript
+// Value match (deep equal)
+mock.setup.greet.when('alice').toReturn('hi alice')
+mock.setup.greet.when('bob').toReturn('hi bob')
+
+// Matcher
+mock.setup.greet.when(match.string).toReturn('hi string')
+
+// Multiple positional args / matchers
+mock.setup.log.when('info', match.string).toReturn(true)
+
+// Predicate function (full access to args)
+mock.setup.greet.when((args) => args[0].startsWith('Dr')).toReturn('hi doctor')
+```
+
+See [Matchers](/guide/matchers) for the full `match.*` catalogue.
+
+## Limiting invocations
+
+### `.once()` / `.twice()` / `.times(n)`
+
+Chain to limit how many times a behaviour applies:
+
+```typescript
+mock.setup.greet.once().toReturn('first')
+mock.setup.greet.toReturn('default')
+
+mock.greet()   // 'first'
+mock.greet()   // 'default'
+```
+
+The limit counts *each matching invocation*, so a time-limited behaviour combined with `when` only consumes when its predicate matches:
+
+```typescript
+mock.setup.greet.when('admin').twice().toReturn('hi admin')
+mock.setup.greet.toReturn('default')
+
+mock.greet('alice')  // 'default'   (when predicate didn't match, quota unchanged)
+mock.greet('admin')  // 'hi admin'  (1/2)
+mock.greet('admin')  // 'hi admin'  (2/2)
+mock.greet('admin')  // 'default'   (quota exhausted)
+```
+
+## Chaining sequential behaviours
+
+`.and.then` is an alias for the setup object — use it for readability when building a sequence:
+
+```typescript
+mock.setup.greet
+  .toReturn('alice')
+  .twice()
+  .and.then
+  .toReturn('sally')
+
+mock.greet()   // 'alice'
+mock.greet()   // 'alice'
+mock.greet()   // 'sally'
+```
+
+Can be combined with `.when`:
+
+```typescript
+mock.setup.greet
+  .when('simon')
+  .toReturn('special')
+  .twice()
+  .and.then
+  .toReturn('default')
+
+mock.greet('simon')   // 'special'
+mock.greet('simon')   // 'special'
+mock.greet('simon')   // 'default'
+```
+
+## Clearing behaviour
+
+### `.fallback()`
+
+Clear all configured behaviours on this method; future calls fall back to the original (or `undefined` for pure stubs):
+
+```typescript
+wrapped.setup.greet.toReturn('mocked')
+wrapped.greet('x')                  // 'mocked'
+wrapped.setup.greet.fallback()
+wrapped.greet('x')                  // original return value
+```
+
+## The dispatch rule (refresher)
+
+Time-limited behaviours first, in registration order (FIFO). When none match, the *last* registered unlimited behaviour wins. See the [Philosophy](/guide/philosophy#the-dispatch-rule) for why and how to work with it.
+
+
+──────────────────────────────────────────────────────────────────────────────
+# Creating mocks
+Source: https://guzzlerio.github.io/deride/deride/guide/creating-mocks.md
+──────────────────────────────────────────────────────────────────────────────
+
+Five factories cover every shape of test double deride supports. Pick the one that matches what you have.
+
+| Factory | Use when |
+|---------|----------|
+| [`stub<T>(methodNames)`](#stub-from-method-names) | You have an interface or type; list the methods to mock |
+| [`stub(obj)`](#stub-from-an-existing-object) | You have an existing object; mirror its methods |
+| [`stub(MyClass)`](#stub-from-a-class) | You have a class; walk its prototype |
+| [`stub.class<typeof C>()`](#stub-class-mock-the-constructor) | You need to mock `new MyClass(...)` |
+| [`wrap(obj)`](#wrap-an-existing-object) | You want the real method to run by default (partial mock) |
+| [`wrap(fn)` / `func(original?)`](#standalone-functions) | You want a standalone mocked function |
+
+All five return the same `Wrapped<T>`-shaped object — with `setup`, `expect`, `spy`, `called.reset()`, `snapshot()`, `restore()`, and an EventEmitter bolted on.
+
+## `stub` from method names {#stub-from-method-names}
+
+The cleanest pattern when you have an interface:
+
+```typescript
+interface Database {
+  query(sql: string): Promise<unknown[]>
+  findById(id: number): Promise<unknown>
+}
+
+const mockDb = stub<Database>(['query', 'findById'])
+mockDb.setup.query.toResolveWith([])
+```
+
+Methods default to returning `undefined` until configured. Every method on `T` must appear in the array; TypeScript checks it.
+
+### With extra properties
+
+The second argument attaches PropertyDescriptors if your interface has non-method fields:
+
+```typescript
+const bob = stub<Person & { age: number }>(
+  ['greet'],
+  [{ name: 'age', options: { value: 25, enumerable: true } }]
+)
+bob.age  // 25
+```
+
+## `stub` from an existing object {#stub-from-an-existing-object}
+
+Hand deride an instance; it auto-discovers the methods by walking own + prototype-chain keys:
+
+```typescript
+const realPerson = {
+  greet(name: string) { return `hi ${name}` },
+  echo(value: string) { return value },
+}
+
+const bob = stub(realPerson)
+bob.setup.greet.toReturn('mocked')
+bob.greet('alice')                 // 'mocked'
+bob.expect.greet.called.once()
+```
+
+Note: **all methods are stubbed.** Use `wrap` instead if you want the real implementation to run by default.
+
+## `stub` from a class {#stub-from-a-class}
+
+Pass a constructor directly — deride walks the prototype chain (inheritance-aware), skipping `constructor` and accessor properties:
+
+```typescript
+class Greeter {
+  greet(name: string) { return `hi ${name}` }
+  shout(name: string) { return `HI ${name.toUpperCase()}` }
+  static version() { return '1.0' }
+}
+
+const mock = stub(Greeter)
+mock.setup.greet.toReturn('mocked')
+mock.greet('x')   // 'mocked'
+```
+
+Static methods are excluded by default. Opt in with `{ static: true }`:
+
+```typescript
+const staticMock = stub(Greeter, undefined, {
+  debug: { prefix: 'deride', suffix: 'stub' },
+  static: true,
+})
+staticMock.setup.version.toReturn('mocked-v')
+```
+
+## `stub.class` — mock the constructor {#stub-class-mock-the-constructor}
+
+When code does `new Database(connString)` inside the function under test, you need to replace the constructor itself. `stub.class<typeof C>()` returns a `new`-able proxy:
+
+```typescript
+const MockedDb = stub.class(Database)
+
+const instance = new MockedDb('conn-string')
+instance.setup.query.toResolveWith([])
+
+MockedDb.expect.constructor.called.once()
+MockedDb.expect.constructor.called.withArg('conn-string')
+```
+
+### Apply setups to every instance
+
+`setupAll(fn)` runs `fn(instance)` for every instance created now and in the future:
+
+```typescript
+MockedDb.setupAll(inst => inst.setup.query.toResolveWith([]))
+
+const a = new MockedDb()
+const b = new MockedDb()
+await a.query('x')   // []
+await b.query('y')   // []
+```
+
+### Inspect the instances list
+
+```typescript
+MockedDb.instances  // readonly array of every constructed Wrapped<Db>
+```
+
+## `wrap` an existing object {#wrap-an-existing-object}
+
+If you want a **partial mock** — real implementations by default, overridden per-method — use `wrap`:
+
+```typescript
+const real = {
+  greet(name: string) { return `hello ${name}` },
+  shout(name: string) { return `HEY ${name.toUpperCase()}` },
+}
+
+const wrapped = wrap(real)
+
+// shout() still calls the real implementation
+wrapped.shout('alice')   // 'HEY ALICE'
+
+// greet() overridden
+wrapped.setup.greet.toReturn('mocked')
+wrapped.greet('alice')   // 'mocked'
+```
+
+### Wrap works with frozen objects and ES6 classes
+
+This is the killer feature. Composition means deride doesn't need to mutate your object:
+
+```typescript
+const frozen = Object.freeze({
+  greet(name: string) { return `hello ${name}` },
+})
+
+const wrapped = wrap(frozen)
+wrapped.greet('alice')   // 'hello alice' — real method still works
+wrapped.expect.greet.called.withArg('alice')
+```
+
+ES6 classes, prototype-based objects, and objects whose methods reference private fields all work because `wrap` never touches them.
+
+## Standalone functions {#standalone-functions}
+
+For the case where the dependency **is** a function, not an object:
+
+```typescript
+import { func } from 'deride'
+
+// Blank mock function
+const fn = func<(x: number) => number>()
+fn.setup.toReturn(42)
+fn(10)                              // 42
+fn.expect.called.withArg(10)
+
+// Wrap an existing function
+const doubler = func((x: number) => x * 2)
+doubler(5)                          // 10
+doubler.setup.toReturn(99)
+doubler(5)                          // 99
+```
+
+`wrap(fn)` is the same thing — it delegates to `func(fn)` internally.
+
+Standalone mocked functions expose `setup`, `expect`, and `spy` **directly** (no `.methodName` indirection), because there's only one method:
+
+```typescript
+fn.setup.toReturn(42)   // not fn.setup.anything.toReturn
+fn.expect.called.once()
+fn.spy.callCount
+```
+
+## What you get back
+
+Every factory returns an object with this shape:
+
+```typescript
+type Wrapped<T> = T & {
+  setup:  { [K in keyof T]: TypedMockSetup<...> }
+  expect: { [K in keyof T]: MockExpect }
+  spy:    { [K in keyof T]: MethodSpy }
+  called: { reset(): void }
+  snapshot(): Record<string, MockSnapshot>
+  restore(snap: Record<string, MockSnapshot>): void
+  on(event: string, listener: ...): EventEmitter
+  once(event: string, listener: ...): EventEmitter
+  emit(event: string, ...args): boolean
+}
+```
+
+Full type reference: [Types](/api/types).
+
+
+──────────────────────────────────────────────────────────────────────────────
+# Diagnostics
+Source: https://guzzlerio.github.io/deride/deride/guide/diagnostics.md
+──────────────────────────────────────────────────────────────────────────────
+
+When an assertion fails, you want to see **what actually happened** — not just that it didn't match. deride's failure messages include the full recorded call history, with indices.
+
+## Failure message format
+
+`withArg`, `withArgs`, `withReturn`, and every `everyCall.*` assertion produce output like this:
+
+```
+AssertionError [ERR_ASSERTION]: Expected greet to be called with: 'carol'
+  actual calls:
+  #0 ('alice')
+  #1 ('bob')
+  #2 (42, { deep: true })
+```
+
+Each call is numbered by invocation index so you can refer to it with `expect.greet.invocation(N)` if needed, and its arg list is rendered via `node:util`'s `inspect()` (depth 3, so nested objects stay readable).
+
+## Zero-call case
+
+If the method was never called, the message is explicit rather than a silent "no match found":
+
+```
+Expected greet to be called with: 'alice'
+  (no calls recorded)
+```
+
+## When a throw happened
+
+If a recorded call threw, the history shows it too:
+
+```
+greet: 2 call(s)
+  #0 greet('alice') -> 'hello alice'
+  #1 greet(42) -> threw Error: invalid input
+```
+
+This form is the output of `spy.method.printHistory()` — drop it into a `console.log` while debugging and you'll see every call plus its return or throw.
+
+## Improving readability while debugging
+
+If an assertion's standard message isn't enough, the `.spy` surface gives you multiple angles on the same data:
+
+```typescript
+// Full formatted history
+console.log(mock.spy.greet.printHistory())
+
+// Raw CallRecord array — structured, non-throwing
+console.table(mock.spy.greet.calls.map(c => ({
+  args: JSON.stringify(c.args),
+  returned: c.returned,
+  threw: c.threw,
+})))
+
+// Snapshot-serialise to a stable shape
+console.log(JSON.stringify(mock.spy.greet.serialize(), null, 2))
+```
+
+## Snapshot testing the call log
+
+For integration-style tests where exact call history is the assertion:
+
+```typescript
+expect(mock.spy.greet.serialize()).toMatchSnapshot()
+```
+
+`.serialize()` produces deterministic output: keys sorted alphabetically, no timestamps, circular refs rendered as `[Circular]`, functions as `[Function: name]`, Dates as ISO strings, Maps/Sets as tagged objects. Safe for snapshot diffs across CI runs.
+
+## Node util inspect depth
+
+Arguments are rendered with `inspect(arg, { depth: 3 })` — deep enough to show useful structure in a typical call, shallow enough not to dump a whole ORM graph. If you have a call with genuinely huge args and want more, use `.spy.greet.calls[i].args` directly to explore in a debugger.
+
+## Colour and TTY detection
+
+Failure messages don't apply ANSI colours — the output goes through Node's `assert` module and respects whatever the surrounding test runner does with its reporter. Vitest, jest, and `node:test` all colour-render their own error output from these messages.
+
+## Tests that help future-you
+
+A few habits that pay off:
+
+1. **Prefer `withArg(match.*)` over raw values** when asserting on args that vary — the matcher's `description` field appears in failure messages, so `Expected save to be called with: objectContaining({ id: number })` is far more useful than a literal dump.
+2. **Use `invocation(i)` for per-call assertions** when testing call sequences; the index in the message makes it obvious which call was the culprit.
+3. **Drop `printHistory()` into a flake**; the output is copy-pasteable and the full history often reveals whether the call count or the args were the real mismatch.
+4. **Snapshot-serialise the call log** for tests asserting on rich interaction patterns; a diff is clearer than N separate `expect(...)` statements.
+
+
+──────────────────────────────────────────────────────────────────────────────
+# Writing expectations
+Source: https://guzzlerio.github.io/deride/deride/guide/expectations.md
+──────────────────────────────────────────────────────────────────────────────
+
+Every mocked method exposes an `.expect.<method>` handle with **three** branches:
+
+| Branch | Meaning |
+|--------|---------|
+| `.called.*` | At-least-one assertions — "at least one call matched" |
+| `.everyCall.*` | All-call assertions — "every recorded call matched" (throws on zero calls — no vacuous-true) |
+| `.invocation(i)` | Per-call assertions — "the i-th call matched" |
+
+All assertions **throw** on mismatch with a message that includes the full recorded call history. Framework-agnostic: any test runner that catches errors will report them as failures.
+
+## Call counts
+
+```typescript
+mock.expect.greet.called.times(2)
+mock.expect.greet.called.once()
+mock.expect.greet.called.twice()
+mock.expect.greet.called.never()
+```
+
+### Comparisons
+
+```typescript
+mock.expect.greet.called.lt(5)
+mock.expect.greet.called.lte(4)
+mock.expect.greet.called.gt(0)
+mock.expect.greet.called.gte(1)
+```
+
+## Argument matching
+
+### `withArg(arg)` — any invocation had this arg
+
+Partial deep match, matcher-aware:
+
+```typescript
+mock.greet('alice', { name: 'bob', a: 1 })
+mock.expect.greet.called.withArg({ name: 'bob' })     // partial object match
+mock.expect.greet.called.withArg(match.string)         // matcher
+```
+
+### `withArgs(...args)` — all these args in one call
+
+Every listed arg must appear in the same recorded call:
+
+```typescript
+mock.greet('alice', 'bob')
+mock.expect.greet.called.withArgs('alice', 'bob')
+```
+
+### `withMatch(regex)` — regex search
+
+Searches strings and nested object values for a regex match:
+
+```typescript
+mock.greet('The quick brown fox')
+mock.expect.greet.called.withMatch(/quick.*fox/)
+
+mock.greet({ message: 'hello world' })
+mock.expect.greet.called.withMatch(/hello/)
+```
+
+### `matchExactly(...args)` — strict deep equal, matcher-aware
+
+Unlike `withArgs`, this enforces **exact arg list** (same length, same order, deep-equal at every position):
+
+```typescript
+mock.greet('alice', ['carol'], 123)
+mock.expect.greet.called.matchExactly('alice', ['carol'], 123)
+mock.expect.greet.called.matchExactly(match.string, match.array, match.number)
+```
+
+## Return / this / throw
+
+### `withReturn(expected)`
+
+Assert at least one call returned `expected`. Works with values or matchers; for async methods the resolved value is NOT awaited — you're asserting against the literal return, which is the Promise:
+
+```typescript
+mock.setup.sum.toReturn(42)
+mock.sum(1, 2)
+
+mock.expect.sum.called.withReturn(42)
+mock.expect.sum.called.withReturn(match.gte(40))
+mock.expect.sum.called.withReturn(match.number)
+```
+
+`withReturn(undefined)` matches calls that returned `undefined`:
+
+```typescript
+mock.fire()
+mock.expect.fire.called.withReturn(undefined)   // fire() returned nothing
+```
+
+### `calledOn(target)`
+
+Identity-check the `this` binding for at least one call:
+
+```typescript
+const target = { tag: 'target' }
+const fn = func<(x: number) => number>()
+fn.call(target, 1)
+fn.expect.called.calledOn(target)
+```
+
+### `threw(expected?)`
+
+Assert at least one call threw. The argument can be:
+
+- Omitted — any throw passes
+- A `string` — matches `Error.message`
+- An `Error` class — sugar for `match.instanceOf(ErrorClass)`
+- A matcher — e.g. `match.objectContaining({ code: 1 })` for non-`Error` throws
+
+```typescript
+mock.setup.fail.toThrow('bang')
+try { mock.fail() } catch {}
+
+mock.expect.fail.called.threw()                                    // any
+mock.expect.fail.called.threw('bang')                              // message
+mock.expect.fail.called.threw(Error)                               // class
+mock.expect.fail.called.threw(match.instanceOf(Error))             // matcher
+mock.expect.fail.called.threw(match.objectContaining({ code: 1 })) // structural
+```
+
+## `everyCall.*` — all calls must match
+
+Mirrors `called.*` but asserts **every** recorded call matches. Throws if the method was never called (no vacuous truths):
+
+```typescript
+mock.greet('a')
+mock.greet('b')
+mock.greet('c')
+
+mock.expect.greet.everyCall.withArg(match.string)
+mock.expect.greet.everyCall.matchExactly(match.string)
+mock.expect.greet.everyCall.withReturn(match.string)
+mock.expect.greet.everyCall.threw(SomeError)
+```
+
+If the method was never called:
+
+```typescript
+mock.expect.greet.everyCall.withArg('x')
+// throws: Expected every call of greet but it was never called
+```
+
+Use `.called.never()` if you want the opposite assertion ("it must never have been called").
+
+## `invocation(i)` — target a specific call
+
+Zero-indexed. Returns a smaller API with just `withArg` / `withArgs`:
+
+```typescript
+mock.greet('first')
+mock.greet('second', 'extra')
+
+mock.expect.greet.invocation(0).withArg('first')
+mock.expect.greet.invocation(1).withArg('second')
+mock.expect.greet.invocation(1).withArgs('second', 'extra')
+```
+
+Out-of-range indexes throw immediately:
+
+```typescript
+mock.greet('only')
+mock.expect.greet.invocation(1).withArg('nope')
+// throws: invocation out of range
+```
+
+## Negation — `.not.*`
+
+Every positive `called.*` assertion has a `.not` counterpart. It passes when the positive would have thrown:
+
+```typescript
+mock.greet('alice')
+
+mock.expect.greet.called.not.never()         // it WAS called
+mock.expect.greet.called.not.twice()         // it was called once, not twice
+mock.expect.greet.called.not.withArg('bob')  // 'bob' was never passed
+mock.expect.greet.called.not.withReturn('goodbye')
+mock.expect.greet.called.not.threw()
+```
+
+`.not` is available on `called` only (not on `everyCall` or `invocation`).
+
+## Resetting
+
+### Per-method
+
+```typescript
+mock.expect.greet.called.reset()   // clear only greet's history
+```
+
+### All methods at once
+
+```typescript
+mock.called.reset()                // clear history on every method of this mock
+```
+
+Reset leaves behaviours (from `setup`) intact. To wipe both behaviours and history, use `mock.restore(mock.snapshot())` at an earlier "clean" state, or see [Lifecycle](/guide/lifecycle#snapshot-restore).
+
+## Failure messages
+
+Every failure includes the recorded call history. Example:
+
+```
+AssertionError [ERR_ASSERTION]: Expected greet to be called with: 'carol'
+  actual calls:
+  #0 ('alice')
+  #1 ('bob')
+  #2 (42, { deep: true })
+```
+
+This is true for `withArg`, `withArgs`, `withReturn`, and the `everyCall.*` variants. See [Diagnostics](/guide/diagnostics) for more on improving failure output.
+
+
+──────────────────────────────────────────────────────────────────────────────
+# Installation
+Source: https://guzzlerio.github.io/deride/deride/guide/installation.md
+──────────────────────────────────────────────────────────────────────────────
+
+## Requirements
+
+- **Node.js 20 or later** (deride's published CI matrix is Node 20 / 22 × Ubuntu / macOS / Windows).
+- A test runner that catches thrown errors — vitest, jest, mocha, `node:test`, uvu, bun test, etc. deride is framework-agnostic.
+
+## Install
+
+::: code-group
+
+```bash [pnpm]
+pnpm add -D deride
+```
+
+```bash [npm]
+npm install --save-dev deride
+```
+
+```bash [yarn]
+yarn add -D deride
+```
+
+```bash [bun]
+bun add -d deride
+```
+
+:::
+
+deride itself has a single runtime dependency (`debug`) and ships ESM + CJS + `.d.ts` for every entry point.
+
+## Import
+
+The main entry exports the full API, plus a `deride` convenience namespace:
+
+```typescript
+import { stub, wrap, func, match, inOrder, sandbox } from 'deride'
+// or
+import deride from 'deride'
+deride.stub(...)
+```
+
+### Sub-paths
+
+Three optional integrations live under sub-paths. They're **opt-in** so the core bundle stays small:
+
+```typescript
+import { useFakeTimers } from 'deride/clock'   // fake timers
+import 'deride/vitest'                          // vitest matchers (side-effect)
+import 'deride/jest'                            // jest matchers (side-effect)
+```
+
+The `deride/vitest` and `deride/jest` imports register `toHaveBeenCalled*` matchers on your test runner's `expect`. Load them once — typically from your test-runner's `setupFiles`. Full details in [Integrations](/integrations/vitest).
+
+### Peer dependencies
+
+- `vitest` ≥ 1 if using `deride/vitest`
+- `jest` ≥ 29 (and `@jest/globals`) if using `deride/jest`
+
+These are declared as optional peers — install whichever you use.
+
+## TypeScript
+
+All public APIs ship their `.d.ts`. No additional `@types/...` package is required.
+
+```typescript
+import { stub, type Wrapped } from 'deride'
+
+interface Service {
+  greet(name: string): string
+}
+
+const mock: Wrapped<Service> = stub<Service>(['greet'])
+mock.setup.greet.toReturn('hello')   // ✓ constrained to string
+mock.setup.greet.toReturn(123)       // ✗ type error
+```
+
+See the [TypeScript guide](/guide/typescript) for the full story.
+
+## Verifying the install
+
+Drop this into a test file and run your suite:
+
+```typescript
+import { describe, it, expect } from 'vitest'   // or jest / node:test
+import { func } from 'deride'
+
+describe('deride is installed', () => {
+  it('records calls', () => {
+    const fn = func<(x: number) => number>()
+    fn.setup.toReturn(42)
+    expect(fn(1)).toBe(42)
+    fn.expect.called.once()
+  })
+})
+```
+
+If it runs green, you're done. On to the [quick start](/guide/quick-start).
+
+
+──────────────────────────────────────────────────────────────────────────────
+# Introduction
+Source: https://guzzlerio.github.io/deride/deride/guide/introduction.md
+──────────────────────────────────────────────────────────────────────────────
+
+**deride** is a TypeScript-first mocking library that works with frozen objects, sealed classes, and any coding style — because it *composes* rather than monkey-patches.
+
+## What it is
+
+A test-doubles library. You use it to replace collaborators during testing: databases, HTTP clients, loggers, event emitters, clocks, anything. Typical testing-library shape:
+
+```typescript
+import { stub } from 'deride'
+
+const mockDb = stub<Database>(['query'])
+mockDb.setup.query.toResolveWith(rows)
+
+const service = new UserService(mockDb)  // inject the mock
+await service.getAll()
+
+mockDb.expect.query.called.once()
+```
+
+## What makes it different
+
+Most JS mocking libraries mutate objects in place — they swap a method on the *real* object with a spy wrapper and rely on restoring it afterwards. That works until it doesn't: frozen objects reject the mutation, ES2015 classes with private fields break, and any test that forgets to call `restore()` leaks state into the next test.
+
+deride doesn't touch your real objects. `stub()`, `wrap()`, and `func()` all **produce a fresh object** with the same shape but independent behaviour. Your production code is never modified during tests.
+
+## What you get
+
+| Capability | What it looks like |
+|------------|--------------------|
+| Create test doubles from interfaces, instances, classes, or standalone functions | [`stub` / `wrap` / `func`](/guide/creating-mocks) |
+| Configure behaviour (return, resolve, throw, yield, sequence…) | [`setup.*`](/guide/configuring-behaviour) |
+| Assert how the mock was called | [`expect.*.called`](/guide/expectations) |
+| Inspect call history without throwing | [`spy.*`](/guide/spy) |
+| Match arguments expressively | [`match.*`](/guide/matchers) |
+| Verify cross-mock call order | [`inOrder(...)`](/guide/ordering) |
+| Group mocks, snapshot, restore | [`sandbox` / `snapshot`](/guide/lifecycle) |
+| Framework integrations | [`deride/vitest`, `deride/jest`, `deride/clock`](/integrations/vitest) |
+
+## When to reach for deride
+
+**Use it** when you want clean, composable, type-safe mocking that doesn't require a `beforeEach`/`afterEach` dance to clean up after itself — especially in codebases with `Object.freeze`, immutable-by-convention objects, or dependency-injected services.
+
+**Reach for something else** if you primarily need module-level mocking (`vi.mock` / `jest.mock`) without injection — deride works alongside those but isn't a replacement for them. See [Module mocking](/recipes/module-mocking) for the preferred pattern.
+
+## Stability & support
+
+- **Node.js 20+** (required for vitest 4; CI tests against Node 20 and 22 on Ubuntu, macOS, and Windows).
+- **ESM-first** with CJS fallback.
+- Published under **MIT**, maintained at [guzzlerio/deride](https://github.com/guzzlerio/deride).
+
+Next up: [installation](/guide/installation), then a [5-minute quick start](/guide/quick-start).
+
+
+──────────────────────────────────────────────────────────────────────────────
+# Lifecycle management
+Source: https://guzzlerio.github.io/deride/deride/guide/lifecycle.md
+──────────────────────────────────────────────────────────────────────────────
+
+Two concerns live here: **resetting call history** between tests, and **snapshotting/restoring** a mock's full state (behaviours + calls) to roll back in-test changes.
+
+## Resetting call history
+
+### Per method
+
+```typescript
+mock.expect.greet.called.reset()
+```
+
+Clears the call history for just `greet`. Any behaviours configured via `setup` stay intact.
+
+### All methods on a mock
+
+```typescript
+mock.called.reset()
+```
+
+Clears call history across every method on this mock.
+
+### Typical `afterEach`
+
+```typescript
+afterEach(() => {
+  mockDb.called.reset()
+  mockLogger.called.reset()
+})
+```
+
+This works but doesn't scale — every new mock needs adding to the list. For that, use `sandbox()`.
+
+## `sandbox()` — fan-out reset/restore
+
+A **sandbox** is a scope that registers every mock created through its factories. `reset()` on the sandbox clears history on all of them at once; `restore()` clears behaviours too.
+
+```typescript
+import { sandbox } from 'deride'
+import type { Database, Logger } from './app'
+
+const sb = sandbox()
+const mockDb = sb.stub<Database>(['query'])
+const mockLog = sb.wrap(realLogger)
+const mockFetch = sb.func<typeof fetch>()
+
+afterEach(() => sb.reset())   // clear history on all three
+afterAll(() => sb.restore())  // clear history AND behaviours
+```
+
+### The three factories
+
+```typescript
+sb.stub<T>(methodNames)
+sb.wrap(obj)
+sb.func<F>()
+```
+
+Each is a proxy over the top-level factory — it registers the created mock with the sandbox and otherwise behaves identically.
+
+### Sandboxes are independent
+
+Two sandboxes never interfere:
+
+```typescript
+const a = sandbox()
+const b = sandbox()
+
+const m1 = a.stub<Foo>(['x'])
+const m2 = b.stub<Foo>(['x'])
+
+m1.x()
+m2.x()
+
+a.reset()                  // clears m1 only
+m1.expect.x.called.never() // ✓
+m2.expect.x.called.once()  // ✓
+```
+
+### Sandbox size
+
+```typescript
+sb.size   // number of mocks registered in this sandbox
+```
+
+Handy for assertions in test utilities.
+
+### `reset()` vs `restore()`
+
+| Method | Clears history | Clears behaviours |
+|--------|----------------|-------------------|
+| `sb.reset()` | ✓ | — |
+| `sb.restore()` | ✓ | ✓ |
+
+`reset` is for the common test-loop case (clean slate, same configured behaviours). `restore` is the harder wipe — useful in `afterAll` or when you deliberately want mocks to revert to "nothing configured".
+
+## Snapshot / restore
+
+When you need to **temporarily change** a mock's state and roll back, use `snapshot()` / `restore(snap)`:
+
+```typescript
+mock.setup.greet.toReturn('v1')
+const snap = mock.snapshot()
+
+mock.setup.greet.toReturn('v2')
+mock.greet('x')   // 'v2'
+
+mock.restore(snap)
+mock.greet('x')   // 'v1' (the setup at snapshot time, AND calls before snapshot)
+```
+
+Snapshots capture **both**:
+
+- The behaviour list (`.setup.*` configured actions)
+- The call history (`.spy.*.calls`)
+
+Any changes made *after* `snapshot()` are reversed by `restore(snap)` — including brand-new behaviours *and* new calls that accumulated in history.
+
+### Nested snapshots
+
+Snapshots stack arbitrarily:
+
+```typescript
+mock.setup.greet.toReturn('A')
+const snapA = mock.snapshot()
+
+mock.setup.greet.toReturn('B')
+const snapB = mock.snapshot()
+
+mock.setup.greet.toReturn('C')
+mock.restore(snapB)   // back to B
+mock.greet()          // 'B'
+
+mock.restore(snapA)   // jump straight back to A
+mock.greet()          // 'A'
+```
+
+### When to reach for snapshots
+
+- A single test needs to **alter setup mid-flow**, then revert (rare — usually suggest refactoring to two separate tests).
+- You have a **scoped helper** that modifies a shared mock; snapshot before, restore at the end of the helper.
+- You want a **deterministic reset point** that's not "fully empty" — snapshots let you mark "this is my baseline".
+
+For run-of-the-mill test isolation, `sandbox().reset()` is simpler.
+
+### Implementation notes
+
+The snapshot value is opaque — it's `{ __brand: 'deride.snapshot', behaviors, calls }` under the hood, but the type is intentionally not introspectable so callers don't grow dependencies on its shape. Passing something that isn't a deride snapshot to `restore()` throws.
+
+## Putting it together
+
+A typical test file:
+
+```typescript
+import { afterEach, beforeEach, describe, it } from 'vitest'
+import { sandbox } from 'deride'
+import { UserService, type Database } from '../src/user-service'
+
+const sb = sandbox()
+let mockDb: Wrapped<Database>
+let service: UserService
+
+beforeEach(() => {
+  mockDb = sb.stub<Database>(['query', 'findById'])
+  service = new UserService(mockDb)
+})
+
+afterEach(() => sb.reset())
+
+describe('UserService', () => {
+  it('lists users', async () => {
+    mockDb.setup.query.toResolveWith([{ id: 1, name: 'alice' }])
+    const users = await service.listActive()
+    mockDb.expect.query.called.once()
+  })
+
+  // Between tests, sb.reset() clears history — configured behaviours carry forward
+  // unless you set them up fresh in beforeEach (which is what this file does).
+})
+```
+
+
+──────────────────────────────────────────────────────────────────────────────
+# Argument matchers
+Source: https://guzzlerio.github.io/deride/deride/guide/matchers.md
+──────────────────────────────────────────────────────────────────────────────
+
+deride's `match.*` namespace gives you composable, brand-tagged predicates that work in **every** place a value can appear:
+
+- `setup.method.when(...)` — gating behaviour
+- `expect.method.called.withArg(...)` — assertions
+- `expect.method.called.withArgs(...)` — positional assertions
+- `expect.method.called.matchExactly(...)` — strict deep-equal assertions
+- `expect.method.invocation(i).withArg(...)` — per-call assertions
+- `expect.method.called.withReturn(...)` — return-value assertions
+- `expect.method.called.threw(...)` — thrown-value assertions
+- **Nested inside objects and arrays** at any depth
+
+```typescript
+import { match } from 'deride'
+```
+
+## Type matchers
+
+| Matcher | Passes when |
+|---------|-------------|
+| `match.any` | Anything, including `null` and `undefined` |
+| `match.defined` | Not `undefined` (but `null` passes) |
+| `match.nullish` | `null` or `undefined` only |
+| `match.string` | `typeof value === 'string'` |
+| `match.number` | `typeof value === 'number'` (including `NaN`) |
+| `match.boolean` | `typeof value === 'boolean'` |
+| `match.bigint` | `typeof value === 'bigint'` |
+| `match.symbol` | `typeof value === 'symbol'` |
+| `match.function` | `typeof value === 'function'` |
+| `match.array` | `Array.isArray(value)` |
+| `match.object` | non-null non-array object |
+
+```typescript
+mock.setup.log.when(match.string).toReturn(undefined)
+mock.expect.log.called.withArg(match.string)
+```
+
+## Structural matchers
+
+### `match.instanceOf(Ctor)`
+
+```typescript
+class Animal {}
+class Dog extends Animal {}
+
+mock.expect.handle.called.withArg(match.instanceOf(Animal))  // matches Dog too
+```
+
+### `match.objectContaining(partial)`
+
+Partial deep match — the value must have each listed key with a matching value. Extra keys are allowed. Nested matchers work:
+
+```typescript
+mock.expect.save.called.withArg(
+  match.objectContaining({ id: match.number, name: match.string })
+)
+```
+
+Distinguishes `{ x: undefined }` from `{}`:
+
+```typescript
+match.objectContaining({ x: undefined }).test({})            // false
+match.objectContaining({ x: undefined }).test({ x: undefined }) // true
+```
+
+### `match.arrayContaining(items)`
+
+Every listed item must appear somewhere in the array (any order):
+
+```typescript
+match.arrayContaining([1, 2]).test([1, 2, 3])   // true
+match.arrayContaining([4]).test([1, 2, 3])       // false
+```
+
+Works with nested matchers:
+
+```typescript
+match.arrayContaining([match.objectContaining({ id: 1 })]).test([
+  { id: 1, name: 'alice' },
+  { id: 2 }
+])   // true
+```
+
+### `match.exact(value)`
+
+Strict deep equality — extra keys cause failure:
+
+```typescript
+match.exact({ a: 1 }).test({ a: 1 })         // true
+match.exact({ a: 1 }).test({ a: 1, b: 2 })   // false — extra key
+```
+
+## Comparators
+
+For numbers and bigints (mixed types reject):
+
+```typescript
+match.gt(5)              // > 5
+match.gte(5)             // >= 5
+match.lt(5)              // < 5
+match.lte(5)             // <= 5
+match.between(1, 10)     // 1 <= x <= 10 (inclusive at both bounds)
+```
+
+`NaN` never passes a comparator.
+
+```typescript
+match.gt(5).test(6)      // true
+match.gte(5n).test(5n)   // true (bigint)
+match.gt(5n).test(6)     // false (mixed)
+match.between(0, 10).test(NaN)  // false
+```
+
+## String matchers
+
+All reject non-string inputs — no coercion:
+
+```typescript
+match.regex(/foo/)                 // regex test, lastIndex reset for /g and /y
+match.startsWith('foo')            // value.startsWith(...)
+match.endsWith('bar')              // value.endsWith(...)
+match.includes('mid')              // value.includes(...)
+```
+
+```typescript
+mock.expect.log.called.withArg(match.startsWith('[ERROR]'))
+```
+
+## Logic combinators
+
+### `match.not(m)`
+
+```typescript
+match.not(match.nullish).test(null)   // false
+match.not(match.nullish).test(0)      // true
+```
+
+### `match.allOf(...matchers)`
+
+Every matcher must pass:
+
+```typescript
+match.allOf(match.string, match.startsWith('a')).test('abc')   // true
+match.allOf(match.string, match.startsWith('a')).test('bc')    // false
+```
+
+Empty list is **vacuously true** — `match.allOf().test(anything)` returns `true`. Watch for spreading an empty array by mistake.
+
+### `match.oneOf(...matchers)`
+
+At least one matcher must pass:
+
+```typescript
+match.oneOf(match.string, match.number).test(1)       // true
+match.oneOf(match.string, match.number).test(true)    // false
+```
+
+Empty list is **vacuously false**.
+
+### `match.anyOf(...values)`
+
+Equality OR matcher-match against each value:
+
+```typescript
+match.anyOf(1, 2, 3).test(2)                      // true
+match.anyOf(1, 2, 3).test(4)                      // false
+match.anyOf('admin', 'root', match.regex(/sys/)).test('system')   // true
+```
+
+## Escape hatch — `match.where`
+
+For one-off predicates:
+
+```typescript
+match.where<number>(n => n > 100 && n % 2 === 0)
+```
+
+A thrown predicate is caught and treated as a non-match:
+
+```typescript
+match.where(() => { throw new Error('x') }).test(undefined)   // false
+```
+
+Optional description for readable failure messages:
+
+```typescript
+match.where<User>(u => u.roles.includes('admin'), 'user with admin role')
+```
+
+## Composition
+
+Matchers nest arbitrarily. This works anywhere:
+
+```typescript
+mock.setup.save.when(
+  match.objectContaining({
+    user: match.objectContaining({
+      email: match.regex(/@corp\.com$/),
+      roles: match.arrayContaining(['admin']),
+    }),
+    timestamp: match.gte(Date.now() - 60_000),
+  })
+).toResolve()
+```
+
+## Writing your own matcher
+
+Matchers are just objects with a brand symbol, a description, and a `test` function. The easiest way to produce one is `match.where(predicate, description)`. For deeper customisation:
+
+```typescript
+import { isMatcher, MATCHER_BRAND, type Matcher } from 'deride'
+
+function isUUID(): Matcher<unknown> {
+  return {
+    [MATCHER_BRAND]: true,
+    description: 'UUID v4',
+    test: (v: unknown) =>
+      typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(v),
+  }
+}
+
+mock.expect.create.called.withArg(match.objectContaining({ id: isUUID() }))
+```
+
+`isMatcher(v)` type-guards any value as a matcher.
+
+## Summary table
+
+| Category | Members |
+|----------|---------|
+| Types | `any`, `defined`, `nullish`, `string`, `number`, `boolean`, `bigint`, `symbol`, `function`, `array`, `object` |
+| Structure | `instanceOf(Ctor)`, `objectContaining(partial)`, `arrayContaining(items)`, `exact(value)` |
+| Comparators | `gt`, `gte`, `lt`, `lte`, `between` |
+| Strings | `regex`, `startsWith`, `endsWith`, `includes` |
+| Logic | `not`, `allOf`, `oneOf`, `anyOf` |
+| Escape | `where(predicate, description?)` |
+
+
+──────────────────────────────────────────────────────────────────────────────
+# Migrating
+Source: https://guzzlerio.github.io/deride/deride/guide/migrating.md
+──────────────────────────────────────────────────────────────────────────────
+
+Common patterns from other mocking libraries, translated to deride.
+
+## From sinon
+
+### `sinon.stub`
+
+```typescript
+// sinon — monkey-patches the object
+const spy = sinon.stub(database, 'query').resolves(rows)
+
+// deride — wrap creates a new object
+const wrapped = wrap(database)
+wrapped.setup.query.toResolveWith(rows)
+```
+
+If `database` is shared across tests (e.g. a module singleton), use `vi.mock` / `jest.mock` to substitute the deride wrapper at import time — see [Module mocking](/recipes/module-mocking).
+
+### `sinon.spy`
+
+```typescript
+// sinon
+const spy = sinon.spy()
+target.on('event', spy)
+target.trigger('event', 'x')
+sinon.assert.calledWith(spy, 'x')
+
+// deride
+const fn = func<(arg: string) => void>()
+target.on('event', fn)
+target.trigger('event', 'x')
+fn.expect.called.withArg('x')
+```
+
+### `stub.returns(...)` for sequential values
+
+```typescript
+// sinon
+const s = sinon.stub()
+s.onCall(0).returns('a')
+s.onCall(1).returns('b')
+s.returns('default')
+
+// deride
+mock.setup.method.toReturnInOrder('a', 'b', { then: 'default' })
+```
+
+### Matchers
+
+```typescript
+// sinon
+sinon.assert.calledWith(spy, sinon.match.string)
+
+// deride
+mock.expect.method.called.withArg(match.string)
+```
+
+The full catalogue lives in [Matchers](/guide/matchers).
+
+### Call history
+
+```typescript
+// sinon
+spy.getCall(0).args       // → [...]
+spy.lastCall.returnValue
+
+// deride
+mock.spy.method.calls[0].args
+mock.spy.method.lastCall?.returned
+```
+
+## From Jest / vitest `vi.fn()`
+
+### Creating a mock function
+
+```typescript
+// vitest / jest
+const fn = vi.fn()
+fn.mockReturnValue(42)
+fn.mockResolvedValue('ok')
+fn.mockRejectedValue(new Error('no'))
+
+// deride
+const fn = func<(x: number) => number>()
+fn.setup.toReturn(42)
+fn.setup.toResolveWith('ok')
+fn.setup.toRejectWith(new Error('no'))
+```
+
+### Mocked implementations
+
+```typescript
+// vitest / jest
+fn.mockImplementation((x) => x * 2)
+fn.mockImplementationOnce((x) => x + 1)
+
+// deride
+fn.setup.toDoThis((x) => x * 2)
+fn.setup.once().toDoThis((x) => x + 1)
+```
+
+### Sequential returns
+
+```typescript
+// jest
+fn.mockReturnValueOnce('a').mockReturnValueOnce('b')
+
+// deride
+fn.setup.toReturnInOrder('a', 'b')
+```
+
+### Assertions
+
+```typescript
+// vitest / jest
+expect(fn).toHaveBeenCalled()
+expect(fn).toHaveBeenCalledTimes(2)
+expect(fn).toHaveBeenCalledWith('x')
+expect(fn).toHaveBeenLastCalledWith('y')
+expect(fn).toHaveBeenNthCalledWith(1, 'z')
+
+// deride — framework-agnostic
+fn.expect.called.times(2)
+fn.expect.called.withArg('x')
+fn.expect.invocation(fn.spy.callCount - 1).withArg('y')
+fn.expect.invocation(0).withArg('z')
+
+// deride — vitest/jest matchers (opt-in)
+import 'deride/vitest'
+expect(fn).toHaveBeenCalledOnce()
+expect(fn).toHaveBeenCalledWith('x')
+expect(fn).toHaveBeenLastCalledWith('y')
+expect(fn).toHaveBeenNthCalledWith(1, 'z')
+```
+
+See [`deride/vitest`](/integrations/vitest) and [`deride/jest`](/integrations/jest) for the matcher set.
+
+### Reading call history
+
+```typescript
+// vitest / jest
+fn.mock.calls            // unknown[][]
+fn.mock.calls[0][0]      // args
+fn.mock.results[0].value // return
+
+// deride
+fn.spy.calls             // readonly CallRecord[]
+fn.spy.calls[0].args[0]
+fn.spy.calls[0].returned
+```
+
+### Clearing / resetting
+
+```typescript
+// vitest / jest
+fn.mockClear()           // calls only
+fn.mockReset()           // calls + implementation
+
+// deride
+fn.expect.called.reset()       // calls only
+fn.setup.fallback()            // clear behaviours
+// Or use sandbox():
+const sb = sandbox()
+const fn = sb.func<...>()
+afterEach(() => sb.reset())   // clear calls on every registered mock
+```
+
+## From `jest.mock` / `vi.mock`
+
+These tools mock whole *modules*, not objects — they're orthogonal to what deride does. Use them **together**: deride creates the mock, and the runner substitutes it at import time.
+
+```typescript
+import { vi } from 'vitest'
+import { stub } from 'deride'
+import type { Database } from './database'
+
+const mockDb = stub<Database>(['query'])
+mockDb.setup.query.toResolveWith([])
+
+vi.mock('./database', () => ({ db: mockDb }))
+
+// Code under test imports './database' and uses the mock
+import { userService } from './user-service'
+```
+
+See [Module mocking](/recipes/module-mocking) for the full pattern.
+
+## From `testdouble.js`
+
+```typescript
+// testdouble
+const db = td.object<Database>()
+td.when(db.query('select')).thenResolve(rows)
+td.verify(db.query('select'))
+
+// deride
+const db = stub<Database>(['query'])
+db.setup.query.when('select').toResolveWith(rows)
+db.expect.query.called.withArg('select')
+```
+
+testdouble's partial matchers map directly to deride's matchers:
+
+- `td.matchers.anything()` → `match.any`
+- `td.matchers.isA(String)` → `match.string`
+- `td.matchers.contains({ id: 1 })` → `match.objectContaining({ id: 1 })`
+
+## Behaviour differences worth knowing
+
+### Composition vs monkey-patching
+
+sinon, testdouble, and `vi.spyOn` **mutate** the real object. deride **wraps** — you get a fresh object back. If your code imports a singleton and calls methods on it, you'll need `vi.mock`/`jest.mock` to substitute the wrapper at the module boundary. See [Module mocking](/recipes/module-mocking).
+
+### No implicit restore
+
+sinon requires `sandbox.restore()` in `afterEach` to undo the patching. deride has no patches to undo — but if you want to reset call history between tests, use `sandbox().reset()` or `mock.called.reset()`.
+
+### Throws vs returns-match-result
+
+deride's `expect.*` throws on mismatch; jest's matcher returns a match result. If you're writing custom assertion helpers, prefer deride's `spy.method.calledWith(...)` — it's non-throwing and returns a boolean.
+
+
+──────────────────────────────────────────────────────────────────────────────
+# Cross-mock ordering
+Source: https://guzzlerio.github.io/deride/deride/guide/ordering.md
+──────────────────────────────────────────────────────────────────────────────
+
+Sometimes it's not enough to assert that a call happened — you need to assert that it happened *before* or *after* another call on a different mock. `inOrder(...)` is the tool.
+
+## Basic usage
+
+Each argument is a spy (`mock.spy.method`). `inOrder` asserts that the **first recorded call** of each fired in the listed order:
+
+```typescript
+import { inOrder, stub } from 'deride'
+
+const db = stub<Database>(['connect', 'query', 'disconnect'])
+const log = stub<Logger>(['info', 'error'])
+
+// Code under test:
+await repository.load()
+// which internally does: db.connect() -> db.query(...) -> log.info(...)
+
+inOrder(db.spy.connect, db.spy.query, log.spy.info)
+```
+
+No asserting order twice — `inOrder` does it once, atomically. Failure messages name the offending spy:
+
+```
+Error: inOrder: `log.info` (seq 8) fired before `db.query` (seq 12)
+```
+
+## Ordering invocations, not just spies
+
+If you care about the order of specific invocations on the same spy, use `inOrder.at(spy, index)`:
+
+```typescript
+db.query('select 1')   // invocation 0
+db.query('select 2')   // invocation 1
+
+inOrder(
+  inOrder.at(db.spy.query, 0),
+  inOrder.at(db.spy.query, 1),
+)
+```
+
+Out-of-range invocations throw:
+
+```typescript
+inOrder(inOrder.at(db.spy.query, 99))
+// throws: inOrder: `db.query` invocation 99 was never called
+```
+
+## Strict variant — no interleaved extras
+
+By default `inOrder` is **relaxed**: it checks first-call-of-each ordering but allows unrelated calls to happen in between. For stricter interleave-checking, use `inOrder.strict`:
+
+```typescript
+db.connect()
+db.query('a')
+// these two are the only calls on these spies
+inOrder.strict(db.spy.connect, db.spy.query)   // passes
+```
+
+Strict fails if either spy has **extra** calls between the listed positions:
+
+```typescript
+db.connect()
+db.query('a')
+db.connect()                                   // extra!
+inOrder.strict(db.spy.connect, db.spy.query)
+// throws: inOrder.strict: extra calls on listed spies break the expected interleave
+```
+
+Strict also rejects never-called spies:
+
+```typescript
+db.connect()
+inOrder.strict(db.spy.connect, log.spy.info)
+// throws: inOrder.strict: `log.info` was never called
+```
+
+## How it works
+
+Every `CallRecord` carries a **monotonic global sequence number** assigned at invocation time. `inOrder` reads the sequence of the first call on each spy, confirms they're in ascending order matching the argument sequence, and throws otherwise. No clock/timer involvement — just a counter.
+
+This means:
+
+- **Sub-millisecond ordering works.** Two calls that happen in the same tick get different sequence numbers.
+- **Across sync and async.** Async gaps don't break ordering — the sequence advances with every `invoke`, wherever it happens.
+- **Per-worker scope.** Vitest workers each load their own module copy, so the counter is per-worker, not shared globally.
+
+## Common patterns
+
+### Startup/shutdown
+
+```typescript
+await service.start()
+await service.stop()
+
+inOrder(
+  serviceMock.spy.initialise,
+  serviceMock.spy.connect,
+  serviceMock.spy.listen,
+  serviceMock.spy.drain,
+  serviceMock.spy.close,
+)
+```
+
+### "Query before log" in error paths
+
+```typescript
+await repo.find(missingId)   // expected to log a warning after a failed query
+
+inOrder(dbMock.spy.query, loggerMock.spy.warn)
+```
+
+### Assert one call happened before another on the same spy
+
+```typescript
+const ledger = stub<Ledger>(['append'])
+ledger.append('A')
+ledger.append('B')
+
+inOrder(
+  inOrder.at(ledger.spy.append, 0),
+  inOrder.at(ledger.spy.append, 1),
+)
+```
+
+## Edge cases
+
+- **Zero args throws.** `inOrder()` / `inOrder.strict()` with no spies fails loudly — almost always a bug.
+- **Single spy passes if it was called at least once.** Trivially ordered.
+- **A spy passed in that was never called throws** (both relaxed and strict variants).
+- **Non-spy arguments throw.** `inOrder` duck-types via `Array.isArray(t.calls) && typeof t.callCount === 'number'` and rejects anything else.
+
+
+──────────────────────────────────────────────────────────────────────────────
+# Philosophy
+Source: https://guzzlerio.github.io/deride/deride/guide/philosophy.md
+──────────────────────────────────────────────────────────────────────────────
+
+deride is built on one idea: **composition, not monkey-patching.** This page explains what that means, why it matters, and the two subtler design rules that fall out of it — the dispatch model, and the expect/spy split.
+
+## Composition, not monkey-patching
+
+Most JavaScript mocking libraries mutate the object you hand them. They swap a method on the real object for a spy wrapper, then rely on you (or their `afterEach`) to restore it later:
+
+```typescript
+// The monkey-patch approach — NOT what deride does
+const spy = sinon.stub(database, 'query').returns(rows)
+// database.query is now a different function
+// ...
+spy.restore()   // miss this, or throw mid-test, and the real database.query is broken forever
+```
+
+This has real failure modes:
+
+1. **Frozen objects reject the mutation.** `Object.freeze(api); sinon.stub(api, 'method', ...)` throws.
+2. **ES2015 classes with private fields** can't be patched at runtime.
+3. **Forgotten `restore()` calls** leak state into other tests, producing order-dependent failures.
+4. **Shared modules** — if two tests patch the same singleton, the order they run in matters.
+
+deride takes the other path. `stub()`, `wrap()`, and `func()` all **build a fresh object** with the same shape as your dependency:
+
+```typescript
+const mockDb = deride.stub<Database>(['query'])
+// mockDb is a brand new object — your real `database` module is untouched
+```
+
+You inject the mock where the real thing would go (constructor, factory arg, DI container). Nothing is mutated. No `restore()` is required because there's nothing to unwind.
+
+## The dispatch rule
+
+Once you configure multiple behaviours on the same method, deride has to pick which one runs. The rule is:
+
+> **Time-limited behaviours first, in registration order (FIFO). When none match, the *last* unlimited behaviour wins.**
+
+A "time-limited" behaviour is one bounded by `.once()`, `.twice()`, or `.times(n)`. Once it's been consumed, it's no longer eligible.
+
+### Example
+
+```typescript
+mock.setup.greet.once().toReturn('first')       // time-limited (1)
+mock.setup.greet.when('admin').toReturn('hi admin')  // unlimited (matches only 'admin')
+mock.setup.greet.toReturn('default')            // unlimited (matches everything)
+
+mock.greet('alice')   // → 'first'       (first time-limited behaviour consumed)
+mock.greet('admin')   // → 'default'     (last unlimited wins; the 'admin' behaviour is shadowed)
+mock.greet('alice')   // → 'default'     (last unlimited wins)
+```
+
+### Why "last unlimited wins"
+
+Because it lets you override a general default with a more specific condition:
+
+```typescript
+mock.setup.greet.toReturn('default')
+mock.setup.greet.when('admin').toReturn('hi admin')  // this wins for 'admin'
+```
+
+`when('admin')` is registered *after* `toReturn('default')`, so when both match, `when('admin')` wins. If you want the general default to override — set it up *last*.
+
+### When the dispatch rule surprises you
+
+If you want a `when(...)` to genuinely beat a later default, time-limit it:
+
+```typescript
+mock.setup.greet.when('admin').toReturn('hi admin').once()
+mock.setup.greet.toReturn('default')
+
+mock.greet('admin')   // → 'hi admin'   (time-limited wins on first call)
+mock.greet('admin')   // → 'default'    (time-limited exhausted, last unlimited wins)
+```
+
+## The expect/spy split
+
+deride has two parallel surfaces on every mock:
+
+- **`expect.*`** — assertions. Throws on mismatch, returns `void`. Test-framework-agnostic.
+- **`spy.*`** — reads. Returns data, never throws.
+
+They overlap on simple "was this called with X?" questions, but their contracts are different on purpose.
+
+### When to use `expect`
+
+Any time you want a test to fail if a call didn't happen the way you expected:
+
+```typescript
+mock.expect.greet.called.once()
+mock.expect.greet.called.withArg('alice')
+```
+
+Assertion failures produce useful messages that include the full call history (see [Diagnostics](/guide/diagnostics)).
+
+### When to use `spy`
+
+Any time you need the *data*:
+
+- **Feed a captured return value forward**: `await mock.spy.fetch.lastCall.returned`
+- **Branch on call history**: `if (mock.spy.db.calledWith('SELECT')) { … }`
+- **Snapshot test the call log**: `expect(mock.spy.x.serialize()).toMatchSnapshot()`
+- **Debug a failing test**: `console.log(mock.spy.x.printHistory())`
+- **Build a custom assertion helper** on top of `.calls.some(...)` / `.every(...)`
+
+See the [spy guide](/guide/spy) for the full contrast and examples.
+
+### Rule of thumb
+
+- If you're writing `try { mock.expect.X.called... } catch { ... }` → you want `spy`.
+- If you're writing `assert(mock.spy.X.calledWith(...))` → you want `expect`.
+
+## Why these design rules together?
+
+1. **Composition** means your mock has no side effects on real code, so tests are order-independent and safe.
+2. **Dispatch last-wins unlimited** means the setup DSL reads top-to-bottom like an override cascade: defaults first, specifics last.
+3. **Expect throws, spy reads** means both concerns are first-class without ambiguity — no `.try.*` escape hatch, no overloaded methods with two meanings.
+
+Every other feature in the library — matchers, sandbox, inOrder, snapshots — is built on these three rules.
+
+
+──────────────────────────────────────────────────────────────────────────────
+# Quick Start
+Source: https://guzzlerio.github.io/deride/deride/guide/quick-start.md
+──────────────────────────────────────────────────────────────────────────────
+
+A five-minute tour of the API through a realistic scenario: testing a `UserService` that depends on a `Database`.
+
+## The code under test
+
+```typescript
+// src/user-service.ts
+export interface Database {
+  query(sql: string): Promise<User[]>
+  findById(id: number): Promise<User | undefined>
+}
+
+export interface User {
+  id: number
+  name: string
+}
+
+export class UserService {
+  constructor(private db: Database) {}
+
+  async listActive(): Promise<User[]> {
+    return this.db.query("SELECT * FROM users WHERE active = true")
+  }
+
+  async getOne(id: number): Promise<User> {
+    const user = await this.db.findById(id)
+    if (!user) throw new Error(`User ${id} not found`)
+    return user
+  }
+}
+```
+
+## Step 1 — Create a mock
+
+`stub<T>(methodNames)` builds a fresh object with the shape of `T` and the methods you list:
+
+```typescript
+import { stub } from 'deride'
+import type { Database } from '../src/user-service'
+
+const mockDb = stub<Database>(['query', 'findById'])
+```
+
+`mockDb` is callable like the real thing. All methods return `undefined` until you configure them.
+
+## Step 2 — Configure behaviour
+
+Every method has a `.setup` handle. The most common setups return a value, throw, resolve a promise, or reject:
+
+```typescript
+mockDb.setup.query.toResolveWith([
+  { id: 1, name: 'alice' },
+  { id: 2, name: 'bob' },
+])
+
+mockDb.setup.findById.when(1).toResolveWith({ id: 1, name: 'alice' })
+mockDb.setup.findById.when(99).toResolveWith(undefined)
+```
+
+`.when(value)` gates the next behaviour on the first argument. deride's [matchers](/guide/matchers) let you gate on more expressive conditions:
+
+```typescript
+import { match } from 'deride'
+
+mockDb.setup.findById.when(match.gte(1000)).toRejectWith(new Error('too big'))
+```
+
+## Step 3 — Use the mock
+
+Inject the mock where the real `Database` would go. Your service runs exactly as it would in production:
+
+```typescript
+import { UserService } from '../src/user-service'
+
+const service = new UserService(mockDb)
+
+const users = await service.listActive()
+// users == [{ id: 1, ... }, { id: 2, ... }]
+
+const alice = await service.getOne(1)
+// alice == { id: 1, name: 'alice' }
+```
+
+## Step 4 — Assert
+
+Every method has a `.expect.<method>.called` handle. Assertions throw on mismatch:
+
+```typescript
+mockDb.expect.query.called.once()
+mockDb.expect.query.called.withArg("SELECT * FROM users WHERE active = true")
+
+mockDb.expect.findById.called.twice()
+mockDb.expect.findById.called.withArg(1)
+mockDb.expect.findById.invocation(0).withArg(1)
+```
+
+`.everyCall.*` asserts that **every** recorded call matches (not just one):
+
+```typescript
+mockDb.expect.findById.everyCall.withArg(match.number)
+```
+
+## Step 5 — Inspect (optional)
+
+For anything `.expect` can't do — branching on call history, feeding a captured value forward, snapshot testing — use the `.spy` surface. It's non-throwing and returns data:
+
+```typescript
+console.log(mockDb.spy.query.printHistory())
+// query: 1 call(s)
+//   #0 query('SELECT * FROM users WHERE active = true') -> Promise {...}
+
+const last = mockDb.spy.findById.lastCall
+console.log(last?.args, last?.returned)
+```
+
+More on the split in [Spy inspection](/guide/spy).
+
+## The complete test
+
+```typescript
+import { describe, it } from 'vitest'
+import { stub, match } from 'deride'
+import { UserService, type Database } from '../src/user-service'
+
+describe('UserService', () => {
+  it('lists active users from the database', async () => {
+    const mockDb = stub<Database>(['query', 'findById'])
+    mockDb.setup.query.toResolveWith([
+      { id: 1, name: 'alice' },
+      { id: 2, name: 'bob' },
+    ])
+
+    const service = new UserService(mockDb)
+    const users = await service.listActive()
+
+    mockDb.expect.query.called.once()
+    mockDb.expect.query.called.withArg(match.regex(/active = true/))
+  })
+
+  it('throws when getOne cannot find the user', async () => {
+    const mockDb = stub<Database>(['query', 'findById'])
+    mockDb.setup.findById.toResolveWith(undefined)
+
+    const service = new UserService(mockDb)
+    await expect(service.getOne(42)).rejects.toThrow('User 42 not found')
+
+    mockDb.expect.findById.called.withArg(42)
+  })
+})
+```
+
+## Where to go next
+
+- **[Philosophy](/guide/philosophy)** — why deride composes instead of monkey-patches, and the dispatch rule.
+- **[Creating mocks](/guide/creating-mocks)** — `stub` vs `wrap` vs `func` vs `stub.class`.
+- **[Configuring behaviour](/guide/configuring-behaviour)** — every `setup.*` method with examples.
+- **[Matchers](/guide/matchers)** — the full `match.*` catalogue.
+- **[Integrations](/integrations/vitest)** — using deride with vitest / jest / fake timers.
+
+
+──────────────────────────────────────────────────────────────────────────────
+# Spy inspection
+Source: https://guzzlerio.github.io/deride/deride/guide/spy.md
+──────────────────────────────────────────────────────────────────────────────
+
+Every mocked method has a `.spy` handle alongside `.setup` and `.expect`. The `spy` API is **read-only** and **never throws** — it gives you the call history as structured data to inspect, feed forward, or snapshot.
+
+```typescript
+mock.spy.greet.callCount       // number
+mock.spy.greet.calls           // readonly CallRecord[]
+mock.spy.greet.firstCall       // CallRecord | undefined
+mock.spy.greet.lastCall        // CallRecord | undefined
+mock.spy.greet.name            // the method name, e.g. "greet"
+```
+
+## `CallRecord`
+
+Each entry in `calls` captures everything deride knows about the invocation:
+
+```typescript
+interface CallRecord {
+  readonly args: readonly unknown[]     // cloned args at call time
+  readonly returned?: unknown            // the value returned (Promise for async)
+  readonly threw?: unknown               // synchronous throw, if any
+  readonly thisArg?: unknown             // `this` binding
+  readonly timestamp: number             // Date.now() at call time
+  readonly sequence: number              // monotonic global sequence (powers inOrder)
+}
+```
+
+All values are structurally-cloned at capture time, so later mutations of the original args don't rewrite history. Date/RegExp/Map/Set/typed arrays retain their type through cloning.
+
+## `calledWith(...)` — non-throwing boolean
+
+Same matching semantics as `expect.called.withArgs`, but returns a boolean instead of throwing:
+
+```typescript
+if (mock.spy.greet.calledWith('alice')) { /* do stuff */ }
+```
+
+Matcher-aware:
+
+```typescript
+if (mock.spy.greet.calledWith(match.string)) { … }
+```
+
+## `printHistory()`
+
+A human-readable dump of every recorded call — great for `console.log` while debugging:
+
+```typescript
+console.log(mock.spy.greet.printHistory())
+```
+
+Output:
+
+```
+greet: 3 call(s)
+  #0 greet('alice') -> 'hello alice'
+  #1 greet('bob') -> 'hello bob'
+  #2 greet(42) -> threw Error: invalid input
+```
+
+Shows the method name, arg list, and return value (or thrown error) for each call.
+
+## `serialize()`
+
+Stable snapshot-friendly output — keys sorted alphabetically, timestamps omitted, circular refs rendered as `[Circular]`, functions as `[Function: name]`:
+
+```typescript
+expect(mock.spy.greet.serialize()).toMatchSnapshot()
+```
+
+```typescript
+{
+  method: 'greet',
+  calls: [
+    { args: ['alice'], returned: 'hello alice' },
+    { args: ['bob'], returned: 'hello bob' },
+  ]
+}
+```
+
+Rendering rules:
+
+| Input | Output |
+|-------|--------|
+| `Date` | ISO 8601 string |
+| `RegExp` | `/pattern/flags` |
+| `Error` | `[Name: message]` |
+| `Map` | `{ __type: 'Map', entries: [[k, v], …] }` |
+| `Set` | `{ __type: 'Set', values: [v, …] }` |
+| Typed array | `{ __type: 'Uint8Array', values: [n, …] }` |
+| `BigInt` | `123n` suffix string |
+| `Symbol` | `Symbol(desc)` |
+| Function | `[Function: name]` |
+| Circular ref | `[Circular]` |
+
+## When to use `spy` vs `expect`
+
+They overlap on simple "was this called?" questions, but their contracts differ and so do their use cases.
+
+| Task | Reach for |
+|------|-----------|
+| Assert a call happened in a test | `expect` — throws on mismatch, test fails |
+| Branch on whether a call happened | `spy` — returns a boolean you can `if` on |
+| Feed a captured return value into the next setup | `spy.lastCall.returned` — `expect` can only assert, not hand back the value |
+| Inspect `this` or a non-`Error` thrown value | `spy.lastCall.thisArg` / `.threw` — the data, not just pass/fail |
+| Await a captured Promise (e.g. from `toResolveWith`) | `await mock.spy.fetch.lastCall.returned` |
+| Snapshot the call log | `expect(mock.spy.greet.serialize()).toMatchSnapshot()` |
+| Print the call log while debugging | `console.log(mock.spy.greet.printHistory())` |
+| Write a custom assertion helper | `spy.calls.some(...)` is clean; wrapping throwing `expect`s is not |
+| Build a framework integration | `deride/vitest` / `deride/jest` are built on `spy` |
+
+**Rule of thumb:**
+
+- Writing `try { mock.expect.X.called... } catch { ... }` → you want `spy` instead.
+- Writing `assert(mock.spy.X.calledWith(...))` → you want `expect` instead.
+
+## Concrete scenarios `expect` can't cover
+
+### Awaiting a captured Promise
+
+After `toResolveWith('x')` the mock records the Promise. To `await` the resolved value you need `spy`:
+
+```typescript
+mock.setup.fetch.toResolveWith({ data: 42 })
+mock.fetch('/x')
+
+const result = await mock.spy.fetch.lastCall.returned
+// result === { data: 42 }
+```
+
+`expect.called.withReturn({ data: 42 })` asserts the value exists but can't hand it back for further manipulation.
+
+### Custom assertion helpers
+
+```typescript
+function assertLoggedError(logger: Wrapped<Logger>, pattern: RegExp) {
+  return logger.spy.error.calls.some(c =>
+    c.args.some(a => typeof a === 'string' && pattern.test(a))
+  )
+}
+```
+
+Clean on top of `spy`. On top of `expect` you'd be catching exceptions and working against the assertion grain.
+
+### Conditional test fixtures
+
+```typescript
+if (mock.spy.query.callCount > 0) {
+  // seed the cache
+}
+```
+
+### Debugging a flake
+
+Drop one line into the failing test:
+
+```typescript
+console.log(mock.spy.greet.printHistory())
+```
+
+…and get the full call log in one copy-pasteable block. No debug flags, no re-run.
+
+### Snapshot testing
+
+```typescript
+expect(mock.spy.greet.serialize()).toMatchSnapshot()
+```
+
+Only works because spy produces stable, structured data.
+
+### Framework integration
+
+`deride/vitest`'s `toHaveBeenCalledWith` reads from `spy.calls`, converts to a boolean, and lets vitest produce its own diff. Without a structured spy API the integrations couldn't exist without reaching into engine internals.
+
+## Standalone mocked functions
+
+`func()` proxies expose `spy` directly — no `.methodName` indirection:
+
+```typescript
+const fn = func<(x: number) => number>()
+fn(5)
+fn(10)
+
+fn.spy.callCount        // 2
+fn.spy.calls[0].args    // [5]
+fn.spy.lastCall?.args   // [10]
+```
+
+
+──────────────────────────────────────────────────────────────────────────────
+# TypeScript
+Source: https://guzzlerio.github.io/deride/deride/guide/typescript.md
+──────────────────────────────────────────────────────────────────────────────
+
+deride is TypeScript-first. Every public API is generic over the shape you're mocking, so setup methods are constrained to the real method signatures and return types.
+
+## Generic inference from an interface
+
+```typescript
+interface Service {
+  fetch(url: string): Promise<string>
+  process(data: string): void
+}
+
+const mock = stub<Service>(['fetch', 'process'])
+
+mock.setup.fetch.toResolveWith('response')   // ✓ — string is the resolved type
+mock.setup.fetch.toResolveWith(123)          // ✗ — type error: number not assignable to string
+mock.setup.process.toReturn(undefined)       // ✓ — void
+```
+
+The type `Wrapped<Service>` is inferred automatically. You can annotate explicitly if you prefer:
+
+```typescript
+const mock: Wrapped<Service> = stub<Service>(['fetch', 'process'])
+```
+
+## `toResolveWith` unwraps `Promise<T>`
+
+For async methods, `toResolveWith(v)` expects the resolved type — not the Promise itself:
+
+```typescript
+interface Api {
+  get(): Promise<{ id: number }>
+}
+
+const mock = stub<Api>(['get'])
+mock.setup.get.toResolveWith({ id: 1 })            // ✓
+mock.setup.get.toResolveWith(Promise.resolve(...))  // ✗ — expects { id: number }, not Promise
+```
+
+## `toDoThis(fn)` constrains the callback signature
+
+```typescript
+interface Calc {
+  sum(a: number, b: number): number
+}
+
+const mock = stub<Calc>(['sum'])
+mock.setup.sum.toDoThis((a, b) => a + b)           // ✓ — (a: number, b: number) => number
+mock.setup.sum.toDoThis((a, b) => String(a + b))    // ✗ — returns string, expected number
+```
+
+## Argument matchers preserve type safety
+
+Matchers in `when()` / `withArg()` / `withArgs()` interleave with typed positional args:
+
+```typescript
+mock.setup.sum.when(match.number, match.number).toReturn(0)
+mock.expect.sum.called.withArgs(1, match.number)
+```
+
+`match.*` matcher types are `Matcher<T>` — you can type-annotate `match.where` with a specific parameter type:
+
+```typescript
+mock.setup.log.when(match.where<string>(s => s.startsWith('['))).toReturn(undefined)
+```
+
+## Escape hatch — `as any`
+
+For deliberately-wrong values in error-path tests:
+
+```typescript
+// You want to test that consumers handle a null response gracefully,
+// even though the type says fetch returns string
+mock.setup.fetch.toResolveWith(null as any)
+```
+
+`as any` is the officially-supported escape hatch. It only affects the one call it annotates.
+
+## Public type exports
+
+Everything you might want is exported from the main entry:
+
+```typescript
+import type {
+  // Shape of a mocked object
+  Wrapped,
+
+  // Setup surface
+  TypedMockSetup, MockSetup,
+
+  // Expect surface
+  MockExpect, CalledExpect, InvocationExpect,
+
+  // Spy surface
+  MethodSpy, CallRecord,
+
+  // Lifecycle
+  MockSnapshot, Sandbox,
+
+  // Factories
+  MockedFunction, MockedClass,
+
+  // Matchers
+  Matcher,
+
+  // Options
+  Options,
+} from 'deride'
+```
+
+Per-method types via index-type lookup:
+
+```typescript
+import type { Wrapped } from 'deride'
+import type { Service } from '../src/service'
+
+type ServiceSetup = Wrapped<Service>['setup']
+type ServiceGetSetup = ServiceSetup['get']
+```
+
+## Types for `stub.class`
+
+```typescript
+import { stub, type MockedClass } from 'deride'
+
+class Database {
+  constructor(public conn: string) {}
+  async query(sql: string): Promise<unknown[]> { return [] }
+}
+
+const MockedDb: MockedClass<typeof Database> = stub.class(Database)
+
+const inst = new MockedDb('conn-string')   // inst: Wrapped<Database>
+MockedDb.expect.constructor.called.once()
+MockedDb.instances                          // readonly Wrapped<Database>[]
+```
+
+## Using deride with `strict` TypeScript
+
+All of deride's types are designed to work under `strict: true` — including `noImplicitAny`, `strictNullChecks`, and `exactOptionalPropertyTypes`. If you hit a type error that surprises you, check these first:
+
+- **`exactOptionalPropertyTypes`** — `withReturn(undefined)` is valid; but if your method's return type is `string`, TypeScript won't let you pass `undefined`. Use `match.any` or cast `as any`.
+- **Generic width** — when passing `stub<Service>` with a heavy union return type, inference can be lazy. Annotating the left-hand side (`const mock: Wrapped<Service> = …`) usually helps.
+- **`noUnusedParameters` in `toDoThis`** — use `_` prefixed args: `toDoThis((_a, b) => b + 1)`.
+
+## Type-level testing
+
+deride ships with type-level tests under `test/types.test.ts` exercising the constraints. If you're extending the library or building custom helpers, adding a few type-level assertions is a good idea — e.g. using `tsd` or a hand-rolled `// @ts-expect-error` block:
+
+```typescript
+// @ts-expect-error — should reject wrong return type
+mock.setup.fetch.toResolveWith(123)
+```
+
+## IDE experience
+
+Every public API has JSDoc comments, surfaced by editors as hover-docs:
+
+- `setup.method.toReturn(value: R)` — "Return a fixed value when invoked. Cast `as any` to return an invalid type."
+- `expect.method.called.withReturn(expected)` — "Assert at least one call returned a value matching `expected` (value or matcher)."
+
+The `jsdoc/require-jsdoc` lint rule enforces this on every public export, so it stays current as the API evolves.
+
+
+══════════════════════════════════════════════════════════════════════════════
+# Integrations
+══════════════════════════════════════════════════════════════════════════════
+
+──────────────────────────────────────────────────────────────────────────────
+# `deride/clock` — fake timers
+Source: https://guzzlerio.github.io/deride/deride/integrations/clock.md
+──────────────────────────────────────────────────────────────────────────────
+
+A lightweight, dependency-free fake-timers helper. Pairs well with `setup.toResolveAfter` / `toRejectAfter` / `toHang` when you want synchronous control over `Date.now`, `setTimeout`, `setInterval`, and `queueMicrotask` — without pulling in vitest's or sinon's fake timers.
+
+::: tip Scope
+`deride/clock` covers the common test-timing needs. If you need richer behaviour — ordering-sensitive microtasks, `performance.now`, `setImmediate`, `process.nextTick`, `Animation` timing — reach for `vi.useFakeTimers()` or `@sinonjs/fake-timers`.
+:::
+
+## Quick start
+
+```typescript
+import { useFakeTimers } from 'deride/clock'
+
+const clock = useFakeTimers()
+
+setTimeout(() => console.log('later'), 100)
+
+clock.tick(100)            // 'later' fires now
+clock.runAll()             // drain any pending timers
+clock.flushMicrotasks()    // drain microtasks queued by callbacks
+
+clock.restore()            // restore native Date / timers / queueMicrotask
+```
+
+## What gets patched
+
+```
+Date.now
+globalThis.setTimeout
+globalThis.clearTimeout
+globalThis.setInterval
+globalThis.clearInterval
+globalThis.queueMicrotask
+```
+
+Everything else (e.g. `performance.now`, `setImmediate`) is untouched.
+
+## The FakeClock API
+
+```typescript
+interface FakeClock {
+  tick(ms: number): void
+  runAll(): void
+  flushMicrotasks(): void
+  now(): number
+  restore(): void
+  readonly errors: readonly unknown[]
+}
+```
+
+### `tick(ms)`
+
+Advance the clock by `ms` milliseconds, firing due timers and draining microtasks between each.
+
+```typescript
+setTimeout(() => a(), 50)
+setTimeout(() => b(), 100)
+
+clock.tick(50)    // fires a()
+clock.tick(50)    // fires b()
+```
+
+### `runAll()`
+
+Drain every pending timer, advancing the clock as needed. Useful for "just fire everything and see what happens" style tests.
+
+::: danger runAll can throw
+`runAll()` bounds itself to 10 000 iterations to protect against `setInterval` loops. If the guard trips, **it throws without calling `restore()`** — see [Always restore](#always-restore-even-on-throw).
+:::
+
+### `flushMicrotasks()`
+
+Drain any `queueMicrotask(fn)` callbacks currently in the queue. Doesn't advance time.
+
+### `now()`
+
+Return the current frozen time (equivalent to `Date.now()` while patched).
+
+### `restore()`
+
+Restore all patched globals to the native versions and clear the `errors` array.
+
+### `errors`
+
+Errors thrown from scheduled callbacks or microtasks are **caught** and pushed to this array instead of propagating out of `tick` / `runAll` / `flushMicrotasks`. Read the array to assert on them:
+
+```typescript
+setTimeout(() => { throw new Error('boom') }, 10)
+clock.tick(10)
+
+expect(clock.errors).toHaveLength(1)
+expect((clock.errors[0] as Error).message).toBe('boom')
+```
+
+Cleared on `restore()`.
+
+## Integration with `toResolveAfter` / `toHang`
+
+```typescript
+import { useFakeTimers } from 'deride/clock'
+import { stub } from 'deride'
+
+const clock = useFakeTimers()
+const mock = stub<{ fetch(): Promise<string> }>(['fetch'])
+mock.setup.fetch.toResolveAfter(100, 'payload')
+
+const p = mock.fetch()          // pending
+let value: string | undefined
+p.then(v => { value = v })
+
+clock.tick(100)                  // timer fires, Promise resolves
+clock.flushMicrotasks()          // then-callback runs
+await p                          // safe to await now
+
+expect(value).toBe('payload')
+
+clock.restore()
+```
+
+`toHang()` returns a never-settling Promise — `runAll()` does not force it to resolve, making it ideal for timeout-path tests.
+
+## Always restore (even on throw)
+
+`useFakeTimers()` patches `globalThis` — if a test installs the clock and throws before `restore()` — or if `runAll()` itself throws — the patches persist and the next test inherits a frozen `Date.now()` and fake timers. That causes confusing cascading failures.
+
+Two safe patterns:
+
+### 1. `afterEach` safety net (recommended)
+
+```typescript
+import { afterEach } from 'vitest'
+import { isFakeTimersActive, restoreActiveClock, useFakeTimers } from 'deride/clock'
+
+afterEach(() => {
+  if (isFakeTimersActive()) restoreActiveClock()
+})
+
+it('exercises time-dependent code', () => {
+  const clock = useFakeTimers()
+  // even if this test throws, afterEach restores
+})
+```
+
+### 2. `try / finally`
+
+```typescript
+const clock = useFakeTimers()
+try {
+  clock.runAll()
+} finally {
+  clock.restore()
+}
+```
+
+The same applies to reading `clock.errors` — it clears on restore, so read it first if you need to assert on it.
+
+## Double-install protection
+
+`useFakeTimers()` throws if fake timers are already installed:
+
+```typescript
+useFakeTimers()
+useFakeTimers()    // throws: fake timers are already installed; call restore() first
+```
+
+This catches the common mistake of nested installs.
+
+## Helpers for harnesses
+
+```typescript
+import { isFakeTimersActive, restoreActiveClock } from 'deride/clock'
+
+isFakeTimersActive()     // boolean — are patches currently installed?
+restoreActiveClock()     // restore the installed clock (no-op if none active)
+```
+
+Both are useful in shared test harnesses / `afterEach` guards that need to recover from a test that threw before its own `.restore()`.
+
+## Interaction with `vi.useFakeTimers()` / sinon timers
+
+Don't install two fake-timer systems simultaneously. deride's clock throws if you try to install twice; vitest's / sinon's may silently over-patch. Stick to one per test.
+
+If you're already using `vi.useFakeTimers()` in a project and just need `toResolveAfter` to work, you don't need `deride/clock` at all — vitest's timer advance (`vi.advanceTimersByTimeAsync`) resolves the internal `setTimeout` deride uses.
+
+## Limitations
+
+- **No `performance.now`.** If your code reads it, switch to `vi.useFakeTimers()` or `@sinonjs/fake-timers`.
+- **No `setImmediate` / `process.nextTick`.** Same.
+- **Single global state.** One active clock per process. Worker-based test runners like vitest have independent module graphs per worker, so each worker can install its own clock.
+
+## See also
+
+- [`toResolveAfter` / `toRejectAfter` / `toHang` setup methods](/guide/configuring-behaviour#toresolveafter-ms-value-torejectafter-ms-error)
+- [Time & timers recipes](/recipes/time-and-timers)
+
+
+──────────────────────────────────────────────────────────────────────────────
+# `deride/jest` — jest matchers
+Source: https://guzzlerio.github.io/deride/deride/integrations/jest.md
+──────────────────────────────────────────────────────────────────────────────
+
+Same matcher set as `deride/vitest`, registered via jest's `expect.extend`. Import once (ideally from `setupFilesAfterEach`) and the matchers become available on every test.
+
+## Install & register
+
+deride declares `jest` as an optional peer dependency. If you're using jest you already have it installed (plus `@jest/globals` for ESM projects).
+
+```typescript
+// jest.setup.ts
+import 'deride/jest'
+```
+
+```javascript
+// jest.config.js
+module.exports = {
+  setupFilesAfterEach: ['./jest.setup.ts'],
+}
+```
+
+## Available matchers
+
+| Matcher | Meaning |
+|---------|---------|
+| `toHaveBeenCalled()` | At least one call recorded |
+| `toHaveBeenCalledTimes(n)` | Exactly `n` calls |
+| `toHaveBeenCalledOnce()` | Exactly 1 call |
+| `toHaveBeenCalledWith(...args)` | Any call's args match (matcher-aware, partial) |
+| `toHaveBeenLastCalledWith(...args)` | The last call's args match |
+| `toHaveBeenNthCalledWith(n, ...args)` | The **1-indexed** `n`-th call's args match |
+
+All support `.not`:
+
+```typescript
+expect(mock.spy.greet).not.toHaveBeenCalledWith('wrong')
+```
+
+## Usage
+
+The API is identical to the vitest integration:
+
+```typescript
+import 'deride/jest'
+import { stub, match } from 'deride'
+
+describe('Svc', () => {
+  it('records calls', () => {
+    const mock = stub<Svc>(['greet'])
+    mock.greet('alice')
+
+    expect(mock.spy.greet).toHaveBeenCalledOnce()
+    expect(mock.spy.greet).toHaveBeenCalledWith('alice')
+    expect(mock.spy.greet).toHaveBeenCalledWith(match.string)
+  })
+})
+```
+
+For MockedFunctions (from `func()` or `wrap(fn)`), pass the function directly — no `.spy` indirection needed:
+
+```typescript
+const fn = func<(x: number) => number>()
+fn(5)
+expect(fn).toHaveBeenCalledOnce()
+expect(fn).toHaveBeenCalledWith(5)
+```
+
+## Coexistence with jest's built-in matchers
+
+jest's `toHaveBeenCalled*` family works on `jest.fn()` via `.mock.calls`. deride's family works on `mock.spy.*` / `MockedFunction` via `CallRecord[]`. Both can be used in the same test — jest delegates to whichever matcher's `received` shape is satisfied.
+
+## Guarded install
+
+The sub-path checks for `expect.extend` before registering, so importing it in an environment where jest isn't in scope (e.g. if you accidentally load it in a build) is harmless — it becomes a no-op instead of throwing.
+
+## ESM note
+
+In jest ESM projects, you may need `@jest/globals` for `expect` to be in scope. deride's `jest.ts` doesn't import jest itself — it looks for a global `expect` at runtime. If `expect` isn't globally available (which can happen in some ESM configs), import it explicitly in your setup file:
+
+```typescript
+import { expect } from '@jest/globals'
+import 'deride/jest'
+```
+
+## Troubleshooting
+
+- **Matcher not found** — make sure the import ran. Put it in `setupFilesAfterEach` (not `setupFiles`, which runs before `expect` is wired up).
+- **"expected a MethodSpy or MockedFunction"** — pass `mock.spy.method`, not `mock.expect.method`.
+
+See the [vitest integration](/integrations/vitest) for the same matcher set with slightly different error-message formatting. The underlying implementation is shared — `src/matchers-runtime.ts`.
+
+
+──────────────────────────────────────────────────────────────────────────────
+# `deride/vitest` — vitest matchers
+Source: https://guzzlerio.github.io/deride/deride/integrations/vitest.md
+──────────────────────────────────────────────────────────────────────────────
+
+Opt-in `toHaveBeenCalled*` matcher family that integrates deride's spy API with vitest's `expect`. Import once — typically from a `setupFiles` — and the matchers become available globally on every spy and `MockedFunction`.
+
+## Install & register
+
+deride declares `vitest` as an optional peer dependency. If you're using vitest you already have it installed.
+
+Register the matchers by importing the sub-path. The import runs `expect.extend(...)` as a side effect:
+
+```typescript
+// vitest.setup.ts
+import 'deride/vitest'
+```
+
+```typescript
+// vitest.config.ts
+import { defineConfig } from 'vitest/config'
+export default defineConfig({
+  test: {
+    setupFiles: ['./vitest.setup.ts'],
+  },
+})
+```
+
+Or import directly in a specific test file if you only want it there.
+
+## Available matchers
+
+| Matcher | Meaning |
+|---------|---------|
+| `toHaveBeenCalled()` | At least one call recorded |
+| `toHaveBeenCalledTimes(n)` | Exactly `n` calls |
+| `toHaveBeenCalledOnce()` | Exactly 1 call |
+| `toHaveBeenCalledWith(...args)` | Any call's args match (matcher-aware, partial) |
+| `toHaveBeenLastCalledWith(...args)` | The last call's args match |
+| `toHaveBeenNthCalledWith(n, ...args)` | The **1-indexed** `n`-th call's args match |
+
+All support `.not` inversion:
+
+```typescript
+expect(mock.spy.greet).not.toHaveBeenCalledWith('wrong')
+```
+
+## Usage
+
+### On a method spy
+
+```typescript
+import { describe, it, expect } from 'vitest'
+import 'deride/vitest'
+import { stub } from 'deride'
+
+interface Svc {
+  greet(name: string): string
+}
+
+describe('Svc', () => {
+  it('records calls', () => {
+    const mock = stub<Svc>(['greet'])
+    mock.greet('alice')
+
+    expect(mock.spy.greet).toHaveBeenCalledOnce()
+    expect(mock.spy.greet).toHaveBeenCalledWith('alice')
+  })
+})
+```
+
+### On a MockedFunction directly
+
+```typescript
+import { func } from 'deride'
+
+const fn = func<(x: number) => number>()
+fn(5)
+
+expect(fn).toHaveBeenCalledOnce()
+expect(fn).toHaveBeenCalledWith(5)
+```
+
+No need for `fn.spy` — the matcher detects the MockedFunction proxy's underlying spy automatically.
+
+### With matchers
+
+All the `match.*` helpers work inside vitest matcher arguments:
+
+```typescript
+import { match } from 'deride'
+
+expect(mock.spy.log).toHaveBeenCalledWith(match.string)
+expect(mock.spy.save).toHaveBeenCalledWith(match.objectContaining({ id: 1 }))
+expect(mock.spy.sum).toHaveBeenCalledWith(match.number, match.number)
+```
+
+### N-th call (1-indexed)
+
+`toHaveBeenNthCalledWith` uses 1-based indexing to match jest's convention:
+
+```typescript
+mock.greet('first')
+mock.greet('second')
+
+expect(mock.spy.greet).toHaveBeenNthCalledWith(1, 'first')
+expect(mock.spy.greet).toHaveBeenNthCalledWith(2, 'second')
+```
+
+If you prefer 0-based access, reach for `mock.spy.greet.calls[i].args` or `mock.expect.greet.invocation(i)`.
+
+## Error messages
+
+Failures come from deride's matcher implementation but vitest's diff renderer formats them. Both positive and negative paths produce sensible messages:
+
+```
+expected mock to have been called with the given args
+```
+
+```
+expected mock not to have been called (actual: 3)
+```
+
+## Interaction with `vi.useFakeTimers()`
+
+The vitest matchers only read from `mock.spy.*` — they don't involve timers. You can use vitest's fake timers alongside deride:
+
+```typescript
+vi.useFakeTimers()
+mock.setup.fetch.toResolveAfter(100, 'data')
+const p = mock.fetch()
+vi.advanceTimersByTime(100)
+await p
+
+expect(mock.spy.fetch).toHaveBeenCalledOnce()
+```
+
+Or use deride's own [`deride/clock`](/integrations/clock) if you'd rather not pull vitest's fake timers into a given test.
+
+## Coexistence with vitest's built-in `vi.fn()` matchers
+
+vitest's `toHaveBeenCalledWith` treats a regular `vi.fn()` via its internal `mock.calls` structure. deride's matchers treat `mock.spy.*` / `MockedFunction` via the deride CallRecord structure. Both coexist: vitest uses the first that matches the `received` shape, so you can mix `vi.fn()` and `deride.func()` in the same test file without conflict.
+
+## Opting out / removing
+
+If you decide you don't want the matchers after all, simply remove the `import 'deride/vitest'` line — there's no `unregister` call needed because vitest starts each test process fresh.
+
+## Implementation notes
+
+The integration is implemented in `src/vitest.ts` — around 70 lines. It reads from `mock.spy.*.calls`, computes a boolean match against the expected args using the same `hasMatch` helper that powers `expect.called.withArgs`, and wraps the result in vitest's `MatchResult` shape. No reflection, no runtime type hacks.
+
+## Troubleshooting
+
+- **"expected a MethodSpy or MockedFunction"** — you passed something else to `expect(...)`. The matcher duck-types via `calls: readonly unknown[]` and `callCount: number`; make sure you're passing `mock.spy.method` (not `mock.expect.method`) or a MockedFunction directly.
+- **Matchers undefined in a test** — ensure `'deride/vitest'` is loaded by the same process. A `setupFiles` entry is the most reliable way.
+
+
+══════════════════════════════════════════════════════════════════════════════
+# API reference
+══════════════════════════════════════════════════════════════════════════════
+
+──────────────────────────────────────────────────────────────────────────────
+# API Reference
+Source: https://guzzlerio.github.io/deride/deride/api/index.md
+──────────────────────────────────────────────────────────────────────────────
+
+Quick index of every public export from `deride` and its sub-paths.
+
+## Main entry (`deride`)
+
+```typescript
+import { stub, wrap, func, match, inOrder, sandbox, type Wrapped /* … */ } from 'deride'
+```
+
+### Factories
+
+| Export | Summary |
+|--------|---------|
+| [`stub`](/api/stub) | Build a stub from method names, an instance, or a class |
+| [`stub.class`](/api/stub#stub-class) | Mock a constructor and track `new` calls |
+| [`wrap`](/api/wrap) | Wrap an existing object or function with deride facades |
+| [`func`](/api/func) | Create a standalone mocked function |
+| [`sandbox`](/api/sandbox) | Scope for fan-out reset/restore |
+
+### Helpers
+
+| Export | Summary |
+|--------|---------|
+| [`match`](/api/match) | Namespace of composable argument matchers |
+| [`inOrder`](/api/in-order) | Cross-mock call-ordering assertion |
+
+### Default export
+
+`deride` — a convenience namespace bundling every named export:
+
+```typescript
+import deride from 'deride'
+deride.stub(...)
+deride.match.string
+deride.inOrder(...)
+```
+
+## Types
+
+Full index in [Types](/api/types).
+
+```typescript
+import type {
+  Wrapped,                              // result of stub()/wrap()
+  TypedMockSetup, MockSetup,            // setup surface
+  MockExpect, CalledExpect, InvocationExpect,  // expect surface
+  MethodSpy, CallRecord,                // spy surface
+  MockSnapshot, Sandbox,                // lifecycle
+  MockedFunction, MockedClass,          // callable mocks / class mocks
+  Matcher,                              // matcher brand
+  Options,                              // debug options
+} from 'deride'
+```
+
+## Sub-paths
+
+### `deride/clock`
+
+```typescript
+import { useFakeTimers, isFakeTimersActive, restoreActiveClock, type FakeClock } from 'deride/clock'
+```
+
+See [`deride/clock`](/integrations/clock).
+
+### `deride/vitest`
+
+Side-effect import — registers `toHaveBeenCalled*` matchers on vitest's `expect`:
+
+```typescript
+import 'deride/vitest'
+```
+
+See [`deride/vitest`](/integrations/vitest).
+
+### `deride/jest`
+
+Side-effect import — registers the same matchers on jest's `expect`:
+
+```typescript
+import 'deride/jest'
+```
+
+See [`deride/jest`](/integrations/jest).
+
+
+──────────────────────────────────────────────────────────────────────────────
+# `func`
+Source: https://guzzlerio.github.io/deride/deride/api/func.md
+──────────────────────────────────────────────────────────────────────────────
+
+Create a standalone mocked function. If `original` is supplied, the mock falls back to calling it when no behaviour matches; otherwise the unconfigured mock returns `undefined`.
+
+## Signatures
+
+```typescript
+func<F extends (...args: any[]) => any>(original?: F): MockedFunction<F>
+```
+
+## Returns
+
+A `MockedFunction<F>` — callable like `F`, with `.setup`, `.expect`, and `.spy` properties attached.
+
+```typescript
+interface MockedFunction<F> extends F {
+  setup: TypedMockSetup<Args, Return>    // directly on the function, not .setup.method
+  expect: MockExpect
+  spy: MethodSpy
+}
+```
+
+Because there's only one "method" on a standalone function, the facades are reached directly — **no method name indirection**.
+
+## Examples
+
+### Blank mock function
+
+```typescript
+const fn = func<(x: number) => number>()
+fn.setup.toReturn(42)
+fn(10)                            // 42
+fn.expect.called.withArg(10)
+```
+
+### Wrapping an existing function
+
+```typescript
+const doubler = func((x: number) => x * 2)
+doubler(5)                        // 10 — original
+doubler.setup.toReturn(99)
+doubler(5)                        // 99 — overridden
+doubler.setup.fallback()
+doubler(5)                        // 10 — back to original
+```
+
+### Async
+
+```typescript
+const fetchMock = func<(url: string) => Promise<string>>()
+fetchMock.setup.toResolveWith('payload')
+await fetchMock('/x')             // 'payload'
+```
+
+### With `this` context
+
+`func` uses a Proxy to capture `this` through the apply trap:
+
+```typescript
+const fn = func<(x: number) => number>()
+const target = { tag: 'ctx' }
+
+fn.call(target, 1)
+fn.expect.called.calledOn(target)
+fn.spy.lastCall?.thisArg          // target
+```
+
+## Interaction with `bind`, `call`, `apply`
+
+The function proxy forwards through Proxy apply traps, so all of these work:
+
+```typescript
+fn(1, 2)                          // direct call
+fn.call(obj, 1, 2)                // this = obj
+fn.apply(obj, [1, 2])             // this = obj
+fn.bind(obj)(1, 2)                // this = obj
+```
+
+Each records a `CallRecord` with `thisArg` populated.
+
+## `wrap(fn)` is the same thing
+
+For consistency, `wrap(fn)` delegates to `func(fn)`. Use whichever reads better in context:
+
+```typescript
+// These are equivalent:
+const a = func(handler)
+const b = wrap(handler)
+```
+
+## Differences vs method-level mocks
+
+| | `stub<T>([...])` method | `func()` |
+|-|--|--|
+| Setup | `mock.setup.method.toReturn(...)` | `fn.setup.toReturn(...)` |
+| Expect | `mock.expect.method.called.once()` | `fn.expect.called.once()` |
+| Spy | `mock.spy.method.callCount` | `fn.spy.callCount` |
+| Called via | `mock.method(...)` | `fn(...)` |
+
+## See also
+
+- [Creating mocks](/guide/creating-mocks#standalone-functions) — when to use func vs stub vs wrap
+- [Types](/api/types) — `MockedFunction` type
+
+
+──────────────────────────────────────────────────────────────────────────────
+# `inOrder`
+Source: https://guzzlerio.github.io/deride/deride/api/in-order.md
+──────────────────────────────────────────────────────────────────────────────
+
+Assert that spies fired in a relative order.
+
+## Signatures
+
+```typescript
+function inOrder(...entries: (MethodSpy | InvocationHandle)[]): void
+
+inOrder.at(spy: MethodSpy, index: number): InvocationHandle
+inOrder.strict(...entries: (MethodSpy | InvocationHandle)[]): void
+```
+
+## `inOrder(...)` — first-of-each ordering
+
+Compares the **first recorded call** of each spy by its monotonic sequence number, asserting they match the argument order.
+
+```typescript
+inOrder(db.spy.connect, db.spy.query, log.spy.info)
+```
+
+Throws:
+
+- `inOrder: at least one spy is required` — zero args
+- `inOrder: each argument must be a MethodSpy ...` — non-spy arg
+- `inOrder: \`db.query\` was never called` — listed spy has no calls
+- `inOrder: \`log.info\` (seq N) fired before \`db.query\` (seq M)` — wrong order
+
+## `inOrder.at(spy, index)`
+
+Wraps a spy into a handle that points at the N-th (0-indexed) recorded call, rather than the first.
+
+```typescript
+inOrder(
+  inOrder.at(db.spy.query, 0),    // first query
+  inOrder.at(db.spy.query, 1),    // then second query
+)
+```
+
+Out-of-range indices throw:
+
+```typescript
+inOrder(inOrder.at(db.spy.query, 99))
+// throws: `db.query` invocation 99 was never called
+```
+
+Mix and match with plain spies:
+
+```typescript
+inOrder(
+  db.spy.connect,
+  inOrder.at(db.spy.query, 2),
+  log.spy.info,
+)
+```
+
+## `inOrder.strict(...)`
+
+Like `inOrder`, but fails if any listed spy has **extra** calls beyond the ones being ordered.
+
+```typescript
+db.connect()
+db.query('a')
+inOrder.strict(db.spy.connect, db.spy.query)   // ✓
+
+db.connect()
+db.query('a')
+db.connect()
+inOrder.strict(db.spy.connect, db.spy.query)   // ✗ — extras break the interleave
+```
+
+Use `.strict` when you want to assert **exactly** the listed sequence happened with no interleaving on the listed spies.
+
+## How ordering is determined
+
+Every `CallRecord` carries a monotonic `sequence` number assigned at invocation time (via a module-level counter). `inOrder` reads each entry's sequence and checks strict ascending order against the argument order.
+
+- **Sub-millisecond resolution.** Two calls in the same tick get different sequences.
+- **Per-worker scope.** Vitest workers each load their own module copy, so the counter is per-worker.
+
+## See also
+
+- [Cross-mock ordering guide](/guide/ordering) — worked examples and patterns
+- [Types](/api/types) — `MethodSpy`, `CallRecord`
+
+
+──────────────────────────────────────────────────────────────────────────────
+# `match`
+Source: https://guzzlerio.github.io/deride/deride/api/match.md
+──────────────────────────────────────────────────────────────────────────────
+
+Namespace of composable argument matchers. Usable everywhere a value can appear: `setup.when`, `expect.*.withArg`, `withArgs`, `matchExactly`, `withReturn`, `threw`, and nested inside objects/arrays at any depth.
+
+```typescript
+import { match, type Matcher, MATCHER_BRAND, isMatcher } from 'deride'
+```
+
+## Overview
+
+A matcher is a brand-tagged object:
+
+```typescript
+interface Matcher<T = unknown> {
+  readonly [MATCHER_BRAND]: true
+  readonly description: string
+  test(value: T): boolean
+}
+```
+
+The brand (`Symbol.for('deride.matcher')`) is globally registered — matchers from different deride versions installed side-by-side in the same tree still recognise each other.
+
+## Type matchers
+
+```typescript
+match.any         // Matcher<unknown>   — accepts everything
+match.defined     // Matcher<unknown>   — rejects only undefined
+match.nullish     // Matcher<unknown>   — only null and undefined
+match.string      // Matcher<unknown>   — typeof === 'string'
+match.number      // Matcher<unknown>   — typeof === 'number' (NaN passes)
+match.boolean     // Matcher<unknown>   — typeof === 'boolean'
+match.bigint      // Matcher<unknown>   — typeof === 'bigint'
+match.symbol      // Matcher<unknown>   — typeof === 'symbol'
+match.function    // Matcher<unknown>   — typeof === 'function'
+match.array       // Matcher<unknown>   — Array.isArray
+match.object      // Matcher<unknown>   — non-null non-array object
+```
+
+## Structural matchers
+
+### `match.instanceOf(Ctor)`
+
+```typescript
+match.instanceOf<C>(ctor: C): Matcher<unknown>
+```
+
+Passes when `value instanceof Ctor`. Subclasses match too.
+
+### `match.objectContaining(partial)`
+
+```typescript
+match.objectContaining<T extends object>(partial: T): Matcher<unknown>
+```
+
+Partial deep match — the value must contain every key from `partial` with a matching value. Extra keys allowed. Nested matchers work.
+
+```typescript
+match.objectContaining({ id: match.number, name: match.string })
+```
+
+### `match.arrayContaining(items)`
+
+```typescript
+match.arrayContaining<T>(items: T[]): Matcher<unknown>
+```
+
+Every item in `items` must appear somewhere in the candidate array. Nested matchers work.
+
+### `match.exact(value)`
+
+```typescript
+match.exact<T>(value: T): Matcher<unknown>
+```
+
+Strict deep equal — extra keys or different types cause failure.
+
+## Comparators
+
+```typescript
+match.gt <N extends number | bigint>(n: N): Matcher<number | bigint>
+match.gte<N extends number | bigint>(n: N): Matcher<number | bigint>
+match.lt <N extends number | bigint>(n: N): Matcher<number | bigint>
+match.lte<N extends number | bigint>(n: N): Matcher<number | bigint>
+match.between<N extends number | bigint>(low: N, high: N): Matcher<number | bigint>
+```
+
+Mixed number/bigint comparisons reject. `NaN` never passes.
+
+## String matchers
+
+```typescript
+match.regex(pattern: RegExp): Matcher<string>     // resets lastIndex for /g and /y
+match.startsWith(prefix: string): Matcher<string>
+match.endsWith(suffix: string): Matcher<string>
+match.includes(needle: string): Matcher<string>
+```
+
+All reject non-string inputs — no coercion.
+
+## Logic combinators
+
+### `match.not(m)`
+
+```typescript
+match.not<T>(m: Matcher<T>): Matcher<unknown>
+```
+
+### `match.allOf(...matchers)`
+
+```typescript
+match.allOf(...matchers: Matcher<unknown>[]): Matcher<unknown>
+```
+
+Every matcher must pass. **Empty list is vacuously true** — be careful with spread patterns.
+
+### `match.oneOf(...matchers)`
+
+```typescript
+match.oneOf(...matchers: Matcher<unknown>[]): Matcher<unknown>
+```
+
+At least one matcher must pass. Empty list is vacuously false.
+
+### `match.anyOf(...values)`
+
+```typescript
+match.anyOf(...values: unknown[]): Matcher<unknown>
+```
+
+Equality OR matcher-match against each listed value.
+
+## Escape hatch
+
+### `match.where(predicate, description?)`
+
+```typescript
+match.where<T>(predicate: (value: T) => boolean, description?: string): Matcher<T>
+```
+
+For one-off predicates. A thrown predicate is caught and treated as a non-match. Optional `description` appears in failure messages.
+
+## Shape utilities
+
+### `isMatcher(value)`
+
+```typescript
+isMatcher(value: unknown): value is Matcher
+```
+
+Type guard. Useful if you're writing custom helpers that should recognise matchers the same way deride does.
+
+### `MATCHER_BRAND`
+
+```typescript
+const MATCHER_BRAND: unique symbol
+```
+
+The global symbol brand. Hand-written matchers can set `[MATCHER_BRAND]: true` to integrate with deride's matcher-aware comparisons:
+
+```typescript
+import { MATCHER_BRAND, type Matcher } from 'deride'
+
+const isUUID: Matcher = {
+  [MATCHER_BRAND]: true,
+  description: 'UUID v4',
+  test: (v) => typeof v === 'string' && /^[0-9a-f-]{36}$/.test(v),
+}
+```
+
+## See also
+
+- [Matchers guide](/guide/matchers) — detailed examples and composition patterns
+
+
+──────────────────────────────────────────────────────────────────────────────
+# `sandbox`
+Source: https://guzzlerio.github.io/deride/deride/api/sandbox.md
+──────────────────────────────────────────────────────────────────────────────
+
+Create a scope that registers every mock created through its factories. `reset()` clears call history on all of them; `restore()` clears behaviours too.
+
+## Signature
+
+```typescript
+function sandbox(): Sandbox
+
+interface Sandbox {
+  stub: typeof stub           // same signatures, registers with this sandbox
+  wrap: typeof wrap           // same signatures, registers with this sandbox
+  func: typeof func           // same signatures, registers with this sandbox
+  reset(): void               // clear call history on every registered mock
+  restore(): void             // clear behaviours AND call history
+  readonly size: number       // count of registered mocks
+}
+```
+
+## Example
+
+```typescript
+import { afterEach, afterAll, beforeEach, describe, it } from 'vitest'
+import { sandbox } from 'deride'
+
+const sb = sandbox()
+
+beforeEach(() => {
+  // sb.stub, sb.wrap, sb.func register each new mock
+  mockDb = sb.stub<Database>(['query'])
+  mockLog = sb.wrap(realLogger)
+})
+
+afterEach(() => sb.reset())        // clear history between tests
+afterAll(() => sb.restore())       // full wipe at the end
+```
+
+## `reset()` vs `restore()`
+
+| Method | Call history | Behaviours |
+|--------|:-:|:-:|
+| `sb.reset()` | ✓ cleared | preserved |
+| `sb.restore()` | ✓ cleared | ✓ cleared |
+
+Typical pattern:
+
+- **`afterEach`** → `sb.reset()` — leaves configured behaviours in place so shared setup survives between tests.
+- **`afterAll`** → `sb.restore()` — clean break; next file's `beforeEach` will set things up fresh.
+
+## Sandboxes are independent
+
+Two sandboxes never share state:
+
+```typescript
+const a = sandbox()
+const b = sandbox()
+
+const m1 = a.stub<Foo>(['x'])
+const m2 = b.stub<Foo>(['x'])
+
+m1.x()
+m2.x()
+
+a.reset()                       // clears m1 only
+m1.expect.x.called.never()      // ✓
+m2.expect.x.called.once()       // ✓
+```
+
+Nested sandboxes (creating a second sandbox inside the lifecycle of the first) are independent too — the parent doesn't know about the child's mocks and vice versa.
+
+## Scoping by test file
+
+If you have many test files, the idiomatic pattern is a sandbox at the top of each file:
+
+```typescript
+// user-service.test.ts
+const sb = sandbox()
+
+describe('UserService', () => {
+  beforeEach(() => { /* register via sb */ })
+  afterEach(() => sb.reset())
+})
+```
+
+The sandbox is process-local but file-local in test-runner terms (each test file is typically its own module context in vitest/jest).
+
+## `sb.size`
+
+Useful for test-utility assertions that want to confirm a fixture set up the right number of mocks:
+
+```typescript
+const sb = sandbox()
+setupFixture(sb)
+expect(sb.size).toBe(4)
+```
+
+## See also
+
+- [Lifecycle management](/guide/lifecycle) — broader context, snapshots, reset/restore patterns
+- [Types](/api/types) — `Sandbox` type
+
+
+──────────────────────────────────────────────────────────────────────────────
+# `stub`
+Source: https://guzzlerio.github.io/deride/deride/api/stub.md
+──────────────────────────────────────────────────────────────────────────────
+
+Build a test double from method names, an object, or a class.
+
+## Signatures
+
+```typescript
+stub<I>(cls: new (...args: never[]) => I): Wrapped<I>
+stub<T>(obj: T): Wrapped<T>
+stub<T>(methodNames: (keyof T)[]): Wrapped<T>
+stub<T>(
+  methodNames: string[],
+  properties?: { name: PropertyKey; options: PropertyDescriptor }[],
+  options?: StubOptions
+): Wrapped<T>
+```
+
+## Parameters
+
+### `target` (first arg)
+
+Can be:
+
+- **Array of method names** — TypeScript inference drives typing via `stub<T>([...])`.
+- **Existing object** — all own + inherited function-typed keys become stubbed methods.
+- **Class constructor** — walks the prototype chain (not statics, unless `{ static: true }`).
+
+### `properties` (optional second arg)
+
+Array of `{ name, options }` descriptors to attach non-method fields. Useful for interfaces that mix methods and data:
+
+```typescript
+stub<Person & { age: number }>(
+  ['greet'],
+  [{ name: 'age', options: { value: 25, enumerable: true } }]
+)
+```
+
+### `options` (optional third arg)
+
+```typescript
+interface StubOptions extends Options {
+  static?: boolean                  // include static methods when stubbing a class
+  debug: {
+    prefix: string | undefined      // defaults to 'deride'
+    suffix: string | undefined      // defaults to 'stub'
+  }
+}
+```
+
+`debug.prefix` and `debug.suffix` namespace the `debug` logger for this mock — useful when multiple mocks exist and you want to filter per-mock logs.
+
+## Returns
+
+A `Wrapped<T>` — your original type augmented with `setup`, `expect`, `spy`, `called`, `snapshot`, `restore`, and EventEmitter methods. See [Types](/api/types).
+
+## Examples
+
+### From method names
+
+```typescript
+interface Database {
+  query(sql: string): Promise<unknown[]>
+}
+const mock = stub<Database>(['query'])
+mock.setup.query.toResolveWith([])
+```
+
+### From an existing instance
+
+```typescript
+const real = { greet: (n: string) => `hi ${n}` }
+const mock = stub(real)
+mock.setup.greet.toReturn('mocked')
+mock.greet('x')   // 'mocked'
+```
+
+### From a class
+
+```typescript
+class Greeter {
+  greet(name: string) { return `hi ${name}` }
+  static version() { return '1.0' }
+}
+
+const mock = stub(Greeter)                        // prototype methods only
+const staticMock = stub<typeof Greeter>(Greeter, undefined, {
+  debug: { prefix: 'deride', suffix: 'stub' },
+  static: true,                                    // statics only
+})
+```
+
+### With property descriptors
+
+```typescript
+const bob = stub<Person & { age: number }>(
+  ['greet'],
+  [{ name: 'age', options: { value: 25, enumerable: true, writable: false } }]
+)
+bob.age   // 25
+```
+
+## `stub.class` — constructor mocking {#stub-class}
+
+```typescript
+stub.class<C extends new (...args: any[]) => object>(
+  ctor?: C,
+  opts?: { methods?: string[]; static?: boolean }
+): MockedClass<C>
+```
+
+Returns a `new`-able proxy that:
+
+- Records constructor calls (`MockedClass.expect.constructor.*`)
+- Produces a fresh `Wrapped<InstanceType<C>>` per `new` call
+- Maintains an `instances[]` array of every constructed mock
+- Provides `setupAll(fn)` to apply setups across existing and future instances
+
+### Example
+
+```typescript
+class Database {
+  constructor(public conn: string) {}
+  async query(sql: string): Promise<unknown[]> { return [] }
+}
+
+const MockedDb = stub.class(Database)
+MockedDb.setupAll(inst => inst.setup.query.toResolveWith([]))
+
+const a = new MockedDb('conn-a')
+const b = new MockedDb('conn-b')
+
+MockedDb.expect.constructor.called.twice()
+MockedDb.instances.length   // 2
+await a.query('x')          // []
+```
+
+### Signatures on the returned `MockedClass`
+
+```typescript
+interface MockedClass<C> {
+  new (...args: ConstructorParameters<C>): Wrapped<InstanceType<C>>
+  readonly expect: { constructor: MockExpect }
+  readonly spy:    { constructor: MethodSpy }
+  readonly instances: readonly Wrapped<InstanceType<C>>[]
+  setupAll(fn: (instance: Wrapped<InstanceType<C>>) => void): void
+}
+```
+
+## See also
+
+- [Creating mocks](/guide/creating-mocks) — when to reach for `stub` vs `wrap` vs `func`
+- [Types](/api/types) — full `Wrapped<T>` shape
+
+
+──────────────────────────────────────────────────────────────────────────────
+# Types
+Source: https://guzzlerio.github.io/deride/deride/api/types.md
+──────────────────────────────────────────────────────────────────────────────
+
+Every public type exported from deride, grouped by concern.
+
+## `Wrapped<T>`
+
+The type produced by `stub()`, `wrap()`, and `stub.class` instances. Your original `T` plus the deride facades.
+
+```typescript
+type Wrapped<T extends object> = T & {
+  called: { reset: () => void }
+  setup: SetupMethods<T>
+  expect: ExpectMethods<T>
+  spy: SpyMethods<T>
+  snapshot(): Record<string, MockSnapshot>
+  restore(snap: Record<string, MockSnapshot>): void
+  on(event: string, listener: (...args: any[]) => void): EventEmitter
+  once(event: string, listener: (...args: any[]) => void): EventEmitter
+  emit(event: string, ...args: any[]): boolean
+}
+
+type SetupMethods<T extends object> = {
+  [K in keyof T]: T[K] extends (...args: infer A) => infer R
+    ? TypedMockSetup<A, R>
+    : TypedMockSetup<any[], any>
+}
+
+type ExpectMethods<T extends object> = Record<keyof T, MockExpect>
+type SpyMethods<T extends object>    = Record<keyof T, MethodSpy>
+```
+
+::: warning Reserved property names
+`Wrapped<T>` layers the following properties on top of `T`: `called`, `setup`, `expect`, `spy`, `snapshot`, `restore`, `on`, `once`, `emit`. If your `T` has methods with these names, the deride facade will shadow them — usually caught at type-check time.
+:::
+
+## Setup — `TypedMockSetup<A, R>`
+
+The type of `mock.setup.method`, parameterised by the method's argument tuple `A` and return type `R`.
+
+```typescript
+interface TypedMockSetup<A extends any[], R> {
+  toReturn(value: R): TypedMockSetup<A, R>
+  toReturnSelf(): TypedMockSetup<A, R>
+  toDoThis(fn: (...args: A) => R): TypedMockSetup<A, R>
+  toThrow(message: string): TypedMockSetup<A, R>
+
+  toResolveWith(value: R extends Promise<infer U> ? U : R): TypedMockSetup<A, R>
+  toResolve(): TypedMockSetup<A, R>
+  toRejectWith(error: unknown): TypedMockSetup<A, R>
+  toResolveAfter(ms: number, value?: R extends Promise<infer U> ? U : R): TypedMockSetup<A, R>
+  toRejectAfter(ms: number, error: unknown): TypedMockSetup<A, R>
+  toHang(): TypedMockSetup<A, R>
+
+  toReturnInOrder(...values: (R | [R[], { then?: R; cycle?: boolean }])[]): TypedMockSetup<A, R>
+  toResolveInOrder(...values: (R extends Promise<infer U> ? U : R)[]): TypedMockSetup<A, R>
+  toRejectInOrder(...errors: unknown[]): TypedMockSetup<A, R>
+
+  toYield(...values: unknown[]): TypedMockSetup<A, R>
+  toAsyncYield(...values: unknown[]): TypedMockSetup<A, R>
+  toAsyncYieldThrow(error: unknown, ...valuesBefore: unknown[]): TypedMockSetup<A, R>
+
+  toCallbackWith(...args: any[]): TypedMockSetup<A, R>
+  toEmit(eventName: string, ...params: any[]): TypedMockSetup<A, R>
+  toIntercept(fn: (...args: A) => void): TypedMockSetup<A, R>
+  toTimeWarp(ms: number): TypedMockSetup<A, R>
+
+  when(...expected: unknown[]): TypedMockSetup<A, R>
+  times(n: number): TypedMockSetup<A, R>
+  once(): TypedMockSetup<A, R>
+  twice(): TypedMockSetup<A, R>
+  fallback(): TypedMockSetup<A, R>
+
+  readonly and: TypedMockSetup<A, R>
+  readonly then: TypedMockSetup<A, R>
+}
+
+type MockSetup = TypedMockSetup<any[], any>
+```
+
+## Expect — `MockExpect`
+
+```typescript
+interface MockExpect {
+  called: CalledExpect
+  everyCall: Omit<CalledExpect, 'reset' | 'not'>
+  invocation(index: number): InvocationExpect
+}
+
+interface CalledExpect {
+  times(n: number, err?: string): void
+  once(): void
+  twice(): void
+  never(): void
+
+  lt(n: number): void
+  lte(n: number): void
+  gt(n: number): void
+  gte(n: number): void
+
+  withArg(arg: unknown): void
+  withArgs(...args: unknown[]): void
+  withMatch(pattern: RegExp): void
+  matchExactly(...args: unknown[]): void
+
+  withReturn(expected: unknown): void
+  calledOn(target: unknown): void
+  threw(expected?: unknown): void
+
+  reset(): void
+  not: Omit<CalledExpect, 'reset' | 'not'>
+}
+
+interface InvocationExpect {
+  withArg(arg: unknown): void
+  withArgs(...args: unknown[]): void
+}
+```
+
+## Spy — `MethodSpy` and `CallRecord`
+
+```typescript
+interface MethodSpy {
+  readonly name: string
+  readonly callCount: number
+  readonly calls: readonly CallRecord[]
+  readonly firstCall: CallRecord | undefined
+  readonly lastCall: CallRecord | undefined
+
+  calledWith(...args: unknown[]): boolean
+  printHistory(): string
+  serialize(): { method: string; calls: unknown[] }
+}
+
+interface CallRecord {
+  readonly args: readonly unknown[]
+  readonly returned?: unknown
+  readonly threw?: unknown
+  readonly thisArg?: unknown
+  readonly timestamp: number
+  readonly sequence: number
+}
+```
+
+## Matchers — `Matcher<T>`
+
+```typescript
+interface Matcher<T = unknown> {
+  readonly [MATCHER_BRAND]: true
+  readonly description: string
+  test(value: T): boolean
+}
+
+const MATCHER_BRAND: unique symbol
+function isMatcher(value: unknown): value is Matcher
+```
+
+## Lifecycle — `MockSnapshot` and `Sandbox`
+
+```typescript
+interface MockSnapshot {
+  readonly __brand: 'deride.snapshot'
+  readonly behaviors: ReadonlyArray<unknown>
+  readonly calls: ReadonlyArray<CallRecord>
+}
+
+interface Sandbox {
+  stub: typeof stub
+  wrap: typeof wrap
+  func: typeof func
+  reset(): void
+  restore(): void
+  readonly size: number
+}
+```
+
+## Factories — `MockedFunction` and `MockedClass`
+
+```typescript
+type MockedFunction<F extends (...args: any[]) => any> = F & {
+  setup: F extends (...args: infer A) => infer R ? TypedMockSetup<A, R> : TypedMockSetup
+  expect: MockExpect
+  spy: MethodSpy
+}
+
+interface MockedClass<C extends new (...args: any[]) => object> {
+  new (...args: ConstructorParameters<C>): Wrapped<InstanceType<C>>
+  readonly expect: { constructor: MockExpect }
+  readonly spy: { constructor: MethodSpy }
+  readonly instances: readonly Wrapped<InstanceType<C>>[]
+  setupAll(fn: (instance: Wrapped<InstanceType<C>>) => void): void
+}
+```
+
+## Options
+
+```typescript
+type Options = {
+  debug: {
+    prefix: string | undefined    // default 'deride'
+    suffix: string | undefined    // default 'stub' or 'wrap'
+  }
+}
+```
+
+## Sub-path — `FakeClock`
+
+From `deride/clock`:
+
+```typescript
+interface FakeClock {
+  tick(ms: number): void
+  runAll(): void
+  flushMicrotasks(): void
+  now(): number
+  restore(): void
+  readonly errors: readonly unknown[]
+}
+
+function useFakeTimers(startEpoch?: number): FakeClock
+function isFakeTimersActive(): boolean
+function restoreActiveClock(): void
+```
+
+
+──────────────────────────────────────────────────────────────────────────────
+# `wrap`
+Source: https://guzzlerio.github.io/deride/deride/api/wrap.md
+──────────────────────────────────────────────────────────────────────────────
+
+Wrap an existing object (or function) with deride facades. Unlike `stub`, the **real methods still run by default** — `wrap` is the tool for partial mocking.
+
+## Signatures
+
+```typescript
+wrap<T extends object>(obj: T, options?: Options): Wrapped<T>
+wrap<F extends (...args: any[]) => any>(fn: F, options?: Options): MockedFunction<F>
+```
+
+## Parameters
+
+### `obj` (or `fn`)
+
+- If `obj` is an object — its methods are discovered via `getAllKeys(obj)` (own + prototype chain, excluding `Object.prototype`). All become wrapped.
+- If `obj` is a function — delegates to [`func(fn)`](/api/func).
+
+### `options`
+
+```typescript
+interface Options {
+  debug: {
+    prefix: string | undefined      // default 'deride'
+    suffix: string | undefined      // default 'wrap'
+  }
+}
+```
+
+## Behaviour
+
+- **Real implementations run by default.** Call `mock.setup.method.fallback()` to clear any configured behaviour and revert to the real method.
+- **Works with frozen objects.** `Object.freeze(obj)` doesn't prevent `wrap(obj)` from building a composed mock — the original isn't mutated.
+- **Works with ES6 classes.** Prototype-chain methods are discovered and wrapped without touching the class.
+- **Non-function properties are copied** onto the wrapped object so the shape matches the original.
+- **EventEmitter methods** (`on`, `once`, `emit`) are attached to the wrapped object for `setup.toEmit` support.
+
+## Examples
+
+### Partial mock — override one method, keep the rest
+
+```typescript
+const real = {
+  greet(name: string) { return `hello ${name}` },
+  shout(name: string) { return `HEY ${name.toUpperCase()}` },
+}
+
+const wrapped = wrap(real)
+wrapped.shout('alice')   // 'HEY ALICE' — real method
+
+wrapped.setup.greet.toReturn('mocked')
+wrapped.greet('alice')   // 'mocked' — override
+```
+
+### Frozen objects
+
+```typescript
+const frozen = Object.freeze({
+  greet(name: string) { return `hello ${name}` },
+})
+
+const wrapped = wrap(frozen)
+wrapped.greet('alice')                    // 'hello alice'
+wrapped.expect.greet.called.withArg('alice')   // ✓
+```
+
+### ES6 classes
+
+```typescript
+class Greeter {
+  greet(name: string) { return `hi ${name}` }
+}
+
+const wrapped = wrap(new Greeter())
+wrapped.setup.greet.toReturn('mocked')
+wrapped.greet('x')   // 'mocked'
+```
+
+### Wrap a standalone function
+
+Delegates to [`func(fn)`](/api/func):
+
+```typescript
+function greet(name: string) { return `hello ${name}` }
+const wrapped = wrap(greet)
+
+wrapped('world')                      // 'hello world' — real
+wrapped.expect.called.withArg('world')
+
+wrapped.setup.toReturn('overridden')
+wrapped('x')                          // 'overridden'
+```
+
+## Non-function property copying
+
+`wrap` copies non-function own + prototype-chain properties onto the returned object:
+
+```typescript
+const real = { name: 'alice', greet: () => 'hi' }
+const wrapped = wrap(real)
+wrapped.name   // 'alice'
+```
+
+Mutations to `real.name` after wrapping are **not** reflected — the copy is taken once at wrap time.
+
+## See also
+
+- [`stub`](/api/stub) — for objects you don't want to run real implementations against
+- [`func`](/api/func) — for standalone functions
+- [Creating mocks](/guide/creating-mocks)
+
+
+══════════════════════════════════════════════════════════════════════════════
+# Recipes
+══════════════════════════════════════════════════════════════════════════════
+
+──────────────────────────────────────────────────────────────────────────────
+# Async & Promises
+Source: https://guzzlerio.github.io/deride/deride/recipes/async-mocking.md
+──────────────────────────────────────────────────────────────────────────────
+
+Patterns for mocking async APIs: resolving with data, rejecting, delaying, hanging, and asserting against the captured Promise.
+
+## Resolve / reject
+
+```typescript
+mock.setup.fetch.toResolveWith({ data: 42 })
+mock.setup.fetch.toResolve()                         // resolves with undefined
+mock.setup.fetch.toRejectWith(new Error('network'))
+```
+
+## Sequential results
+
+Multiple calls, each with a different resolved value. Last-sticky by default:
+
+```typescript
+mock.setup.fetch.toResolveInOrder(
+  { page: 1, rows: ['a'] },
+  { page: 2, rows: ['b'] },
+  { page: 3, rows: ['c'] },
+)
+
+await mock.fetch()   // { page: 1, rows: ['a'] }
+await mock.fetch()   // { page: 2, rows: ['b'] }
+await mock.fetch()   // { page: 3, rows: ['c'] }
+await mock.fetch()   // sticky-last: { page: 3, rows: ['c'] }
+```
+
+Fall back to a different value:
+
+```typescript
+mock.setup.fetch.toResolveInOrder([{ a: 1 }, { b: 2 }], { then: null })
+```
+
+Or cycle:
+
+```typescript
+mock.setup.fetch.toResolveInOrder([{ a: 1 }, { b: 2 }], { cycle: true })
+```
+
+## Mix resolve and reject
+
+Use the sequence-aware setups — no need to manually stage `once()` chains:
+
+```typescript
+mock.setup.fetch.toRejectInOrder(new Error('first'), new Error('second'))
+```
+
+Or interleave with `when`:
+
+```typescript
+mock.setup.fetch.when('/healthy').toResolveWith({ ok: true })
+mock.setup.fetch.when('/broken').toRejectWith(new Error('500'))
+```
+
+## Timeouts — `toResolveAfter` / `toRejectAfter`
+
+Delay the resolution. Pairs with fake timers (vitest, jest, or `deride/clock`):
+
+```typescript
+mock.setup.fetch.toResolveAfter(100, { data: 42 })
+
+const p = mock.fetch('/x')   // pending
+// ... advance time by 100ms ...
+await p                       // { data: 42 }
+```
+
+::: details Vitest fake timers
+```typescript
+import { vi } from 'vitest'
+vi.useFakeTimers()
+
+mock.setup.fetch.toResolveAfter(1000, 'ok')
+const p = mock.fetch()
+await vi.advanceTimersByTimeAsync(1000)
+expect(await p).toBe('ok')
+
+vi.useRealTimers()
+```
+:::
+
+::: details deride/clock
+```typescript
+import { useFakeTimers } from 'deride/clock'
+
+const clock = useFakeTimers()
+try {
+  mock.setup.fetch.toResolveAfter(1000, 'ok')
+  const p = mock.fetch()
+  clock.tick(1000)
+  clock.flushMicrotasks()
+  expect(await p).toBe('ok')
+} finally {
+  clock.restore()
+}
+```
+:::
+
+## `toHang()` — never-settling Promise
+
+For testing timeout/cancellation code paths:
+
+```typescript
+mock.setup.fetch.toHang()
+
+const result = await Promise.race([
+  mock.fetch('/slow'),
+  new Promise<string>(resolve => setTimeout(() => resolve('timeout'), 500)),
+])
+expect(result).toBe('timeout')
+```
+
+Under fake timers, `runAll()` does **not** force `toHang()` Promises to resolve — they genuinely don't settle.
+
+## Awaiting the captured Promise
+
+`expect.called.withReturn(x)` asserts the return exists but can't hand it back. For follow-up operations, read from the spy:
+
+```typescript
+mock.setup.fetch.toResolveWith({ id: 1 })
+mock.fetch('/x')
+
+const result = await mock.spy.fetch.lastCall!.returned
+// result === { id: 1 }
+```
+
+Useful when:
+
+- The test needs to assert against the *resolved* value in multiple ways
+- A helper needs to forward the captured value to another setup
+- Debugging: `await mock.spy.x.lastCall?.returned` often reveals what the code actually received
+
+## Asserting on thrown / rejected Promises
+
+Synchronous throws are captured in `CallRecord.threw`:
+
+```typescript
+mock.setup.save.toThrow('bang')
+try { mock.save() } catch {}
+
+mock.expect.save.called.threw()
+mock.expect.save.called.threw('bang')
+mock.expect.save.called.threw(Error)
+```
+
+**Promise rejections are NOT captured** in `threw` — they're captured as the resolved value (the rejected Promise). If you want to assert on the rejection:
+
+```typescript
+mock.setup.fetch.toRejectWith(new Error('oops'))
+mock.fetch()   // returns a rejected Promise, but no sync throw
+
+// The Promise IS recorded in CallRecord.returned
+const promise = mock.spy.fetch.lastCall!.returned as Promise<unknown>
+await expect(promise).rejects.toThrow('oops')
+```
+
+## Async iterators
+
+For code that iterates with `for await`:
+
+```typescript
+mock.setup.stream.toAsyncYield(1, 2, 3)
+
+for await (const v of mock.stream()) {
+  console.log(v)   // 1, 2, 3
+}
+```
+
+Throw partway through:
+
+```typescript
+mock.setup.stream.toAsyncYieldThrow(new Error('drained'), 1, 2)
+
+const collected: number[] = []
+try {
+  for await (const v of mock.stream()) collected.push(v)
+} catch (err) {
+  expect((err as Error).message).toBe('drained')
+}
+expect(collected).toEqual([1, 2])
+```
+
+## Node-style callbacks
+
+For APIs that take a callback as the last argument:
+
+```typescript
+mock.setup.load.toCallbackWith(null, 'data')
+
+mock.load('file.txt', (err, data) => {
+  // err === null, data === 'data'
+})
+```
+
+`toCallbackWith` finds the last function argument and invokes it with the provided args.
+
+## Time-warp legacy callbacks
+
+For callback APIs with long built-in timeouts that you want to accelerate without fake timers:
+
+```typescript
+mock.setup.pollWithRetry.toTimeWarp(0)
+
+mock.pollWithRetry(10_000, (result) => {
+  // callback fires immediately rather than after 10s
+})
+```
+
+## See also
+
+- [Configuring behaviour](/guide/configuring-behaviour) — full `setup.*` reference
+- [`deride/clock`](/integrations/clock) — fake timers sub-path
+- [Time & timers recipes](/recipes/time-and-timers)
+
+
+──────────────────────────────────────────────────────────────────────────────
+# Fluent / chainable APIs
+Source: https://guzzlerio.github.io/deride/deride/recipes/chainable-apis.md
+──────────────────────────────────────────────────────────────────────────────
+
+Query builders, jQuery-style chains, builder patterns, fluent assertion libraries — all involve methods that return `this`. `toReturnSelf()` is the tool.
+
+## The basic pattern
+
+```typescript
+interface QueryBuilder {
+  where(clause: string): QueryBuilder
+  orderBy(col: string): QueryBuilder
+  limit(n: number): QueryBuilder
+  execute(): Promise<unknown[]>
+}
+
+const q = stub<QueryBuilder>(['where', 'orderBy', 'limit', 'execute'])
+
+q.setup.where.toReturnSelf()
+q.setup.orderBy.toReturnSelf()
+q.setup.limit.toReturnSelf()
+q.setup.execute.toResolveWith([{ id: 1 }])
+
+const rows = await q
+  .where('active = true')
+  .orderBy('created_at')
+  .limit(10)
+  .execute()
+
+// rows === [{ id: 1 }]
+```
+
+`toReturnSelf()` returns the wrapped mock itself, so chained calls flow through. Every method still records its call history normally:
+
+```typescript
+q.expect.where.called.once()
+q.expect.where.called.withArg('active = true')
+q.expect.orderBy.called.withArg('created_at')
+q.expect.limit.called.withArg(10)
+q.expect.execute.called.once()
+```
+
+## Setting up every chain method at once
+
+Given a long builder interface, typing `toReturnSelf()` N times is noisy. Extract a helper:
+
+```typescript
+function chainable<T extends object>(mock: Wrapped<T>, methods: (keyof T)[]) {
+  for (const m of methods) {
+    (mock.setup as any)[m].toReturnSelf()
+  }
+}
+
+const q = stub<QueryBuilder>(['where', 'orderBy', 'limit', 'execute'])
+chainable(q, ['where', 'orderBy', 'limit'])
+q.setup.execute.toResolveWith([])
+```
+
+## Combining with `when()`
+
+Override a specific branch of the chain:
+
+```typescript
+q.setup.where.toReturnSelf()
+q.setup.where.when('block-me').toReturn(null)
+
+q.where('fine').where('block-me').where('never-reached')
+// .where('block-me') returns null, breaking the chain
+```
+
+## Standalone functions
+
+`toReturnSelf()` on a `MockedFunction` returns the function proxy itself:
+
+```typescript
+const fn = func<(x: number) => unknown>()
+fn.setup.toReturnSelf()
+
+fn(1)   // returns fn
+```
+
+## Asserting chain order
+
+Chains are almost always invoked in a specific order. Use [`inOrder.at`](/guide/ordering) to assert on the sequence:
+
+```typescript
+q.where('a')
+q.orderBy('b')
+q.where('c')
+q.execute()
+
+inOrder(
+  inOrder.at(q.spy.where, 0),      // 'a'
+  q.spy.orderBy,                    // 'b'
+  inOrder.at(q.spy.where, 1),      // 'c'
+  q.spy.execute,
+)
+```
+
+## Full worked example — a repository DSL
+
+```typescript
+interface UserRepo {
+  find(): UserRepo
+  byName(name: string): UserRepo
+  active(): UserRepo
+  limit(n: number): UserRepo
+  execute(): Promise<User[]>
+}
+
+const repo = stub<UserRepo>(['find', 'byName', 'active', 'limit', 'execute'])
+
+repo.setup.find.toReturnSelf()
+repo.setup.byName.toReturnSelf()
+repo.setup.active.toReturnSelf()
+repo.setup.limit.toReturnSelf()
+repo.setup.execute.toResolveWith([{ id: 1, name: 'alice' }])
+
+// Code under test
+const users = await repo.find().byName('alice').active().limit(1).execute()
+
+// Then:
+repo.expect.byName.called.withArg('alice')
+repo.expect.limit.called.withArg(1)
+repo.expect.execute.called.once()
+```
+
+## See also
+
+- [`toReturnSelf`](/guide/configuring-behaviour#toreturnself) in the setup reference
+- [Cross-mock ordering](/guide/ordering) for asserting chain sequence
+
+
+──────────────────────────────────────────────────────────────────────────────
+# Class mocking
+Source: https://guzzlerio.github.io/deride/deride/recipes/class-mocking.md
+──────────────────────────────────────────────────────────────────────────────
+
+Three patterns, in order of preference.
+
+## 1. Inject an instance — no class mocking needed
+
+If your code accepts the dependency via constructor, you never need to mock the class itself:
+
+```typescript
+class UserService {
+  constructor(private db: Database) {}
+  async getAll() { return this.db.query(...) }
+}
+
+// Test:
+const mockDb = stub<Database>(['query'])
+const service = new UserService(mockDb)
+```
+
+This is the deride-native style. Reach for it first.
+
+## 2. `stub(MyClass)` — auto-discover from the prototype
+
+When you already have a class but want a per-test fresh instance:
+
+```typescript
+class Greeter {
+  greet(name: string) { return `hi ${name}` }
+  shout(name: string) { return `HI ${name.toUpperCase()}` }
+}
+
+const mock = stub(Greeter)
+mock.setup.greet.toReturn('mocked')
+```
+
+deride walks the prototype chain (inheritance-aware), excludes `constructor` and accessors. Static methods are opt-in:
+
+```typescript
+const staticMock = stub(Greeter, undefined, {
+  debug: { prefix: 'deride', suffix: 'stub' },
+  static: true,
+})
+```
+
+## 3. `stub.class<typeof C>()` — mock the constructor itself
+
+When the code under test does `new MyClass(...)` and you need to intercept:
+
+```typescript
+// production code
+class UserService {
+  createRepo(conn: string) {
+    return new Database(conn)   // ← we need to mock THIS
+  }
+}
+
+// test
+const MockedDb = stub.class(Database)
+
+const service = new UserService()
+const repo = service.createRepo('conn-string')
+
+MockedDb.expect.constructor.called.withArg('conn-string')
+MockedDb.instances.length   // 1
+```
+
+::: warning Module substitution required
+`stub.class` produces a newable stand-in, but you still need to substitute it where the real constructor is imported. That means `vi.mock('./database', () => ({ Database: MockedDb }))` (or jest's equivalent). See [Module mocking](/recipes/module-mocking).
+:::
+
+### Apply setup across every constructed instance
+
+```typescript
+const MockedDb = stub.class(Database)
+MockedDb.setupAll(inst => inst.setup.query.toResolveWith([]))
+
+const a = new MockedDb()
+const b = new MockedDb()
+await a.query('x')   // []
+await b.query('y')   // []
+```
+
+`setupAll` applies to every existing instance and every future one — new instances run the callback at construction.
+
+### Inspect all instances
+
+```typescript
+MockedDb.instances   // readonly array of all Wrapped<Database> constructed so far
+```
+
+Useful for:
+
+- Asserting "exactly one instance was created and queried"
+- Pulling a specific instance out for per-test setup overrides
+- Cleaning up (`MockedDb.instances.forEach(i => i.called.reset())`)
+
+::: warning Instances accumulate
+The `instances[]` array grows unbounded across tests. If you construct many instances per test suite, consider wrapping the class mock in a `sandbox()` and resetting between tests, or manually clearing with `MockedDb.instances.length = 0` (though this is read-as-readonly at the type level).
+:::
+
+## Mocking abstract classes / interfaces without the real class
+
+If you don't have a concrete class to pass to `stub.class` — or you don't want to — just build a hand-shaped mock:
+
+```typescript
+interface IUserRepo {
+  findById(id: number): Promise<User | undefined>
+  save(user: User): Promise<void>
+}
+
+const repo = stub<IUserRepo>(['findById', 'save'])
+repo.setup.findById.when(1).toResolveWith({ id: 1, name: 'alice' })
+```
+
+## Mocking subclasses
+
+`stub` walks the full prototype chain, so inherited methods are picked up automatically:
+
+```typescript
+class Animal {
+  speak() { return 'generic noise' }
+}
+class Dog extends Animal {
+  bark() { return 'woof' }
+}
+
+const mock = stub(Dog)
+mock.setup.speak.toReturn('mocked-speak')  // inherited
+mock.setup.bark.toReturn('mocked-bark')    // own
+```
+
+## Mocking class-based event emitters
+
+`wrap` preserves the full shape — including `on`/`emit`/`addEventListener`. Use `setup.toEmit` to trigger listener callbacks:
+
+```typescript
+const emitter = wrap(new EventEmitter())
+emitter.setup.emit.toEmit('ready', 'payload')
+
+emitter.on('ready', (data) => console.log(data))
+emitter.emit('ready', 'ignored')   // logs 'payload' (the setup wins)
+```
+
+## See also
+
+- [`stub`](/api/stub) / [`stub.class`](/api/stub#stub-class) — signatures
+- [Creating mocks](/guide/creating-mocks) — wider context
+- [Module mocking](/recipes/module-mocking) — substituting mock classes at import time
+
+
+──────────────────────────────────────────────────────────────────────────────
+# Module mocking
+Source: https://guzzlerio.github.io/deride/deride/recipes/module-mocking.md
+──────────────────────────────────────────────────────────────────────────────
+
+deride creates mock **objects**; your test runner handles substituting them at import time. Use the two together.
+
+## Vitest
+
+```typescript
+import { describe, it, vi } from 'vitest'
+import { stub } from 'deride'
+import type { Database } from './database'
+
+// Create the mock up front
+const mockDb = stub<Database>(['query', 'findById'])
+mockDb.setup.query.toResolveWith([{ id: 1 }])
+
+// Substitute the import
+vi.mock('./database', () => ({
+  db: mockDb,
+}))
+
+// Code under test imports './database' and uses the mock
+import { userService } from './user-service'
+
+describe('userService', () => {
+  it('queries the database', async () => {
+    await userService.listUsers()
+    mockDb.expect.query.called.once()
+  })
+})
+```
+
+Vitest hoists `vi.mock` to the top of the file, so it runs before `import { userService }` resolves the module graph.
+
+## Jest
+
+```typescript
+import { stub } from 'deride'
+import type { Database } from './database'
+
+const mockDb = stub<Database>(['query'])
+
+jest.mock('./database', () => ({
+  db: mockDb,
+}))
+
+import { userService } from './user-service'
+```
+
+Same story — `jest.mock` is hoisted. If you're using jest ESM, use `jest.unstable_mockModule` instead and dynamic-import the module under test.
+
+## Node `node:test` test runner
+
+```typescript
+import { describe, it, mock } from 'node:test'
+import { stub } from 'deride'
+import type { Database } from './database'
+
+const mockDb = stub<Database>(['query'])
+mock.module('./database', () => ({
+  db: mockDb,
+}))
+
+const { userService } = await import('./user-service')
+```
+
+Node's `mock.module` is ESM-friendly but not hoisted — use a dynamic import for the module under test.
+
+## When hoisting doesn't play nicely
+
+Some setups (e.g. tests that construct `new URL()` during static analysis, or tests where the mock depends on data from the test) can't hoist `vi.mock`/`jest.mock` nicely. Two options:
+
+### Inject the dependency instead
+
+The cleanest fix is almost always to restructure the code under test to accept the dependency via constructor or factory:
+
+```typescript
+// user-service.ts
+export class UserService {
+  constructor(private db: Database) {}
+  async listUsers() { return this.db.query(...) }
+}
+
+// user-service.test.ts — no vi.mock needed
+const mockDb = stub<Database>(['query'])
+const service = new UserService(mockDb)
+```
+
+This is deride's preferred style. It makes your tests shorter, clearer, and runner-agnostic.
+
+### Dynamic factories
+
+For cases where injection isn't an option, use the runner's module-factory hooks:
+
+```typescript
+// vitest — the factory runs once, lazily
+vi.mock('./database', async () => {
+  const { stub } = await import('deride')
+  return { db: stub<Database>(['query']) }
+})
+```
+
+Referencing the mock after this returns something subtly different — use `vi.mocked(...)` to get a typed handle.
+
+## Partial module mocks
+
+Sometimes you want to mock **some** exports from a module and keep others real:
+
+```typescript
+// vitest
+vi.mock('./utils', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./utils')>()
+  return {
+    ...actual,
+    parseConfig: stub<typeof actual.parseConfig>(['parseConfig']).parseConfig,
+  }
+})
+```
+
+For the mocked function specifically, [`wrap`](/api/wrap) is usually simpler — wrap the real function and override only when needed:
+
+```typescript
+const wrappedParseConfig = wrap(actual.parseConfig)
+wrappedParseConfig.setup.toReturn({ fake: 'config' })
+```
+
+## Typescript + mock type preservation
+
+```typescript
+// vitest
+import { vi } from 'vitest'
+import { stub, type Wrapped } from 'deride'
+import { db } from './database'
+
+vi.mock('./database', () => ({
+  db: stub<typeof db>(['query']),
+}))
+
+// Help TypeScript see the type:
+const mockDb = vi.mocked(db) as unknown as Wrapped<typeof db>
+mockDb.setup.query.toResolveWith([])
+```
+
+## When to avoid module mocking
+
+- **When you can inject the dependency.** Constructor/parameter injection means your tests don't need any runner-specific mocking at all. deride works best with this style.
+- **For pure utility modules.** If the module is side-effect-free and fast, just call it. Mocking pure computation is usually a smell.
+
+## See also
+
+- [Creating mocks](/guide/creating-mocks) — factories
+- [Philosophy](/guide/philosophy) — why composition & injection beat monkey-patching
+
+
+──────────────────────────────────────────────────────────────────────────────
+# Time & timers
+Source: https://guzzlerio.github.io/deride/deride/recipes/time-and-timers.md
+──────────────────────────────────────────────────────────────────────────────
+
+Three tools cover the time axis:
+
+1. **`setup.toResolveAfter(ms, v)` / `toRejectAfter(ms, e)` / `toHang()`** — schedule Promise resolution
+2. **`setup.toTimeWarp(ms)`** — accelerate a callback's delay
+3. **[`deride/clock`](/integrations/clock)** — control `Date.now`, `setTimeout`, `setInterval`, `queueMicrotask`
+
+## Pattern: assert a timeout path fires
+
+```typescript
+import { useFakeTimers } from 'deride/clock'
+import { stub } from 'deride'
+
+const clock = useFakeTimers()
+try {
+  const api = stub<Api>(['fetch'])
+  api.setup.fetch.toHang()
+
+  const result = await Promise.race([
+    api.fetch('/slow'),
+    new Promise<string>(resolve => setTimeout(() => resolve('TIMEOUT'), 500)),
+  ])
+  clock.tick(500)
+  clock.flushMicrotasks()
+  expect(await result).toBe('TIMEOUT')
+} finally {
+  clock.restore()
+}
+```
+
+## Pattern: assert a retry schedule
+
+Code that retries after a delay:
+
+```typescript
+async function withRetry(fn: () => Promise<unknown>, attempts: number, delayMs: number) {
+  for (let i = 0; i < attempts; i++) {
+    try { return await fn() } catch {}
+    await new Promise(r => setTimeout(r, delayMs))
+  }
+  throw new Error('exhausted')
+}
+```
+
+Test:
+
+```typescript
+import { useFakeTimers } from 'deride/clock'
+import { func } from 'deride'
+
+const clock = useFakeTimers()
+try {
+  const fn = func<() => Promise<string>>()
+  fn.setup.toRejectInOrder(new Error('1'), new Error('2'))
+  fn.setup.toResolveWith('ok')
+
+  const p = withRetry(fn, 5, 100)
+
+  // Exhaust retries
+  for (let i = 0; i < 5; i++) {
+    await clock.flushMicrotasks()
+    clock.tick(100)
+  }
+
+  expect(await p).toBe('ok')
+  fn.expect.called.times(3)   // two rejects + one resolve
+} finally {
+  clock.restore()
+}
+```
+
+## Pattern: assert a setInterval polling
+
+```typescript
+function startPolling(fn: () => void, ms: number) {
+  return setInterval(fn, ms)
+}
+
+const clock = useFakeTimers()
+try {
+  const fn = func<() => void>()
+  const handle = startPolling(fn, 50)
+
+  clock.tick(50)       // fires 1
+  clock.tick(50)       // fires 2
+  clock.tick(25)       // nothing yet
+  clock.tick(25)       // fires 3
+
+  fn.expect.called.times(3)
+  clearInterval(handle)
+} finally {
+  clock.restore()
+}
+```
+
+::: warning runAll() with intervals
+`clock.runAll()` throws when its 10 000-iteration guard trips — which it will with an active `setInterval`. Always `clearInterval` before `runAll`, or use `tick(ms)` explicitly.
+:::
+
+## Pattern: freeze Date.now for time-stamp-dependent tests
+
+```typescript
+const clock = useFakeTimers(new Date('2024-01-15T10:30:00Z').getTime())
+try {
+  const record = createRecord()
+  expect(record.createdAt).toBe(1705314600000)
+} finally {
+  clock.restore()
+}
+```
+
+Or step the clock between operations:
+
+```typescript
+const clock = useFakeTimers(0)
+try {
+  const a = createRecord()
+  clock.tick(1000)
+  const b = createRecord()
+
+  expect(b.createdAt - a.createdAt).toBe(1000)
+} finally {
+  clock.restore()
+}
+```
+
+## Pattern: fire microtasks deterministically
+
+```typescript
+const clock = useFakeTimers()
+try {
+  let resolved = false
+  Promise.resolve().then(() => { resolved = true })
+
+  // Microtasks queued via the real Promise aren't caught by the fake clock —
+  // they fire on the runtime's own microtask queue. But code that uses
+  // queueMicrotask() IS captured:
+  let via = false
+  queueMicrotask(() => { via = true })
+
+  clock.flushMicrotasks()
+  expect(via).toBe(true)
+} finally {
+  clock.restore()
+}
+```
+
+::: tip Scope of microtask control
+`deride/clock` only patches `queueMicrotask` — Promise `.then` callbacks aren't intercepted. For full ordering control (Promise microtask queue + task queue together) reach for `vi.useFakeTimers()` or `@sinonjs/fake-timers`.
+:::
+
+## Pattern: accelerate a callback via `toTimeWarp`
+
+For APIs whose internal timeout is awkward (e.g. a 30-second poll), `toTimeWarp(0)` schedules their found callback with a zero delay — no global clock needed:
+
+```typescript
+const client = wrap(realClient)
+client.setup.pollWithRetry.toTimeWarp(0)
+
+client.pollWithRetry(30_000, (result) => {
+  // runs immediately
+})
+```
+
+This doesn't affect `Date.now` or other timers — it only shortcuts the callback deep inside the mocked method.
+
+## Interop: vitest's fake timers
+
+If you already use `vi.useFakeTimers()` in your project, you don't need `deride/clock` — vitest's timer advance resolves internal `setTimeout`s. But don't mix them:
+
+```typescript
+// ❌ Don't do this — two fake-timer systems fight
+vi.useFakeTimers()
+const clock = useFakeTimers()   // deride clock throws: "already installed"
+```
+
+Pick one per test.
+
+## See also
+
+- [`setup.toResolveAfter` / `toRejectAfter` / `toHang`](/guide/configuring-behaviour#time-shifted-async)
+- [`deride/clock`](/integrations/clock) — full API
+- [Async & Promises recipes](/recipes/async-mocking)
 

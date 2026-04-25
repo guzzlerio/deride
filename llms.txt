@@ -9,3 +9,45 @@ This site also publishes:
 - [`llms-full.txt`](https://guzzlerio.github.io/deride/deride/llms-full.txt) — every page concatenated for single-fetch ingestion.
 - `.md` variants of every page (append `.md` to any URL, e.g. https://guzzlerio.github.io/deride/deride/guide/quick-start.md).
 - Decision tree, common mistakes, and canonical examples under the [For Agents](https://guzzlerio.github.io/deride/deride/ai/) section.
+
+## Guide
+
+- [Configuring behaviour](https://guzzlerio.github.io/deride/deride/guide/configuring-behaviour.md): Every mocked method has a .setup handle. Call a method on .setup to configure how the mock responds. Setup methods chain (return the setup object) so you can combine .when(...), .once()/.times(n), and
+- [Creating mocks](https://guzzlerio.github.io/deride/deride/guide/creating-mocks.md): Five factories cover every shape of test double deride supports. Pick the one that matches what you have.
+- [Diagnostics](https://guzzlerio.github.io/deride/deride/guide/diagnostics.md): When an assertion fails, you want to see what actually happened — not just that it didn't match. deride's failure messages include the full recorded call history, with indices.
+- [Writing expectations](https://guzzlerio.github.io/deride/deride/guide/expectations.md): Every mocked method exposes an .expect.<method> handle with three branches:
+- [Installation](https://guzzlerio.github.io/deride/deride/guide/installation.md): - Node.js 20 or later (deride's published CI matrix is Node 20 / 22 × Ubuntu / macOS / Windows).
+- [Introduction](https://guzzlerio.github.io/deride/deride/guide/introduction.md): deride is a TypeScript-first mocking library that works with frozen objects, sealed classes, and any coding style — because it composes rather than monkey-patches.
+- [Lifecycle management](https://guzzlerio.github.io/deride/deride/guide/lifecycle.md): Two concerns live here: resetting call history between tests, and snapshotting/restoring a mock's full state (behaviours + calls) to roll back in-test changes.
+- [Argument matchers](https://guzzlerio.github.io/deride/deride/guide/matchers.md): deride's match.* namespace gives you composable, brand-tagged predicates that work in every place a value can appear:
+- [Migrating](https://guzzlerio.github.io/deride/deride/guide/migrating.md): Common patterns from other mocking libraries, translated to deride.
+- [Cross-mock ordering](https://guzzlerio.github.io/deride/deride/guide/ordering.md): Sometimes it's not enough to assert that a call happened — you need to assert that it happened before or after another call on a different mock. inOrder(...) is the tool.
+- [Philosophy](https://guzzlerio.github.io/deride/deride/guide/philosophy.md): deride is built on one idea: composition, not monkey-patching. This page explains what that means, why it matters, and the two subtler design rules that fall out of it — the dispatch model, and the ex
+- [Quick Start](https://guzzlerio.github.io/deride/deride/guide/quick-start.md): A five-minute tour of the API through a realistic scenario: testing a UserService that depends on a Database.
+- [Spy inspection](https://guzzlerio.github.io/deride/deride/guide/spy.md): Every mocked method has a .spy handle alongside .setup and .expect. The spy API is read-only and never throws — it gives you the call history as structured data to inspect, feed forward, or snapshot.
+- [TypeScript](https://guzzlerio.github.io/deride/deride/guide/typescript.md): deride is TypeScript-first. Every public API is generic over the shape you're mocking, so setup methods are constrained to the real method signatures and return types.
+
+## Integrations
+
+- [`deride/clock` — fake timers](https://guzzlerio.github.io/deride/deride/integrations/clock.md): A lightweight, dependency-free fake-timers helper. Pairs well with setup.toResolveAfter / toRejectAfter / toHang when you want synchronous control over Date.now, setTimeout, setInterval, and queueMicr
+- [`deride/jest` — jest matchers](https://guzzlerio.github.io/deride/deride/integrations/jest.md): Same matcher set as deride/vitest, registered via jest's expect.extend. Import once (ideally from setupFilesAfterEach) and the matchers become available on every test.
+- [`deride/vitest` — vitest matchers](https://guzzlerio.github.io/deride/deride/integrations/vitest.md): Opt-in toHaveBeenCalled* matcher family that integrates deride's spy API with vitest's expect. Import once — typically from a setupFiles — and the matchers become available globally on every spy and M
+
+## API reference
+
+- [API Reference](https://guzzlerio.github.io/deride/deride/api/index.md): Quick index of every public export from deride and its sub-paths.
+- [`func`](https://guzzlerio.github.io/deride/deride/api/func.md): Create a standalone mocked function. If original is supplied, the mock falls back to calling it when no behaviour matches; otherwise the unconfigured mock returns undefined.
+- [`inOrder`](https://guzzlerio.github.io/deride/deride/api/in-order.md): Assert that spies fired in a relative order.
+- [`match`](https://guzzlerio.github.io/deride/deride/api/match.md): Namespace of composable argument matchers. Usable everywhere a value can appear: setup.when, expect.*.withArg, withArgs, matchExactly, withReturn, threw, and nested inside objects/arrays at any depth.
+- [`sandbox`](https://guzzlerio.github.io/deride/deride/api/sandbox.md): Create a scope that registers every mock created through its factories. reset() clears call history on all of them; restore() clears behaviours too.
+- [`stub`](https://guzzlerio.github.io/deride/deride/api/stub.md): Build a test double from method names, an object, or a class.
+- [Types](https://guzzlerio.github.io/deride/deride/api/types.md): Every public type exported from deride, grouped by concern.
+- [`wrap`](https://guzzlerio.github.io/deride/deride/api/wrap.md): Wrap an existing object (or function) with deride facades. Unlike stub, the real methods still run by default — wrap is the tool for partial mocking.
+
+## Recipes
+
+- [Async & Promises](https://guzzlerio.github.io/deride/deride/recipes/async-mocking.md): Patterns for mocking async APIs: resolving with data, rejecting, delaying, hanging, and asserting against the captured Promise.
+- [Fluent / chainable APIs](https://guzzlerio.github.io/deride/deride/recipes/chainable-apis.md): Query builders, jQuery-style chains, builder patterns, fluent assertion libraries — all involve methods that return this. toReturnSelf() is the tool.
+- [Class mocking](https://guzzlerio.github.io/deride/deride/recipes/class-mocking.md): Three patterns, in order of preference.
+- [Module mocking](https://guzzlerio.github.io/deride/deride/recipes/module-mocking.md): deride creates mock objects; your test runner handles substituting them at import time. Use the two together.
+- [Time & timers](https://guzzlerio.github.io/deride/deride/recipes/time-and-timers.md): Three tools cover the time axis:

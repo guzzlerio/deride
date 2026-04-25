@@ -24,11 +24,11 @@ Which API to reach for, by task. Tables, not prose. If your question isn't answe
 
 | Behaviour | Setup |
 |-----------|-------|
-| Return a fixed value | `.toReturn(value)` |
+| Return a fixed value | `.toReturn(value)` (use `.toReturn<T>(value)` if the method's return type collapses to `void` — see [common mistake #12](./common-mistakes#_12-fighting-setup-methods-when-the-inferred-return-type-is-void)) |
 | Return the mock itself (fluent APIs) | `.toReturnSelf()` |
 | Run custom logic with access to args | `.toDoThis((a, b) => …)` |
 | Throw an Error(msg) | `.toThrow(message)` |
-| Return a resolved Promise with a value | `.toResolveWith(value)` |
+| Return a resolved Promise with a value | `.toResolveWith(value)` (use `.toResolveWith<T>(value)` if the method's return type collapses to `void` — see [common mistake #12](./common-mistakes#_12-fighting-setup-methods-when-the-inferred-return-type-is-void)) |
 | Return a resolved Promise with no value | `.toResolve()` |
 | Return a rejected Promise | `.toRejectWith(error)` |
 | Resolve after N ms (use with fake timers) | `.toResolveAfter(ms, value)` |
@@ -110,7 +110,7 @@ Matchers compose and nest — use them inside `objectContaining`, `arrayContaini
 | Any call threw (optional: Error message / class / matcher) | `.called.threw(expected?)` |
 | The i-th call included this arg | `.invocation(i).withArg(arg)` |
 | EVERY call matched (each of the above) | `.everyCall.withArg(…)` etc. |
-| Negate any of the above | `.called.not.withArg(...)` |
+| Negate any of the above | `.not.called.withArg(...)` — negated count methods (`once`, `twice`, `times`, `lt`, `gt`, etc.) are **terminal** (return void, no chaining) |
 
 **Decision rule:** if you want a test to fail when the assertion fails, use `expect.called.*`. If you want a boolean / data / to branch, use `spy.*`.
 

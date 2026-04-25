@@ -229,7 +229,41 @@ export default defineConfig({
 
 **Why:** `deride/vitest` registers matchers via `expect.extend(...)` as a side effect at module load. The matchers live on whatever `expect` was in scope when the import ran. Loading it via `setupFiles` ensures they're available in every test.
 
-## 12. Forgetting `restoreActiveClock` in `afterEach`
+## 12. Fighting setup methods when the inferred return type is `void`
+
+**❌ Wrong**
+
+Heavily overloaded methods (most notably AWS SDK clients) sometimes resolve their return type to `void` instead of the response type. Any setup method whose value type is derived from `R` then rejects non-void values:
+
+```typescript
+import { SSMClient } from '@aws-sdk/client-ssm'
+const mockClient = stub<SSMClient>(['send'])
+
+// TS2345: ... is not assignable to parameter of type 'void'
+mockClient.setup.send.toResolveWith({ Parameter: { Value: 'x' } })
+mockClient.setup.send.toReturn(somePromise)
+mockClient.setup.send.toReturnInOrder(promiseA, promiseB)
+```
+
+Don't suppress with `@ts-expect-error` or rewrite to a `SimplifiedClient` interface that throws away type safety on the rest of the surface.
+
+**✅ Right**
+
+The five `R`-derived setup methods — `toReturn`, `toResolveWith`, `toResolveAfter`, `toReturnInOrder`, `toResolveInOrder` — widen their value type to `unknown` when the inferred return is exactly `void`, so the calls above type-check as-is. To pin the value type explicitly (recommended when you care about test-time intent), pass it as an explicit type parameter:
+
+```typescript
+import type { GetParameterCommandOutput } from '@aws-sdk/client-ssm'
+
+mockClient.setup.send.toResolveWith<GetParameterCommandOutput>({
+  Parameter: { Value: 'x' },
+})
+mockClient.setup.send.toReturn<Promise<GetParameterCommandOutput>>(somePromise)
+mockClient.setup.send.toResolveInOrder<GetParameterCommandOutput>(a, b)
+```
+
+**Why:** an overload set with no matching signature collapses to the fallback (`void`) at the type level even though the runtime call resolves to a real response. The widening only triggers on exact `void` — well-typed methods still strictly check against `R` (or `T` for `Promise<T>`).
+
+## 13. Forgetting `restoreActiveClock` in `afterEach`
 
 **❌ Wrong**
 
@@ -260,3 +294,37 @@ it('does timing stuff', () => {
 ```
 
 **Why:** `useFakeTimers()` patches global `Date.now` / `setTimeout` / `setInterval` / `queueMicrotask`. `runAll()` *can* throw (bounded at 10,000 iterations to catch runaway intervals), and that throw escapes before `restore()` would run. The `afterEach` guard catches all of these cases.
+
+## 13. Using `called.not` instead of `not.called`
+
+**❌ Wrong**
+
+```typescript
+mock.expect.greet.called.not.withArg('bob')
+```
+
+**✅ Right**
+
+```typescript
+mock.expect.greet.not.called.withArg('bob')
+```
+
+**Why:** `called.not` is deprecated (planned removal in v3). Negation lives at the `expect.method.not` level. The `.not` property is on `MockExpect`, providing the negated `called` branch.
+
+## 14. Chaining after a negated count method
+
+**❌ Wrong**
+
+```typescript
+mock.expect.greet.not.called.once().withArg('alice')
+// Compile error — negated count methods return void
+```
+
+**✅ Right**
+
+```typescript
+mock.expect.greet.not.called.once()          // count check alone
+mock.expect.greet.called.withArg('alice')    // separate arg check
+```
+
+**Why:** Negated count methods (`once()`, `twice()`, `times()`, `lt()`, `gt()`, etc.) are terminal — they return `void`. If chaining were allowed, each link would be negated independently (De Morgan), producing surprising results: `not.once()` passes but `not.withArg('alice')` fails even though the user intended "was not called exactly once with alice". Use two separate assertions instead.
