@@ -17,3 +17,6 @@ preview-*.png
 # VitePress build output and cache
 docs/.vitepress/dist/
 docs/.vitepress/cache/
+
+# Generated at build time from GitHub Releases
+docs/changelog.md

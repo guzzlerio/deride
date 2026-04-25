@@ -26,7 +26,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
@@ -44,9 +44,46 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Record pre-release tag
+        id: pre
+        run: echo "tag=$(git describe --tags --abbrev=0 2>/dev/null || echo none)" >> "$GITHUB_OUTPUT"
+
       - name: Release (semantic-release)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: pnpm exec semantic-release
+
+      - name: Detect new release
+        id: release
+        run: |
+          NEW_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo none)
+          if [ "$NEW_TAG" != "${{ steps.pre.outputs.tag }}" ] && [ "$NEW_TAG" != "none" ]; then
+            VERSION="${NEW_TAG#v}"
+            MAJOR="${VERSION%%.*}"
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+            echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Snapshot docs for release
+        if: steps.release.outputs.published == 'true'
+        run: |
+          rm -rf docs/v${{ steps.release.outputs.major }}
+          cp -r docs/next docs/v${{ steps.release.outputs.major }}
+          rm -f docs/latest
+          ln -s v${{ steps.release.outputs.major }} docs/latest
+
+      - name: Build and deploy docs
+        if: steps.release.outputs.published == 'true'
+        run: pnpm docs:build
+
+      - name: Deploy to GitHub Pages
+        if: steps.release.outputs.published == 'true'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs/.vitepress/dist

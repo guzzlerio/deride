@@ -2,7 +2,7 @@
   "name": "deride",
   "description": "Mocking library based on composition",
   "version": "2.0.0",
-  "homepage": "https://github.com/guzzlerio/deride",
+  "homepage": "https://guzzlerio.github.io/deride/",
   "author": {
     "name": "Andrew Rea",
     "url": "http://www.andrewrea.co.uk"
@@ -85,13 +85,13 @@
     "prepublishOnly": "npm run lint && npm run test:coverage && npm run build"
   },
   "devDependencies": {
-    "@commitlint/cli": "^19.6.0",
-    "@commitlint/config-conventional": "^19.6.0",
+    "@commitlint/cli": "^20.5.0",
+    "@commitlint/config-conventional": "^20.5.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/commit-analyzer": "^13.0.0",
     "@semantic-release/git": "^10.0.1",
-    "@semantic-release/github": "^11.0.1",
-    "@semantic-release/npm": "^12.0.1",
+    "@semantic-release/github": "^12.0.6",
+    "@semantic-release/npm": "^13.1.5",
     "@semantic-release/release-notes-generator": "^14.0.1",
     "@types/debug": "^4.1.13",
     "@types/node": "^25.6.0",
