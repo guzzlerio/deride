@@ -176,7 +176,7 @@ export default defineConfig({
     ],
 
     editLink: {
-      pattern: 'https://github.com/guzzlerio/deride/edit/develop/docs/:path',
+      pattern: 'https://github.com/guzzlerio/deride/edit/main/docs/:path',
       text: 'Edit this page on GitHub',
     },
 
@@ -188,7 +188,7 @@ export default defineConfig({
     },
 
     footer: {
-      message: 'Released under the <a href="https://github.com/guzzlerio/deride/blob/develop/LICENSE-MIT">MIT License</a>.',
+      message: 'Released under the <a href="https://github.com/guzzlerio/deride/blob/main/LICENSE-MIT">MIT License</a>.',
       copyright: 'Copyright © 2014-present Andrew Rea & James Allen',
     },
 

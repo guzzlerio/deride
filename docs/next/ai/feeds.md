@@ -93,7 +93,7 @@ For embedding-based retrieval, the `.md` variants are ideal input — no HTML to
 
 ## How these feeds are maintained
 
-A VitePress `buildEnd` hook in [`docs/.vitepress/emit-llm-assets.ts`](https://github.com/guzzlerio/deride/blob/develop/docs/.vitepress/emit-llm-assets.ts) walks the source markdown, strips frontmatter, and writes:
+A VitePress `buildEnd` hook in [`docs/.vitepress/emit-llm-assets.ts`](https://github.com/guzzlerio/deride/blob/main/docs/.vitepress/emit-llm-assets.ts) walks the source markdown, strips frontmatter, and writes:
 
 - `dist/<page>.md` — a clean Markdown copy of every page
 - `dist/llms.txt` — the llmstxt.org index
