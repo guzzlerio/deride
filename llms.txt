@@ -1,0 +1,11 @@
+# deride
+
+> TypeScript-first mocking library that wraps rather than monkey-patches. Works with frozen objects, sealed classes, and any coding style.
+
+Zero runtime dependencies beyond `debug`. Ships ESM + CJS + `.d.ts`. Framework-agnostic; opt-in integrations for vitest / jest / fake timers via sub-paths.
+
+This site also publishes:
+
+- [`llms-full.txt`](https://guzzlerio.github.io/deride/deride/llms-full.txt) — every page concatenated for single-fetch ingestion.
+- `.md` variants of every page (append `.md` to any URL, e.g. https://guzzlerio.github.io/deride/deride/guide/quick-start.md).
+- Decision tree, common mistakes, and canonical examples under the [For Agents](https://guzzlerio.github.io/deride/deride/ai/) section.
