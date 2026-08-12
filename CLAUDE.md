@@ -41,7 +41,7 @@ Always use `pnpm`, never `npm`. The lockfile is `pnpm-lock.yaml`. Dev setup: Nod
 
 If a squash is unavoidable, rename the squash commit message to `feat: …` or `fix: …` at merge time so the release rule matches.
 
-**`@semantic-release/git` and `@semantic-release/changelog` are intentionally not used.** Both would try to push a `chore(release):` commit back to `master`, which branch protection rejects. `package.json` and `CHANGELOG.md` in the repo are not auto-maintained — the authoritative record is the [GitHub Releases page](https://github.com/guzzlerio/deride/releases).
+**`@semantic-release/git` and `@semantic-release/changelog` are intentionally not used, and are no longer installed.** Both would try to push a `chore(release):` commit back to the release branch, which branch protection rejects. Don't re-add them to `devDependencies` — they sat there unused (and generating dependabot majors) until they were removed. `package.json` and `CHANGELOG.md` in the repo are not auto-maintained — the authoritative record is the [GitHub Releases page](https://github.com/guzzlerio/deride/releases).
 
 **Secrets required by the release workflow:** `NPM_TOKEN` (automation token with publish + provenance rights). `GITHUB_TOKEN` is provided automatically.
 
