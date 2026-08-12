@@ -328,3 +328,61 @@ mock.expect.greet.called.withArg('alice')    // separate arg check
 ```
 
 **Why:** Negated count methods (`once()`, `twice()`, `times()`, `lt()`, `gt()`, etc.) are terminal — they return `void`. If chaining were allowed, each link would be negated independently (De Morgan), producing surprising results: `not.once()` passes but `not.withArg('alice')` fails even though the user intended "was not called exactly once with alice". Use two separate assertions instead.
+
+## 15. Casting a `string[]` to silence the `stub<T>` name check
+
+**❌ Wrong**
+
+```typescript
+stub<Database>(['query', 'findByID'] as (keyof Database)[])
+// Compiles — and the mock has no findById. The cast suppressed the typo.
+```
+
+**✅ Right**
+
+```typescript
+stub<Database>(['query', 'findById'])
+// Literal array — every name is checked against keyof Database
+```
+
+**Why:** `stub<T>(methodNames)` constrains names to `keyof T`, so a typo or a
+renamed method is a compile error. Casting the literal array throws that away
+and reinstates the exact bug the check exists to catch — the stub is missing
+the method and you find out at runtime, if at all.
+
+The cast is only correct when the list genuinely is not known statically:
+
+```typescript
+const names: string[] = readMethodsFromConfig()
+stub<Database>(names as (keyof Database)[])   // nothing to check against
+```
+
+If you find yourself casting a literal, the name is wrong — fix the name.
+
+## 16. Assuming a name list keeps up with the interface
+
+**❌ Wrong**
+
+```typescript
+interface Gateway {
+  get(): Promise<Account>
+  save(patch: Patch): Promise<Account>   // added later
+}
+const gw = stub<Gateway>(['get'])
+await gw.save(patch)   // typed fine — undefined at runtime
+```
+
+**✅ Right**
+
+```typescript
+const gw = stub(GatewayImpl)   // surface derived from the class
+```
+
+**Why:** The name check verifies that the names you supplied *exist* on `T`. It
+does not verify that you supplied *all* of them — partial stubs are a
+deliberate, supported pattern. So a method added to the interface later is
+still missing from the mock, while `Wrapped<T>` continues to claim it exists.
+
+Deriving the surface from a class or a real instance removes the failure mode
+entirely. Reach for a name list only when there is no class or instance to
+derive from.

@@ -6,14 +6,19 @@ Build a test double from method names, an object, or a class.
 
 ```typescript
 stub<I>(cls: new (...args: never[]) => I): Wrapped<I>
-stub<T>(obj: T): Wrapped<T>
-stub<T>(methodNames: (keyof T)[]): Wrapped<T>
-stub<T>(
-  methodNames: string[],
+stub<T = Record<string, unknown>>(
+  methodNames: readonly (keyof T)[],
   properties?: { name: PropertyKey; options: PropertyDescriptor }[],
   options?: StubOptions
 ): Wrapped<T>
+stub<T>(obj: T): Wrapped<T>
 ```
+
+::: warning Changed in v3
+The method-name list is now constrained to `keyof T`. A typo or a stale name is
+a compile error instead of a mock that is silently missing the method. See
+[Migrating](../guide/migrating#method-name-lists-are-checked-against-keyof-t).
+:::
 
 ## Parameters
 
@@ -21,9 +26,20 @@ stub<T>(
 
 Can be:
 
-- **Array of method names** — TypeScript inference drives typing via `stub<T>([...])`.
+- **Array of method names** — every name must be a key of `T`. With no explicit
+  `T`, the names are inferred into the mock's shape, so `stub(['query'])` gives
+  you `setup.query` rather than a mock typed as `string[]`. `readonly` and
+  `as const` arrays are accepted.
 - **Existing object** — all own + inherited function-typed keys become stubbed methods.
 - **Class constructor** — walks the prototype chain (not statics, unless `{ static: true }`).
+
+Names assembled at runtime widen to `string[]` and cannot be checked against
+`keyof T`. Assert the intent explicitly at the call site:
+
+```typescript
+const names: string[] = readMethodsFromSomewhere()
+stub<Database>(names as (keyof Database)[])
+```
 
 ### `properties` (optional second arg)
 

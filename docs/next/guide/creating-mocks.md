@@ -27,7 +27,44 @@ const mockDb = stub<Database>(['query', 'findById'])
 mockDb.setup.query.toResolveWith([])
 ```
 
-Methods default to returning `undefined` until configured. Every method on `T` must appear in the array; TypeScript checks it.
+Methods default to returning `undefined` until configured.
+
+Every name is checked against `keyof T`, so a typo or a renamed method is a
+compile error:
+
+```typescript
+stub<Database>(['query', 'findByID'])
+// Type '"findByID"' is not assignable to type 'keyof Database'.
+// Did you mean '"findById"'?
+```
+
+The check is that each name you supply *exists* on `T` — not that you supplied
+all of them. Listing a subset is fine and often what you want:
+
+```typescript
+const mockDb = stub<Database>(['query'])   // findById intentionally omitted
+```
+
+The flip side is that a method added to `Database` later is silently missing
+from the mock, while the type still claims it exists. Where a class or a real
+instance is available, prefer [`stub(MyClass)`](#stub-from-a-class) or
+[`stub(obj)`](#stub-from-an-existing-object) — those derive the surface, so it
+cannot drift.
+
+A list built at runtime widens to `string[]` and cannot be checked. Assert it
+explicitly:
+
+```typescript
+const names: string[] = readMethodsFromConfig()
+stub<Database>(names as (keyof Database)[])
+```
+
+With no type argument at all, the names are inferred into the mock's shape:
+
+```typescript
+const mock = stub(['query', 'close'])
+mock.setup.query.toReturn('rows')   // type-checks
+```
 
 ### With extra properties
 

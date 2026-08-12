@@ -23,6 +23,27 @@ The type `Wrapped<Service>` is inferred automatically. You can annotate explicit
 const mock: Wrapped<Service> = stub<Service>(['fetch', 'process'])
 ```
 
+The name list is constrained to `keyof Service`, so the compiler catches a
+mistyped or stale method name — including suggesting the intended one:
+
+```typescript
+stub<Service>(['fetch', 'proccess'])
+// Type '"proccess"' is not assignable to type 'keyof Service'.
+// Did you mean '"process"'?
+```
+
+Names produced at runtime widen to `string[]` and cannot be checked against
+`keyof Service`; `stub<Service>(names as (keyof Service)[])` opts out
+explicitly. See [Common mistakes](../ai/common-mistakes) for when that cast is
+and isn't appropriate.
+
+Omitting the type argument infers the mock's shape from the names themselves:
+
+```typescript
+const mock = stub(['fetch', 'process'])
+mock.setup.fetch.toReturn('response')   // ✓ — keys come from the name list
+```
+
 ## `toResolveWith` unwraps `Promise<T>`
 
 For async methods, `toResolveWith(v)` expects the resolved type — not the Promise itself:

@@ -102,3 +102,59 @@ expectSvc.expect.greet.not.called.withArg('nobody').withReturn('nope')
 // VALID: deprecated called.not path still type-checks (issue #109 review §4)
 expectSvc.expect.greet.called.not.withArg('nobody')
 expectSvc.expect.greet.called.not.twice()
+
+// ── stub<T>(methodNames) constrains names to keyof T (issue #127) ──
+
+// VALID: every name is a method of MyService
+deride.stub<MyService>(['greet', 'fetchData'])
+
+// INVALID: 'fetchDat' is a typo — must not silently fall through to a
+// permissive string[] overload. This is the whole point of issue #127.
+// @ts-expect-error: "fetchDat" is not assignable to keyof MyService
+deride.stub<MyService>(['greet', 'fetchDat'])
+
+// VALID: a subset is still allowed — partial stubs are a supported pattern
+deride.stub<MyService>(['greet'])
+
+// VALID: readonly / `as const` arrays are accepted
+deride.stub<MyService>(['greet', 'fetchData'] as const)
+
+// INVALID: a widened string[] cannot be checked against keyof T
+const dynamicNames: string[] = ['greet', 'fetchData']
+// @ts-expect-error: string is not assignable to keyof MyService
+deride.stub<MyService>(dynamicNames)
+
+// VALID: documented escape hatch for dynamically built name lists
+deride.stub<MyService>(dynamicNames as (keyof MyService)[])
+
+// VALID: with no explicit T, names are inferred into the mock's shape —
+// the array overload must win over the object overload, or T infers as
+// string[] and the facades key off Array members instead of the names.
+const inferred = deride.stub(['query', 'close'])
+inferred.setup.query.toReturn(1)
+inferred.expect.query.called.once()
+inferred.spy.close.callCount satisfies number
+
+// INVALID: a name that was never listed is not on the inferred mock
+// @ts-expect-error: 'missing' was not in the method name list
+inferred.setup.missing.toReturn(1)
+
+// VALID: class and object forms are unaffected by the array overload order
+class RealService {
+  greet(_name: string): string {
+    return ''
+  }
+  fetchData(_url: string): Promise<{ id: number }> {
+    return Promise.resolve({ id: 1 })
+  }
+}
+deride.stub(RealService).setup.greet.toReturn('hi')
+const realObj = { greet: (_n: string): string => '' }
+deride.stub(realObj).setup.greet.toReturn('hi')
+
+// VALID: generic helpers wrapping stub() still infer (regression guard —
+// a conditional-type object overload breaks this case)
+function makeMock<U extends object>(target: U) {
+  return deride.stub(target)
+}
+makeMock(new RealService()).setup.greet.toReturn('hi')
