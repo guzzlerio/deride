@@ -19,7 +19,7 @@ jobs:
       contents: write        # creating git tags and GitHub releases
       issues: write          # semantic-release opens issues on failure
       pull-requests: write
-      id-token: write        # npm provenance
+      id-token: write        # OIDC — npm trusted publishing + provenance
     steps:
       - uses: actions/checkout@v6
         with:
@@ -31,6 +31,18 @@ jobs:
           node-version: 22
           cache: pnpm
           registry-url: 'https://registry.npmjs.org'
+
+      # Trusted publishing (OIDC) needs npm CLI >= 11.5.1. Node 22 bundles npm
+      # 10.9.x, which cannot perform the exchange. This matters because
+      # @semantic-release/npm treats a successful exchange as proof that auth is
+      # handled and returns *without* writing any token into .npmrc — so it then
+      # runs `npm publish` with no credentials, and an npm that can't do OIDC
+      # fails there. Installs use pnpm; publishing still goes through npm.
+      - name: Ensure npm supports trusted publishing
+        run: |
+          npm install -g npm@^11.5.1
+          npm --version
+
       - run: pnpm install --frozen-lockfile
 
       # Re-run the gate before publishing so a red build never reaches npm,
