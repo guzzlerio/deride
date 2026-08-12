@@ -6,7 +6,8 @@ Which API to reach for, by task. Tables, not prose. If your question isn't answe
 
 | What you have | Factory | Example |
 |---------------|---------|---------|
-| A TypeScript interface or type, no instance | `stub<T>(['method1', 'method2'])` | `stub<Database>(['query'])` |
+| A TypeScript interface or type, no instance | `stub<T>(['method1', 'method2'])` — names are checked against `keyof T` | `stub<Database>(['query'])` |
+| A method name list built at runtime | `stub<T>(names as (keyof T)[])` | `stub<Database>(names as (keyof Database)[])` |
 | An existing object instance | `stub(obj)` | `stub(new Logger())` |
 | A class (want prototype methods auto-discovered) | `stub(MyClass)` | `stub(Greeter)` |
 | A class (want static methods instead) | `stub(MyClass, undefined, { debug:{prefix:'deride',suffix:'stub'}, static:true })` | `stub(Greeter, undefined, {…, static:true})` |
@@ -16,6 +17,10 @@ Which API to reach for, by task. Tables, not prose. If your question isn't answe
 | A brand-new standalone function from scratch | `func<F>()` | `func<(x: number) => number>()` |
 
 **Rules of thumb:**
+- Prefer `stub(MyClass)` or `stub(obj)` over a name list whenever a class or
+  instance is available — the surface is derived, so it cannot drift out of
+  sync when a method is added or renamed. A name list only checks the names you
+  wrote, not that you wrote all of them.
 - `stub` replaces, `wrap` preserves real behaviour until overridden.
 - `stub.class` is only for `new`-call interception. If you control the call site, inject a `stub(...)` instance instead.
 - Use `func()` when the dependency is **itself** a function (callback, handler, fetcher).

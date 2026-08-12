@@ -104,3 +104,40 @@ describe('stub.class<typeof C>()', () => {
     expect(MockedGreeter.instances).toEqual([a, b])
   })
 })
+
+describe('stub<T>(methodNames) — name list forms (issue #127)', () => {
+  interface Db {
+    query(sql: string): string
+    close(): void
+  }
+
+  it('stubs every listed method', () => {
+    const db = stub<Db>(['query', 'close'])
+    db.setup.query.toReturn('rows')
+    expect(db.query('select 1')).toBe('rows')
+    db.close()
+    db.expect.close.called.once()
+  })
+
+  it('accepts a readonly / as const name list', () => {
+    const names = ['query', 'close'] as const
+    const db = stub<Db>(names)
+    db.setup.query.toReturn('rows')
+    expect(db.query('select 1')).toBe('rows')
+  })
+
+  it('only stubs the names listed — omitted methods are absent', () => {
+    const db = stub<Db>(['query'])
+    expect(typeof db.query).toBe('function')
+    expect((db as unknown as Record<string, unknown>).close).toBeUndefined()
+  })
+
+  it('infers the mock shape from the names when no type argument is given', () => {
+    const mock = stub(['query', 'close'])
+    mock.setup.query.toReturn('rows')
+    expect(mock.query()).toBe('rows')
+    // The array overload must win over the object overload, otherwise the
+    // facades key off Array members rather than the supplied names.
+    expect((mock.setup as unknown as Record<string, unknown>).push).toBeUndefined()
+  })
+})

@@ -2,6 +2,53 @@
 
 Common patterns from other mocking libraries, translated to deride.
 
+## Upgrading from v2 to v3
+
+### Method name lists are checked against `keyof T`
+
+`stub<T>(methodNames)` now constrains every name to `keyof T`. Previously a
+permissive `string[]` overload accepted anything, so a typo compiled silently
+and produced a mock missing that method — the failure only surfaced at runtime,
+when something called it.
+
+```typescript
+interface AccountGateway {
+  get(): Promise<Account>
+  save(patch: AccountPatch): Promise<Account>
+}
+
+stub<AccountGateway>(['get', 'sve'])
+// v2: compiles. The stub has no save().
+// v3: Type '"sve"' is not assignable to type 'keyof AccountGateway'.
+//     Did you mean '"save"'?
+```
+
+Correct name lists are unaffected. Two things changed that may need action:
+
+**Name lists built at runtime.** A value typed `string[]` can no longer be
+checked, so it is rejected. Assert the intent at the call site:
+
+```typescript
+const names: string[] = readMethodsFromConfig()
+
+stub<Database>(names)                          // v3: compile error
+stub<Database>(names as (keyof Database)[])    // explicit opt-out
+```
+
+Only do this when the list genuinely is not known statically. Casting a literal
+array reinstates the bug this change exists to catch.
+
+**Mocks built without a type argument.** `stub(['query', 'close'])` used to
+resolve to `Wrapped<string[]>`, so the facades keyed off `Array` members —
+`setup.length`, `setup.push` — instead of your method names. It now infers the
+names into the mock's shape, so `setup.query` and `expect.close` type-check.
+This is a fix, but it will surface real type errors in code that was relying on
+the old, wrong inference.
+
+`readonly` and `as const` name lists are now accepted, which previously failed.
+
+Nothing about runtime behaviour changed — this is a type-level change only.
+
 ## From sinon
 
 ### `sinon.stub`

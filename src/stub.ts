@@ -72,7 +72,7 @@ function staticMethods(ctor: AnyCtor): string[] {
   return out
 }
 
-function isMethodNameArray(target: unknown): target is (string | PropertyKey)[] {
+function isMethodNameArray(target: unknown): target is readonly PropertyKey[] {
   return Array.isArray(target) && target.every((v) => typeof v === 'string' || typeof v === 'symbol' || typeof v === 'number')
 }
 
@@ -81,24 +81,35 @@ function isMethodNameArray(target: unknown): target is (string | PropertyKey)[] 
  *
  * Overloads:
  *  - `stub(MyClass)` — auto-discovers methods from the class prototype chain.
+ *  - `stub<T>(['method1', 'method2'], properties?, options?)` — explicit list of
+ *    method names, constrained to `keyof T` when `T` is supplied. `properties`
+ *    adds property descriptors; `options` takes e.g. `{ static: true }` to mock
+ *    a class's static side.
  *  - `stub(existingObject)` — auto-discovers methods from an instance.
- *  - `stub<T>(['method1', 'method2'])` — explicit list of method names.
- *  - `stub<T>(methodNames, properties, options)` — with property descriptors and
- *    additional options (e.g. `{ static: true }` to mock a class's static side).
  *
  * Pass `{ static: true }` alongside a class target to stub the static methods
  * instead of the prototype methods.
+ *
+ * @remarks
+ * The name list is checked against `keyof T`, so a typo or a renamed method is
+ * a compile error rather than a mock that is silently missing the method. Names
+ * built at runtime are widened to `string[]` and cannot be checked — assert the
+ * intent explicitly with `stub<T>(names as (keyof T)[])`.
+ *
+ * The method-name overload deliberately precedes the object overload: an array
+ * is also an `object`, so were the order reversed `stub(['a', 'b'])` would bind
+ * `T` to `string[]` and key the facades off `Array` members instead of the
+ * supplied names.
  */
 export function stub<I extends object>(cls: new (...args: never[]) => I): Wrapped<I>
-export function stub<T extends object>(obj: T): Wrapped<T>
-export function stub<T extends object>(methodNames: (keyof T)[]): Wrapped<T>
-export function stub<T extends object>(
-  methodNames: string[],
+export function stub<T extends object = Record<string, unknown>>(
+  methodNames: readonly (keyof T)[],
   properties?: StubPropertyDescriptor[],
   options?: StubOptions
 ): Wrapped<T>
+export function stub<T extends object>(obj: T): Wrapped<T>
 export function stub<T extends object>(
-  target: T | (keyof T)[] | string[] | AnyCtor,
+  target: T | readonly (keyof T)[] | readonly string[] | AnyCtor,
   properties?: StubPropertyDescriptor[],
   options: StubOptions = { debug: { prefix: PREFIX, suffix: 'stub' } }
 ): Wrapped<T> {
@@ -155,7 +166,7 @@ stub.class = function stubClass<C extends AnyCtor>(
     {
       construct(_target, args) {
         constructorMock.invoke(args, undefined)
-        const instance = stub<InstanceType<C>>(methodNames as string[]) as Wrapped<InstanceType<C>>
+        const instance = stub<InstanceType<C>>(methodNames as (keyof InstanceType<C>)[]) as Wrapped<InstanceType<C>>
         instances.push(instance)
         for (const s of setups) s(instance)
         return instance as unknown as object
