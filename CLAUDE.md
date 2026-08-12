@@ -43,7 +43,16 @@ If a squash is unavoidable, rename the squash commit message to `feat: …` or `
 
 **`@semantic-release/git` and `@semantic-release/changelog` are intentionally not used, and are no longer installed.** Both would try to push a `chore(release):` commit back to the release branch, which branch protection rejects. Don't re-add them to `devDependencies` — they sat there unused (and generating dependabot majors) until they were removed. `package.json` and `CHANGELOG.md` in the repo are not auto-maintained — the authoritative record is the [GitHub Releases page](https://github.com/guzzlerio/deride/releases).
 
-**Secrets required by the release workflow:** `NPM_TOKEN` (automation token with publish + provenance rights). `GITHUB_TOKEN` is provided automatically.
+**npm authentication uses trusted publishing (OIDC) — not a long-lived token.** The publisher is configured registry-side at npmjs.com → deride → Settings → Trusted Publisher, pinned to this repo and `release.yml`. The workflow grants `id-token: write`, and `@semantic-release/npm` exchanges the GitHub OIDC token for a short-lived registry credential.
+
+Two consequences worth knowing before editing `release.yml`:
+
+- **Renaming the workflow file breaks publishing.** The trusted publisher config pins the filename. Rename it and the OIDC exchange returns 404 and the release fails.
+- **npm CLI must be >= 11.5.1.** Node 22 bundles npm 10.9.x, so the workflow upgrades npm explicitly. On a successful exchange the plugin writes *no* token to `.npmrc`, so `npm publish` has to authenticate via OIDC itself — an older npm reaches that point with no credentials. Don't remove that step.
+
+Provenance is generated automatically under trusted publishing. It was never actually enabled before (nothing passed `--provenance`, and `deride@2.2.0` has no attestations) despite the workflow comment claiming otherwise.
+
+**Secrets:** `GITHUB_TOKEN` is provided automatically. `NPM_TOKEN` is retained only as a fallback — `@semantic-release/npm` uses it when the OIDC exchange fails. It is not the primary path.
 
 ## Conventional Commits — enforced on every PR
 
